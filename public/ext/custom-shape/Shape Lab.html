@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POLYFORGE — visual 3D shape builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-950:#0a0b0d; --bg-900:#15171a; --bg-850:#1b1e22; --bg-800:#212429; --bg-700:#34383f;
+  --border-800:#23262b; --border-700:#363a41; --border-600:#474c54;
+  --text-100:#f3f4f6; --text-200:#e2e4e8; --text-300:#c4c8cf; --text-400:#9aa0a8; --text-500:#737881; --text-600:#565b63;
+  --amber-300:#ffd479; --amber-400:#ffb238; --amber-500:#f59e0b;
+  --red-300:#ffb4b4; --red-400:#ff6b6b; --red-900:#3a1414;
+  --emerald-400:#34d399;
+  --sans:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;}
+body{background:var(--bg-950);color:var(--text-200);font-family:var(--sans);overflow:hidden;}
+button,input,select,textarea{font-family:inherit;color:inherit;}
+button{cursor:pointer;}
+.mono{font-family:var(--mono);}
+#app{height:100vh;width:100vw;display:flex;flex-direction:column;}
+
+/* ── layout helpers ── */
+.row{display:flex;align-items:center;}
+.col{display:flex;flex-direction:column;}
+.flex-1{flex:1 1 0%;min-width:0;min-height:0;}
+.shrink-0{flex-shrink:0;}
+.gap-1{gap:4px;} .gap-1-5{gap:6px;} .gap-2{gap:8px;} .gap-2-5{gap:10px;} .gap-3{gap:12px;}
+.justify-between{justify-content:space-between;}
+.justify-center{justify-content:center;}
+.items-end{align-items:flex-end;}
+.wrap{flex-wrap:wrap;}
+.relative{position:relative;}
+.hidden{display:none !important;}
+
+/* ── text ── */
+.text-xs{font-size:11px;} .text-sm{font-size:13px;} .text-base{font-size:15px;}
+.text-tiny{font-size:10px;}
+.uppercase{text-transform:uppercase;letter-spacing:.06em;}
+.muted{color:var(--text-500);}
+.muted-4{color:var(--text-400);}
+.muted-3{color:var(--text-300);}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.leading-tight{line-height:1.25;}
+.leading-relaxed{line-height:1.6;}
+.center-text{text-align:center;}
+
+/* ── top bar ── */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border-800);background:rgba(21,23,26,.7);flex-shrink:0;gap:12px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand .title{font-size:16px;font-weight:600;letter-spacing:-.01em;color:var(--text-100);line-height:1;}
+.brand .subtitle{font-size:11px;color:var(--text-500);margin-top:3px;line-height:1;}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+.tabswitch{display:flex;align-items:center;gap:2px;background:var(--bg-900);border:1px solid var(--border-800);border-radius:9px;padding:3px;}
+.tabbtn{display:flex;align-items:center;gap:6px;padding:7px 12px;border:none;border-radius:6px;background:transparent;color:var(--text-400);font-size:12px;font-weight:500;}
+.tabbtn.active{background:var(--amber-500);color:#1a1300;}
+.tabbtn:not(.active):hover{color:var(--text-200);}
+
+.gridctrl{display:flex;align-items:center;gap:8px;background:var(--bg-900);border:1px solid var(--border-800);border-radius:9px;padding:5px 8px;}
+.gridctrl label{font-size:10px;color:var(--text-500);}
+.spacing-wrap{display:flex;align-items:center;gap:5px;background:var(--bg-800);border:1px solid var(--border-700);border-radius:6px;padding:3px 7px;cursor:ns-resize;}
+.spacing-wrap:hover{border-color:var(--amber-500);}
+.spacing-wrap input{width:54px;background:transparent;border:none;font-size:12px;outline:none;-moz-appearance:textfield;}
+.spacing-wrap input::-webkit-outer-spin-button,.spacing-wrap input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.magnetbtn{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:7px;border:1px solid var(--border-700);background:var(--bg-800);color:var(--text-300);font-size:12px;}
+.magnetbtn.active{background:rgba(245,158,11,.18);border-color:var(--amber-500);color:var(--amber-300);}
+.magnetbtn:hover:not(.active){border-color:var(--border-600);}
+
+/* ── generic buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:7px;border:1px solid var(--border-700);background:var(--bg-800);color:var(--text-300);font-size:12px;}
+.btn:hover{background:var(--bg-700);}
+.btn-amber{background:var(--amber-500);border-color:var(--amber-500);color:#1a1300;font-weight:600;}
+.btn-amber:hover{background:var(--amber-400);}
+.btn-amber:disabled{background:var(--bg-800);border-color:var(--border-800);color:var(--text-600);cursor:default;}
+.btn-danger{background:rgba(122,20,20,.35);border-color:#5c1c1c;color:var(--red-300);}
+.btn-danger:hover{background:rgba(122,20,20,.55);}
+.btn-ghost{background:rgba(21,23,26,.8);}
+.btn-block{width:100%;justify-content:center;}
+.btn-sm{padding:6px 9px;font-size:11px;}
+.icon{width:14px;height:14px;flex-shrink:0;}
+.icon-sm{width:12px;height:12px;}
+
+/* ── tab content layout ── */
+.tabpage{display:flex;flex:1;min-height:0;}
+.sidebar{flex-shrink:0;border-right:1px solid var(--border-800);background:rgba(21,23,26,.4);display:flex;flex-direction:column;min-height:0;}
+.sidebar-right{border-right:none;border-left:1px solid var(--border-800);}
+.sidebar-head{padding:12px 12px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-500);flex-shrink:0;}
+.sidebar-scroll{overflow-y:auto;padding:0 8px 8px;}
+.sidebar-foot{padding:10px 12px;border-top:1px solid var(--border-800);font-size:11px;color:var(--text-500);line-height:1.6;margin-top:auto;}
+
+.viewport{flex:1;position:relative;background:#000;min-width:0;}
+.viewport canvas{display:block;width:100%;height:100%;}
+.badge{font-size:11px;color:var(--text-400);background:rgba(21,23,26,.85);border:1px solid var(--border-800);border-radius:999px;padding:5px 11px;}
+.overlay-tl{position:absolute;top:12px;left:12px;display:flex;gap:8px;align-items:center;}
+.overlay-tr{position:absolute;top:12px;right:12px;display:flex;gap:8px;align-items:center;}
+.overlay-bottom{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(245,158,11,.15);border:1px solid var(--amber-500);color:var(--amber-300);font-size:12px;padding:7px 14px;border-radius:999px;}
+.overlay-bottom button{background:none;border:none;color:inherit;display:flex;}
+
+/* ── palette ── */
+.palette-btn{width:100%;display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;border:1px solid var(--border-800);background:var(--bg-900);text-align:left;margin-bottom:5px;}
+.palette-btn:hover{border-color:var(--border-600);}
+.palette-btn.active{background:rgba(245,158,11,.13);border-color:var(--amber-500);color:var(--amber-300);}
+.swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+.palette-label{font-size:13px;line-height:1.25;}
+.palette-sub{font-size:10px;color:var(--text-500);line-height:1.25;}
+
+/* ── selected-shape / point editor ── */
+.field{margin-bottom:12px;}
+.field-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-500);margin-bottom:5px;}
+.axis3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.axis-box{display:flex;align-items:center;background:var(--bg-900);border:1px solid var(--border-700);border-radius:6px;padding:0 6px;}
+.axis-box span{font-size:10px;margin-right:4px;}
+.axis-box.x span{color:#ff8a8a;} .axis-box.y span{color:#7be8b0;} .axis-box.z span{color:#7ec8ff;}
+.axis-box input{width:100%;background:transparent;border:none;font-size:12px;padding:6px 0;outline:none;}
+input[type=range]{width:100%;accent-color:var(--amber-500);}
+input[type=color]{width:100%;height:30px;border-radius:6px;border:1px solid var(--border-700);background:transparent;cursor:pointer;}
+
+.list-row{width:100%;display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;border:1px solid var(--border-800);background:var(--bg-900);text-align:left;margin-bottom:5px;}
+.list-row:hover{border-color:var(--border-600);}
+.list-row.selected{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.5);}
+.list-row .trash{color:var(--text-600);padding:2px;}
+.list-row .trash:hover{color:var(--red-400);}
+.empty-hint{font-size:11px;color:var(--text-600);padding:14px 8px;}
+
+.linkbtn{font-size:11px;color:var(--text-500);background:none;border:none;display:flex;align-items:center;gap:4px;padding:2px 0;}
+.linkbtn:hover{color:var(--text-200);}
+
+/* ── export panel ── */
+#export-panel{border-top:1px solid var(--border-800);background:rgba(21,23,26,.7);flex-shrink:0;}
+.export-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;padding:9px 16px;background:none;border:none;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-400);}
+.export-toggle:hover{color:var(--text-200);}
+#export-body{padding:0 16px 16px;max-height:42vh;overflow-y:auto;}
+.settings-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:10px;}
+@media (max-width:1100px){.settings-grid{grid-template-columns:repeat(3,1fr);}}
+@media (max-width:680px){.settings-grid{grid-template-columns:repeat(2,1fr);}}
+.set-field label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-500);margin-bottom:4px;}
+.set-field input,.set-field select{width:100%;background:var(--bg-800);border:1px solid var(--border-700);border-radius:6px;padding:6px 8px;font-size:12px;outline:none;}
+.set-field input:focus,.set-field select:focus{border-color:var(--amber-500);}
+.set-check{display:flex;align-items:flex-end;padding-bottom:6px;}
+.set-check label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-300);}
+.set-check input{accent-color:var(--amber-500);}
+
+.status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px;}
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;}
+.status-dirty{color:var(--amber-400);}
+.status-dirty .status-dot{background:var(--amber-400);}
+.status-sync{color:var(--emerald-400);}
+.status-sync .status-dot{background:var(--emerald-400);}
+.status-actions{display:flex;gap:6px;}
+.apply-error{font-size:11px;color:var(--red-400);margin-bottom:6px;}
+.apply-hint{font-size:10px;color:var(--text-600);margin-bottom:6px;}
+#code-textarea{width:100%;background:var(--bg-950);border:1px solid var(--border-800);border-radius:7px;padding:11px;font-size:12px;color:#ffd9a0;line-height:1.55;resize:vertical;outline:none;min-height:190px;}
+#code-textarea:focus{border-color:#a3651a;}
+
+/* ── freeform build box ── */
+.facebox{background:var(--bg-900);border:1px solid var(--border-800);border-radius:8px;padding:10px;margin-bottom:12px;}
+.facebox .count{font-size:12px;color:var(--text-300);margin-bottom:8px;}
+.facebox .stack{display:flex;flex-direction:column;gap:6px;}
+
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-700);border-radius:5px;}
+::-webkit-scrollbar-thumb:hover{background:var(--border-600);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="topbar">
+    <div class="brand">
+      <svg class="icon" style="width:20px;height:20px;color:var(--amber-400)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <div>
+        <div class="title">POLYFORGE</div>
+        <div class="subtitle mono">visual 3D shape builder &middot; makePolyhedron() export</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="gridctrl">
+        <button id="magnet-toggle" class="magnetbtn" title="Snap to grid">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15v-3a6 6 0 0 1 12 0v3"/><path d="M18 15a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3h6z"/><path d="M6 15a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3H6z"/><line x1="9" y1="9" x2="9" y2="12"/><line x1="15" y1="9" x2="15" y2="12"/></svg>
+          <span>Snap</span>
+        </button>
+        <label for="grid-spacing-input">Grid</label>
+        <div id="grid-spacing-wrap" class="spacing-wrap" title="Scroll here to fine-tune grid spacing">
+          <svg class="icon-sm muted-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+          <input type="number" id="grid-spacing-input" value="1" step="0.05" min="0.02" max="200">
+          <span class="text-tiny muted">scroll</span>
+        </div>
+        <button id="grid-spacing-reset" class="btn btn-sm" title="Reset spacing to 1">1&times;</button>
+      </div>
+      <div class="tabswitch">
+        <button id="tab-build" class="tabbtn active" data-tab="build">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          Build
+        </button>
+        <button id="tab-freeform" class="tabbtn" data-tab="freeform">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>
+          Freeform
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ BUILD TAB ════════════ -->
+  <div id="build-tab" class="tabpage">
+    <div class="sidebar" style="width:190px;">
+      <div class="sidebar-head">Primitives</div>
+      <div id="palette-list" class="sidebar-scroll flex-1"></div>
+      <div class="sidebar-foot">Drag empty space to look around. Scroll to zoom. W/S or &uarr;/&darr; to fly forward/back. Click a shape to select &amp; drag to move it.</div>
+    </div>
+
+    <div class="viewport">
+      <div id="build-canvas-mount" style="width:100%;height:100%;"></div>
+      <div class="overlay-tl"><span id="build-count" class="badge mono">1 shape</span></div>
+      <div class="overlay-tr">
+        <button id="build-reset-view" class="btn btn-ghost btn-sm"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Reset View</button>
+        <button id="build-clear" class="btn btn-ghost btn-sm"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span id="build-clear-label">Clear Scene</span></button>
+      </div>
+      <div id="build-placing-hint" class="overlay-bottom hidden">
+        <span id="build-placing-text">Placing — click the grid</span>
+        <button id="build-placing-cancel"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+
+    <div class="sidebar sidebar-right" style="width:320px;">
+      <div class="sidebar-head">Selected Shape</div>
+      <div id="build-selected-panel" class="sidebar-scroll" style="max-height:46%;border-bottom:1px solid var(--border-800);padding-bottom:12px;"></div>
+      <div class="sidebar-head" style="padding-top:12px;">Scene <span id="build-scene-count" class="muted">(1)</span></div>
+      <div id="build-scene-list" class="sidebar-scroll flex-1"></div>
+    </div>
+  </div>
+
+  <!-- ════════════ FREEFORM TAB ════════════ -->
+  <div id="freeform-tab" class="tabpage hidden">
+    <div class="sidebar" style="width:220px;">
+      <div class="sidebar-head">Build a Face</div>
+      <div class="sidebar-scroll">
+        <p class="text-xs muted-4 leading-relaxed" style="margin:0 0 12px;">Click empty space to drop a point. Keep clicking to add more — each click extends the current face, and once you have 3+ points you'll see a live filled-in preview, not just the outline. Click an existing dot to reuse it.</p>
+        <div class="field">
+          <div class="field-label">Point height (Y = <span id="placement-y-label">0</span>)</div>
+          <input type="range" id="placement-y" min="-12" max="12" step="0.25" value="0">
+        </div>
+        <div class="facebox">
+          <div class="count">Current face: <span id="inprogress-count">0</span> point(s)</div>
+          <div class="stack">
+            <button id="finish-face" class="btn btn-amber btn-block btn-sm" disabled>Finish Face</button>
+            <button id="undo-point" class="btn btn-block btn-sm" disabled>Undo Last Point</button>
+            <button id="cancel-face" class="btn btn-block btn-sm" disabled>Cancel Face</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Mesh preview color</div>
+          <input type="color" id="preview-color" value="#e8b34a">
+        </div>
+      </div>
+      <div class="sidebar-foot">Drag empty space to look around. Scroll to zoom. W/S or &uarr;/&darr; to fly forward/back. Drag a point to move it; a quick click reuses it.</div>
+    </div>
+
+    <div class="viewport">
+      <div id="freeform-canvas-mount" style="width:100%;height:100%;"></div>
+      <div class="overlay-tl"><span id="freeform-count" class="badge mono">0 points &middot; 0 faces</span></div>
+      <div class="overlay-tr">
+        <button id="freeform-reset-view" class="btn btn-ghost btn-sm"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Reset View</button>
+        <button id="freeform-clear" class="btn btn-ghost btn-sm"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span id="freeform-clear-label">Clear All</span></button>
+      </div>
+    </div>
+
+    <div class="sidebar sidebar-right" style="width:320px;">
+      <div class="sidebar-head">Selected Point</div>
+      <div id="freeform-selected-panel" class="sidebar-scroll" style="border-bottom:1px solid var(--border-800);padding-bottom:12px;"></div>
+      <div class="sidebar-head" style="padding-top:12px;">Faces <span id="freeform-faces-count" class="muted">(0)</span></div>
+      <div id="freeform-faces-list" class="sidebar-scroll flex-1"></div>
+    </div>
+  </div>
+
+  <!-- ════════════ SHARED EXPORT PANEL ════════════ -->
+  <div id="export-panel">
+    <button id="export-toggle" class="export-toggle">
+      <span>Export Code</span>
+      <svg id="export-chevron" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div id="export-body">
+      <div id="settings-grid" class="settings-grid"></div>
+      <div class="status-row">
+        <div id="status-indicator" class="status-sync text-xs mono"><span class="status-dot"></span><span id="status-text">In sync with the scene</span></div>
+        <div class="status-actions">
+          <button id="discard-edits" class="btn btn-sm hidden">Discard Edits</button>
+          <button id="apply-code" class="btn btn-amber btn-sm hidden">Apply Code &rarr; Scene</button>
+          <button id="copy-code" class="btn btn-sm"><svg class="icon-sm" id="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span id="copy-label">Copy Code</span></button>
+        </div>
+      </div>
+      <div id="apply-error" class="apply-error hidden"></div>
+      <div id="apply-hint" class="apply-hint"></div>
+      <textarea id="code-textarea" spellcheck="false" rows="10"></textarea>
+    </div>
+  </div>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ════════════════════════════════════════════════════════════════════════
+   GEOMETRY CORE — pure functions, identical math to a proven OSA-style set.
+   Every primitive returns { vertices:[[x,y,z],...], faces:[[i,j,k,...],...] }
+   normalized to a unit bounding sphere (radius ~1), Y-up.
+   ════════════════════════════════════════════════════════════════════════ */
+
+function normalize(shape) {
+  let maxR = 0;
+  for (const v of shape.vertices) {
+    const r = Math.hypot(v[0], v[1], v[2]);
+    if (r > maxR) maxR = r;
+  }
+  if (maxR === 0) maxR = 1;
+  return {
+    vertices: shape.vertices.map((v) => [v[0] / maxR, v[1] / maxR, v[2] / maxR]),
+    faces: shape.faces,
+  };
+}
+
+function dedupeLiteral(literalFaces, precision) {
+  precision = precision == null ? 6 : precision;
+  const map = new Map();
+  const vertices = [];
+  const faces = [];
+  const key = (v) => v.map((n) => Math.round(n * Math.pow(10, precision)) / Math.pow(10, precision)).join(',');
+  for (const face of literalFaces) {
+    const idx = [];
+    for (const v of face) {
+      const k = key(v);
+      let i = map.get(k);
+      if (i === undefined) {
+        i = vertices.length;
+        map.set(k, i);
+        vertices.push(v);
+      }
+      idx.push(i);
+    }
+    faces.push(idx);
+  }
+  return { vertices: vertices, faces: faces };
+}
+
+function genCube() {
+  return normalize({
+    vertices: [
+      [1, 1, 1], [-1, 1, 1], [-1, 1, -1], [1, 1, -1],
+      [1, -1, 1], [-1, -1, 1], [-1, -1, -1], [1, -1, -1],
+    ],
+    faces: [
+      [0, 1, 2, 3],
+      [7, 6, 5, 4],
+      [0, 4, 5, 1],
+      [3, 2, 6, 7],
+      [0, 3, 7, 4],
+      [1, 5, 6, 2],
+    ],
+  });
+}
+
+function genTetrahedron() {
+  return normalize({
+    vertices: [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]],
+    faces: [[0, 1, 2], [0, 3, 1], [0, 2, 3], [1, 3, 2]],
+  });
+}
+
+function genOctahedron() {
+  return normalize({
+    vertices: [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]],
+    faces: [
+      [0, 2, 4], [2, 1, 4], [1, 3, 4], [3, 0, 4],
+      [2, 0, 5], [1, 2, 5], [3, 1, 5], [0, 3, 5],
+    ],
+  });
+}
+
+function genDodecahedronLiteral() {
+  const phi = (1 + Math.sqrt(5)) / 2, x = 1, y = 1 / phi, z = 2 - phi;
+  return [
+    [[z, 0, x], [-z, 0, x], [-y, y, y], [0, x, z], [y, y, y]],
+    [[-z, 0, x], [z, 0, x], [y, -y, y], [0, -x, z], [-y, -y, y]],
+    [[z, 0, -x], [-z, 0, -x], [-y, -y, -y], [0, -x, -z], [y, -y, -y]],
+    [[-z, 0, -x], [z, 0, -x], [y, y, -y], [0, x, -z], [-y, y, -y]],
+    [[0, x, -z], [0, x, z], [y, y, y], [x, z, 0], [y, y, -y]],
+    [[0, x, z], [0, x, -z], [-y, y, -y], [-x, z, 0], [-y, y, y]],
+    [[0, -x, -z], [0, -x, z], [-y, -y, y], [-x, -z, 0], [-y, -y, -y]],
+    [[0, -x, z], [0, -x, -z], [y, -y, -y], [x, -z, 0], [y, -y, y]],
+    [[x, z, 0], [x, -z, 0], [y, -y, y], [z, 0, x], [y, y, y]],
+    [[x, -z, 0], [x, z, 0], [y, y, -y], [z, 0, -x], [y, -y, -y]],
+    [[-x, z, 0], [-x, -z, 0], [-y, -y, -y], [-z, 0, -x], [-y, y, -y]],
+    [[-x, -z, 0], [-x, z, 0], [-y, y, y], [-z, 0, x], [-y, -y, y]],
+  ];
+}
+function genDodecahedron() { return normalize(dedupeLiteral(genDodecahedronLiteral())); }
+
+function genIcosahedronLiteral() {
+  const phi = (1 + Math.sqrt(5)) / 2, x = 0.5, y = 1 / (2 * phi);
+  return [
+    [[0, y, -x], [y, x, 0], [-y, x, 0]],
+    [[0, y, x], [-y, x, 0], [y, x, 0]],
+    [[0, y, x], [0, -y, x], [-x, 0, y]],
+    [[0, y, x], [x, 0, y], [0, -y, x]],
+    [[0, y, -x], [0, -y, -x], [x, 0, -y]],
+    [[0, y, -x], [-x, 0, -y], [0, -y, -x]],
+    [[0, -y, x], [y, -x, 0], [-y, -x, 0]],
+    [[0, -y, -x], [-y, -x, 0], [y, -x, 0]],
+    [[-y, x, 0], [-x, 0, y], [-x, 0, -y]],
+    [[-y, -x, 0], [-x, 0, -y], [-x, 0, y]],
+    [[y, x, 0], [x, 0, -y], [x, 0, y]],
+    [[y, -x, 0], [x, 0, y], [x, 0, -y]],
+    [[0, y, x], [-x, 0, y], [-y, x, 0]],
+    [[0, y, x], [y, x, 0], [x, 0, y]],
+    [[0, y, -x], [-y, x, 0], [-x, 0, -y]],
+    [[0, y, -x], [x, 0, -y], [y, x, 0]],
+    [[0, -y, -x], [-x, 0, -y], [-y, -x, 0]],
+    [[0, -y, -x], [y, -x, 0], [x, 0, -y]],
+    [[0, -y, x], [-y, -x, 0], [-x, 0, y]],
+    [[0, -y, x], [x, 0, y], [y, -x, 0]],
+  ];
+}
+function genIcosahedron() { return normalize(dedupeLiteral(genIcosahedronLiteral())); }
+
+function genIcosphere(detail) {
+  const d = detail == null ? 1 : detail;
+  const t = (1 + Math.sqrt(5)) / 2;
+  let verts = [
+    [-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0],
+    [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t],
+    [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1],
+  ].map((v) => {
+    const len = Math.hypot(v[0], v[1], v[2]);
+    return [v[0] / len, v[1] / len, v[2] / len];
+  });
+  let faces = [
+    [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+    [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+    [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+    [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
+  ];
+  const midCache = new Map();
+  function midpoint(i1, i2) {
+    const key = i1 < i2 ? i1 + '_' + i2 : i2 + '_' + i1;
+    if (midCache.has(key)) return midCache.get(key);
+    const a = verts[i1], b = verts[i2];
+    const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+    const len = Math.hypot(mid[0], mid[1], mid[2]);
+    verts.push([mid[0] / len, mid[1] / len, mid[2] / len]);
+    const idx = verts.length - 1;
+    midCache.set(key, idx);
+    return idx;
+  }
+  const clampedDetail = Math.max(0, Math.min(3, d));
+  for (let i = 0; i < clampedDetail; i++) {
+    const newFaces = [];
+    for (const f of faces) {
+      const a = f[0], b = f[1], c = f[2];
+      const ab = midpoint(a, b), bc = midpoint(b, c), ca = midpoint(c, a);
+      newFaces.push([a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca]);
+    }
+    faces = newFaces;
+  }
+  return normalize({ vertices: verts, faces: faces });
+}
+
+function genCone(sides) {
+  const n = Math.max(3, Math.min(48, Math.round(sides == null ? 12 : sides)));
+  const verts = [[0, 1, 0]];
+  for (let i = 0; i < n; i++) {
+    const a = (i * 2 * Math.PI) / n;
+    verts.push([Math.cos(a), -1, Math.sin(a)]);
+  }
+  const baseFace = [];
+  for (let i = n; i >= 1; i--) baseFace.push(i);
+  const faces = [baseFace];
+  for (let i = 1; i <= n; i++) {
+    const ni = i === n ? 1 : i + 1;
+    faces.push([0, i, ni]);
+  }
+  return normalize({ vertices: verts, faces: faces });
+}
+
+function genCylinder(sides) {
+  const n = Math.max(3, Math.min(48, Math.round(sides == null ? 12 : sides)));
+  const verts = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i * 2 * Math.PI) / n;
+    verts.push([Math.cos(a), 1, Math.sin(a)]);
+  }
+  for (let i = 0; i < n; i++) {
+    const a = (i * 2 * Math.PI) / n;
+    verts.push([Math.cos(a), -1, Math.sin(a)]);
+  }
+  const topFace = [];
+  for (let i = 0; i < n; i++) topFace.push(i);
+  const botFace = [];
+  for (let i = n * 2 - 1; i >= n; i--) botFace.push(i);
+  const faces = [topFace, botFace];
+  for (let i = 0; i < n; i++) {
+    const ni = (i + 1) % n;
+    faces.push([i, ni, ni + n, i + n]);
+  }
+  return normalize({ vertices: verts, faces: faces });
+}
+
+function genPyramid() {
+  return normalize({
+    vertices: [
+      [1, -0.6, 1], [-1, -0.6, 1], [-1, -0.6, -1], [1, -0.6, -1],
+      [0, 1, 0],
+    ],
+    faces: [
+      [0, 1, 2, 3],
+      [0, 4, 1],
+      [1, 4, 2],
+      [2, 4, 3],
+      [3, 4, 0],
+    ],
+  });
+}
+
+function genHexPrism() {
+  const top = [], bot = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (i * Math.PI) / 3;
+    top.push([Math.cos(a), 0.6, Math.sin(a)]);
+  }
+  for (let i = 0; i < 6; i++) {
+    const a = (i * Math.PI) / 3;
+    bot.push([Math.cos(a), -0.6, Math.sin(a)]);
+  }
+  const verts = top.concat(bot);
+  const faces = [[0, 1, 2, 3, 4, 5], [11, 10, 9, 8, 7, 6]];
+  for (let i = 0; i < 6; i++) {
+    const ni = (i + 1) % 6;
+    faces.push([i, ni, ni + 6, i + 6]);
+  }
+  return normalize({ vertices: verts, faces: faces });
+}
+
+function genWedge() {
+  return normalize({
+    vertices: [
+      [1, -1, 1], [-1, -1, 1], [0, 1, 1],
+      [1, -1, -1], [-1, -1, -1], [0, 1, -1],
+    ],
+    faces: [
+      [0, 1, 2],
+      [5, 4, 3],
+      [0, 3, 4, 1],
+      [1, 4, 5, 2],
+      [2, 5, 3, 0],
+    ],
+  });
+}
+
+const PRIMITIVE_META = {
+  cube:         { label:'Cube',         sub:'box / rect-prism',   swatch:'#e8b34a', generate:function(){ return genCube(); } },
+  tetrahedron:  { label:'Tetrahedron',  sub:'4 faces',            swatch:'#e85d4a', generate:function(){ return genTetrahedron(); } },
+  octahedron:   { label:'Octahedron',   sub:'8 faces',            swatch:'#4ac9e8', generate:function(){ return genOctahedron(); } },
+  dodecahedron: { label:'Dodecahedron', sub:'12 faces',           swatch:'#8a6fe0', generate:function(){ return genDodecahedron(); } },
+  icosahedron:  { label:'Icosahedron',  sub:'20 faces',           swatch:'#5ad17e', generate:function(){ return genIcosahedron(); } },
+  sphere:       { label:'Sphere',       sub:'smooth icosphere',   swatch:'#e8e8e8', generate:function(p){ return genIcosphere(p && p.detail); }, hasDetail:true },
+  cone:         { label:'Cone',         sub:'adjustable sides',   swatch:'#e0a23a', generate:function(p){ return genCone(p && p.sides); }, hasSides:true },
+  cylinder:     { label:'Cylinder',     sub:'adjustable sides',   swatch:'#3ab0e0', generate:function(p){ return genCylinder(p && p.sides); }, hasSides:true },
+  pyramid:      { label:'Pyramid',      sub:'square base',        swatch:'#d4c14a', generate:function(){ return genPyramid(); } },
+  hexPrism:     { label:'Hex Prism',    sub:'6-sided column',     swatch:'#c45ae0', generate:function(){ return genHexPrism(); } },
+  wedge:        { label:'Wedge',        sub:'tent / roof',        swatch:'#e85a8c', generate:function(){ return genWedge(); } },
+  raw:          { label:'Custom Mesh',  sub:'from edited code',   swatch:'#e8b34a', generate:function(){ return {vertices:[],faces:[]}; } },
+};
+const PRIMITIVE_ORDER = ['cube','tetrahedron','octahedron','dodecahedron','icosahedron','sphere','cone','cylinder','pyramid','hexPrism','wedge'];
+
+function defaultParams(type) {
+  if (type === 'cone' || type === 'cylinder') return { sides: 12 };
+  if (type === 'sphere') return { detail: 1 };
+  return {};
+}
+
+/* ─── shared math / export helpers ─── */
+
+function cleanNum(n) {
+  const r = Math.round(n * 1000) / 1000;
+  return Object.is(r, -0) ? 0 : r;
+}
+
+function snapVal(v, spacing) {
+  return Math.round(v / spacing) * spacing;
+}
+
+function applyTransform(vertices, inst) {
+  const m = new THREE.Matrix4();
+  const quat = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(inst.rotation.x, inst.rotation.y, inst.rotation.z, 'XYZ')
+  );
+  m.compose(
+    new THREE.Vector3(inst.position.x, inst.position.y, inst.position.z),
+    quat,
+    new THREE.Vector3(inst.scale.x, inst.scale.y, inst.scale.z)
+  );
+  return vertices.map((v) => {
+    const vec = new THREE.Vector3(v[0], v[1], v[2]).applyMatrix4(m);
+    return [cleanNum(vec.x), cleanNum(vec.y), cleanNum(vec.z)];
+  });
+}
+
+function toBufferGeometry(vertices, faces) {
+  const positions = [];
+  for (const face of faces) {
+    for (let i = 1; i < face.length - 1; i++) {
+      const a = vertices[face[0]], b = vertices[face[i]], c = vertices[face[i + 1]];
+      if (!a || !b || !c) continue;
+      positions.push(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions.length ? positions : [0, 0, 0], 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function toCamel(str) {
+  const cleaned = String(str || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9 ]/g, '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(function(w, i) { return i === 0 ? w.charAt(0).toLowerCase() + w.slice(1) : w.charAt(0).toUpperCase() + w.slice(1); })
+    .join('');
+  return cleaned || 'myShape';
+}
+
+function newId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+/* flatten a Build-tab instance list into one merged {vertices, faces} */
+function flattenInstances(instances) {
+  let vertices = [];
+  let faces = [];
+  for (const inst of instances) {
+    const raw = inst.type === 'raw' ? inst.rawShape : PRIMITIVE_META[inst.type].generate(inst.params);
+    const worldV = applyTransform(raw.vertices, inst);
+    const offset = vertices.length;
+    vertices = vertices.concat(worldV);
+    for (const f of raw.faces) faces.push(f.map(function(i){ return i + offset; }));
+  }
+  return { vertices: vertices, faces: faces };
+}
+
+/* flatten Freeform points+faces (id-based) into {vertices, faces} (index-based) */
+function freeformToShape(points, faces) {
+  const used = new Set();
+  for (const f of faces) for (const pid of f.pointIds) used.add(pid);
+  const usedPoints = points.filter(function(p){ return used.has(p.id); });
+  const idToIndex = new Map(usedPoints.map(function(p, i){ return [p.id, i]; }));
+  const vertices = usedPoints.map(function(p){ return [p.x, p.y, p.z]; });
+  const faceIdx = faces
+    .map(function(f){ return f.pointIds.map(function(pid){ return idToIndex.get(pid); }).filter(function(i){ return i !== undefined; }); })
+    .filter(function(f){ return f.length >= 3; });
+  return { vertices: vertices, faces: faceIdx };
+}
+
+/* turn a flattened {vertices, faces} shape into the full pasteable code block */
+function codeFromShape(shape, s) {
+  if (!shape || !shape.vertices || shape.vertices.length === 0) {
+    return '// Add some geometry first — place a primitive or build some points & faces.';
+  }
+  const vertsStr = shape.vertices.map(function(v){ return '[' + v[0] + ', ' + v[1] + ', ' + v[2] + ']'; }).join(',\n        ');
+  const facesStr = shape.faces.map(function(f){ return '[' + f.join(', ') + ']'; }).join(',\n        ');
+  const shapeName = toCamel(s.shapeName);
+  const className = toCamel(s.className);
+  const shapeVar = shapeName + '_shape';
+
+  let out = '';
+  out += shapeVar + ' = makePolyhedron({\n';
+  out += '    VERTEXES: [\n        ' + vertsStr + '\n    ],\n';
+  out += '    FACES: [\n        ' + facesStr + '\n    ],\n';
+  out += '    SCALE: ' + s.scaleField + ',\n';
+  out += '    VERTEXES_SCALE: ' + s.vertexesScale + '\n';
+  out += '});\n\n';
+  out += 'Class.' + className + ' = {\n';
+  out += '    PARENT: "' + s.parent + '",\n';
+  out += '    LABEL: "' + s.label + '",\n';
+  out += '    VALUE: ' + s.value + ',\n';
+  out += '    SIZE: ' + s.sizeField + ',\n';
+  out += '    COLOR: "' + s.color + '",\n';
+  out += '    SHAPE: ' + shapeVar + ',\n';
+  out += '    BODY: {\n';
+  out += '        DAMAGE: ' + s.damage + ',\n';
+  out += '        DENSITY: ' + s.density + ',\n';
+  out += '        HEALTH: ' + s.health + ',\n';
+  out += '        RESIST: ' + s.resist + ',\n';
+  out += '        PENETRATION: ' + s.penetration + ',\n';
+  out += '        ACCELERATION: ' + s.acceleration + '\n';
+  out += '    },\n';
+  out += '    DRAW_HEALTH: ' + s.drawHealth + ',\n';
+  out += '    INTANGIBLE: ' + s.intangible + ',\n';
+  out += '    GIVE_KILL_MESSAGE: ' + s.giveKillMessage + '\n';
+  out += '};';
+  return out;
+}
+
+function numOr(v, fallback) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/* ─── code → data parsing (for the editable code box) ─── */
+
+function extractBracketBlock(text, key) {
+  const startIdx = text.indexOf(key);
+  if (startIdx === -1) return null;
+  const bracketStart = text.indexOf('[', startIdx);
+  if (bracketStart === -1) return null;
+  let depth = 0;
+  for (let i = bracketStart; i < text.length; i++) {
+    if (text[i] === '[') depth++;
+    else if (text[i] === ']') {
+      depth--;
+      if (depth === 0) return text.slice(bracketStart, i + 1);
+    }
+  }
+  return null;
+}
+
+function parseShapeCode(text) {
+  try {
+    const vertsBlock = extractBracketBlock(text, 'VERTEXES');
+    const facesBlock = extractBracketBlock(text, 'FACES');
+    if (!vertsBlock || !facesBlock) return null;
+    const vertices = Function('"use strict"; return (' + vertsBlock + ');')();
+    const faces = Function('"use strict"; return (' + facesBlock + ');')();
+    if (!Array.isArray(vertices) || !Array.isArray(faces)) return null;
+    if (vertices.length === 0 || faces.length === 0) return null;
+    const scaleMatch = text.match(/(?<!VERTEXES_)SCALE:\s*([0-9.eE+-]+)/);
+    const vsMatch = text.match(/VERTEXES_SCALE:\s*([0-9.eE+-]+)/);
+    return {
+      vertices: vertices,
+      faces: faces,
+      scale: scaleMatch ? Number(scaleMatch[1]) : null,
+      vertexesScale: vsMatch ? Number(vsMatch[1]) : null,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+/* ─── shared camera rig: mouse-look orbit + scroll zoom + WASD/arrow fly ─── */
+
+function createCameraRig(camera, initialTarget, initialRadius) {
+  const camState = {
+    theta: Math.PI / 4,
+    phi: Math.PI / 3.1,
+    radius: initialRadius || 11,
+    target: initialTarget ? initialTarget.clone() : new THREE.Vector3(0, 0.6, 0),
+    minRadius: 2,
+    maxRadius: 70,
+    flySpeed: 7,
+  };
+  function updateCamera() {
+    const theta = camState.theta, phi = camState.phi, radius = camState.radius, target = camState.target;
+    camera.position.set(
+      target.x + radius * Math.sin(phi) * Math.sin(theta),
+      target.y + radius * Math.cos(phi),
+      target.z + radius * Math.sin(phi) * Math.cos(theta)
+    );
+    camera.lookAt(target);
+  }
+  updateCamera();
+
+  const keys = { forward: false, backward: false };
+
+  function rotate(dx, dy) {
+    camState.theta -= dx * 0.0055;
+    camState.phi = Math.min(Math.max(camState.phi - dy * 0.0055, 0.18), Math.PI - 0.18);
+    updateCamera();
+  }
+  function zoom(deltaY) {
+    camState.radius = Math.min(Math.max(camState.radius + deltaY * 0.012 * (camState.maxRadius / 70), camState.minRadius), camState.maxRadius);
+    updateCamera();
+  }
+  function setKey(key, down) {
+    if (key === 'w' || key === 'W' || key === 'ArrowUp') keys.forward = down;
+    if (key === 's' || key === 'S' || key === 'ArrowDown') keys.backward = down;
+  }
+  function tick(dt) {
+    if (keys.forward || keys.backward) {
+      const dir = new THREE.Vector3().subVectors(camState.target, camera.position).normalize();
+      const sign = keys.forward ? 1 : -1;
+      camState.target.addScaledVector(dir, camState.flySpeed * dt * sign);
+      updateCamera();
+    }
+  }
+  function reset(target, radius) {
+    camState.theta = Math.PI / 4;
+    camState.phi = Math.PI / 3.1;
+    camState.radius = radius != null ? radius : 11;
+    camState.target = target ? target.clone() : new THREE.Vector3(0, 0.6, 0);
+    updateCamera();
+  }
+  function setScale(extent) {
+    camState.minRadius = Math.max(1.5, extent * 0.03);
+    camState.maxRadius = extent * 1.4;
+    camState.flySpeed = Math.max(1.5, extent * 0.14);
+  }
+
+  return { camState: camState, updateCamera: updateCamera, rotate: rotate, zoom: zoom, setKey: setKey, tick: tick, reset: reset, setScale: setScale };
+}
+
+/* ─── small icon helper (matches the topbar/list trash icon style) ─── */
+function trashSvg() {
+  return '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+}
+function chevronSvg(dir) {
+  const pts = dir === 'up' ? '18 15 12 9 6 15' : '6 9 12 15 18 9';
+  return '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="' + pts + '"/></svg>';
+}
+function plusSvg() {
+  return '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   GLOBAL STATE
+   ════════════════════════════════════════════════════════════════════════ */
+
+const state = {
+  activeTab: 'build',
+  gridSpacing: 1,
+  snapEnabled: false,
+
+  settings: {
+    shapeName: 'myShape', className: 'myShape', label: 'My Shape', color: 'egg', value: '1e7',
+    sizeField: 18, scaleField: 10, vertexesScale: 0.1, parent: 'food',
+    damage: 6, density: 20, health: 60, resist: 1.25, penetration: 20, acceleration: 0.003,
+    drawHealth: true, intangible: false, giveKillMessage: true,
+  },
+
+  instances: [
+    { id: newId(), type: 'cube', position: { x: 0, y: 0.6, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, params: {}, color: PRIMITIVE_META.cube.swatch },
+  ],
+  selectedId: null,
+  pendingType: null,
+  confirmClearBuild: false,
+  advancedScale: false,
+
+  points: [],
+  faces: [],
+  inProgress: [],
+  selectedPointId: null,
+  placementY: 0,
+  previewColor: '#e8b34a',
+  confirmClearFreeform: false,
+
+  codeDirty: false,
+};
+
+/* ════════════════════════════════════════════════════════════════════════
+   SHARED 3D GRID — a CAD-style "corner box": bright floor (XZ) plus two
+   subtler walls (XY, YZ) for genuine depth/height reference. Spacing-aware:
+   always renders ~50 divisions, so the covered extent scales with spacing —
+   fine spacing = a small precise workspace, coarse spacing = a huge one.
+   ════════════════════════════════════════════════════════════════════════ */
+
+function computeExtent(spacing) {
+  return spacing * 50;
+}
+
+function buildGridGroup(spacing) {
+  const group = new THREE.Group();
+  const extent = computeExtent(spacing);
+  const divisions = 50;
+
+  function applyWallStyle(g, opacity) {
+    g.material.transparent = true;
+    g.material.opacity = opacity;
+    g.material.depthWrite = false;
+  }
+
+  // ── Floor (XZ, y=0) ── bright cyan/blue like kient.io, this is your main reference
+  const floor = new THREE.GridHelper(extent, divisions, 0x00d4ff, 0x0a2a3a);
+  floor.material.transparent = true;
+  floor.material.opacity = 0.55;
+  group.add(floor);
+
+  // ── Ceiling (XZ, y=extent) ── same colour, dimmer
+  const ceiling = new THREE.GridHelper(extent, divisions, 0x0088aa, 0x061820);
+  ceiling.position.y = extent;
+  applyWallStyle(ceiling, 0.18);
+  group.add(ceiling);
+
+  // ── Back / front walls (XY) ──
+  const backWall = new THREE.GridHelper(extent, divisions, 0x0066aa, 0x061420);
+  backWall.rotation.x = Math.PI / 2;
+  backWall.position.set(0, extent / 2, -extent / 2);
+  applyWallStyle(backWall, 0.22);
+  group.add(backWall);
+
+  const frontWall = new THREE.GridHelper(extent, divisions, 0x0066aa, 0x061420);
+  frontWall.rotation.x = Math.PI / 2;
+  frontWall.position.set(0, extent / 2, extent / 2);
+  applyWallStyle(frontWall, 0.22);
+  group.add(frontWall);
+
+  // ── Left / right walls (YZ) ──
+  const leftWall = new THREE.GridHelper(extent, divisions, 0x0066aa, 0x061420);
+  leftWall.rotation.z = Math.PI / 2;
+  leftWall.position.set(-extent / 2, extent / 2, 0);
+  applyWallStyle(leftWall, 0.22);
+  group.add(leftWall);
+
+  const rightWall = new THREE.GridHelper(extent, divisions, 0x0066aa, 0x061420);
+  rightWall.rotation.z = Math.PI / 2;
+  rightWall.position.set(extent / 2, extent / 2, 0);
+  applyWallStyle(rightWall, 0.22);
+  group.add(rightWall);
+
+  group.userData.extent = extent;
+  return group;
+}
+
+function disposeGridGroup(group) {
+  group.traverse(function(o){ if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   BUILD TAB — three.js scene + interaction
+   ════════════════════════════════════════════════════════════════════════ */
+
+const buildScene3D = {
+  scene: null, camera: null, renderer: null, rig: null,
+  instanceGroup: null, gridGroup: null, clock: null, rafId: null,
+  container: null, ro: null,
+};
+
+function setupBuildScene() {
+  const container = document.getElementById('build-canvas-mount');
+  buildScene3D.container = container;
+  const width = container.clientWidth || 800, height = container.clientHeight || 600;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x020d14);
+  scene.fog = new THREE.Fog(0x020d14, 28, 80);
+  buildScene3D.scene = scene;
+
+  const camera = new THREE.PerspectiveCamera(48, width / height, 0.1, 4000);
+  buildScene3D.camera = camera;
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.domElement.style.touchAction = 'none';
+  renderer.domElement.style.display = 'block';
+  container.appendChild(renderer.domElement);
+  buildScene3D.renderer = renderer;
+
+  scene.add(new THREE.AmbientLight(0x40434c, 1.3));
+  const key = new THREE.DirectionalLight(0xfff1d6, 1.15);
+  key.position.set(6, 11, 7);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0x5d7bff, 0.35);
+  fill.position.set(-7, -2, -6);
+  scene.add(fill);
+
+  const gridGroup = buildGridGroup(state.gridSpacing);
+  scene.add(gridGroup);
+  buildScene3D.gridGroup = gridGroup;
+
+  const instanceGroup = new THREE.Group();
+  scene.add(instanceGroup);
+  buildScene3D.instanceGroup = instanceGroup;
+
+  const rig = createCameraRig(camera, new THREE.Vector3(0, 0.6, 0), computeExtent(state.gridSpacing) * 0.22);
+  rig.setScale(computeExtent(state.gridSpacing));
+  buildScene3D.rig = rig;
+
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+  let isOrbiting = false, isDraggingShape = false, movedDuringDrag = false;
+  let dragMesh = null, dragId = null, dragPlaneY = 0;
+  let lastX = 0, lastY = 0;
+
+  function getNDC(e) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+  function pickShape(e) {
+    getNDC(e);
+    raycaster.setFromCamera(ndc, camera);
+    const meshes = instanceGroup.children.filter(function(c){ return c.userData && c.userData.id; });
+    const hits = raycaster.intersectObjects(meshes, false);
+    if (hits.length === 0) return null;
+    return { id: hits[0].object.userData.id, mesh: hits[0].object };
+  }
+  function onPointerDown(e) {
+    if (e.button !== 0) return;
+    if (state.pendingType) {
+      getNDC(e);
+      raycaster.setFromCamera(ndc, camera);
+      const pt = new THREE.Vector3();
+      if (raycaster.ray.intersectPlane(groundPlane, pt)) {
+        let x = pt.x, z = pt.z;
+        if (state.snapEnabled) { x = snapVal(x, state.gridSpacing); z = snapVal(z, state.gridSpacing); }
+        placeBuildShape(state.pendingType, x, z);
+      }
+      return;
+    }
+    const picked = pickShape(e);
+    if (picked) {
+      selectBuildShape(picked.id);
+      isDraggingShape = true; movedDuringDrag = false;
+      dragMesh = picked.mesh; dragId = picked.id;
+      const inst = state.instances.find(function(i){ return i.id === picked.id; });
+      dragPlaneY = inst ? inst.position.y : 0;
+      lastX = e.clientX; lastY = e.clientY;
+    } else {
+      selectBuildShape(null);
+      isOrbiting = true;
+      lastX = e.clientX; lastY = e.clientY;
+    }
+  }
+  function onPointerMove(e) {
+    if (isDraggingShape && dragMesh) {
+      movedDuringDrag = true;
+      getNDC(e);
+      raycaster.setFromCamera(ndc, camera);
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -dragPlaneY);
+      const pt = new THREE.Vector3();
+      if (raycaster.ray.intersectPlane(plane, pt)) {
+        dragMesh.position.x = pt.x;
+        dragMesh.position.z = pt.z;
+      }
+      return;
+    }
+    if (isOrbiting) {
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      rig.rotate(dx, dy);
+      lastX = e.clientX; lastY = e.clientY;
+    }
+  }
+  function onPointerUp() {
+    if (isDraggingShape && dragMesh && movedDuringDrag) {
+      let x = dragMesh.position.x, z = dragMesh.position.z;
+      if (state.snapEnabled) { x = snapVal(x, state.gridSpacing); z = snapVal(z, state.gridSpacing); }
+      commitBuildMove(dragId, x, z);
+    }
+    isOrbiting = false; isDraggingShape = false; dragMesh = null; dragId = null;
+  }
+  function onWheel(e) { e.preventDefault(); rig.zoom(e.deltaY); }
+
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
+  renderer.domElement.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+  function onKeyDown(e) {
+    if (state.activeTab !== 'build') return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    if (!typing) rig.setKey(e.key, true);
+    if (typing) return;
+    if (e.key === 'Escape') setBuildPendingType(null);
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (state.selectedId) deleteBuildInstance(state.selectedId);
+    }
+  }
+  function onKeyUp(e) { if (state.activeTab === 'build') rig.setKey(e.key, false); }
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('keyup', onKeyUp);
+
+  function onResize() {
+    const w = container.clientWidth, h = container.clientHeight;
+    if (!w || !h) return;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  }
+  window.addEventListener('resize', onResize);
+  const ro = new ResizeObserver(onResize);
+  ro.observe(container);
+  buildScene3D.ro = ro;
+
+  buildScene3D.clock = new THREE.Clock();
+}
+
+function startBuildLoop() {
+  if (buildScene3D.rafId) return;
+  function animate() {
+    buildScene3D.rafId = requestAnimationFrame(animate);
+    buildScene3D.rig.tick(buildScene3D.clock.getDelta());
+    // Slide the grid box so the camera stays centred inside it (kient.io-style infinite feel)
+    const g = buildScene3D.gridGroup;
+    if (g) {
+      const sp = state.gridSpacing, ext = g.userData.extent || 1;
+      const t = buildScene3D.rig.camState.target;
+      g.position.x = Math.round(t.x / sp) * sp;
+      g.position.z = Math.round(t.z / sp) * sp;
+      // ceiling follows camera height so you never fly above it
+      if (g.children[1]) g.children[1].position.y = Math.max(ext, t.y + ext * 0.55);
+    }
+    buildScene3D.renderer.render(buildScene3D.scene, buildScene3D.camera);
+  }
+  buildScene3D.clock.getDelta();
+  animate();
+}
+function stopBuildLoop() {
+  if (buildScene3D.rafId) { cancelAnimationFrame(buildScene3D.rafId); buildScene3D.rafId = null; }
+}
+
+function rebuildBuildMeshes() {
+  const group = buildScene3D.instanceGroup;
+  if (!group) return;
+  while (group.children.length) {
+    const c = group.children.pop();
+    c.traverse(function(o){ if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  }
+  for (const inst of state.instances) {
+    const raw = inst.type === 'raw' ? inst.rawShape : PRIMITIVE_META[inst.type].generate(inst.params);
+    const geo = toBufferGeometry(raw.vertices, raw.faces);
+    const mat = new THREE.MeshStandardMaterial({ color: inst.color, flatShading: true, side: THREE.DoubleSide, roughness: 0.55, metalness: 0.06 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(inst.position.x, inst.position.y, inst.position.z);
+    mesh.rotation.set(inst.rotation.x, inst.rotation.y, inst.rotation.z);
+    mesh.scale.set(inst.scale.x, inst.scale.y, inst.scale.z);
+    mesh.userData.id = inst.id;
+    group.add(mesh);
+    if (inst.id === state.selectedId) {
+      const edgeGeo = new THREE.EdgesGeometry(geo);
+      const edges = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({ color: 0xffb238 }));
+      mesh.add(edges);
+    }
+  }
+}
+
+function rebuildAllGrids() {
+  if (buildScene3D.gridGroup) {
+    buildScene3D.scene.remove(buildScene3D.gridGroup);
+    disposeGridGroup(buildScene3D.gridGroup);
+    buildScene3D.gridGroup = buildGridGroup(state.gridSpacing);
+    buildScene3D.scene.add(buildScene3D.gridGroup);
+    const extent = computeExtent(state.gridSpacing);
+    buildScene3D.scene.fog.near = extent * 0.55;
+    buildScene3D.scene.fog.far = extent * 2.6;
+    buildScene3D.rig.setScale(extent);
+  }
+  if (freeformScene3D.gridGroup) {
+    freeformScene3D.scene.remove(freeformScene3D.gridGroup);
+    disposeGridGroup(freeformScene3D.gridGroup);
+    freeformScene3D.gridGroup = buildGridGroup(state.gridSpacing);
+    freeformScene3D.scene.add(freeformScene3D.gridGroup);
+    const extent2 = computeExtent(state.gridSpacing);
+    freeformScene3D.scene.fog.near = extent2 * 0.55;
+    freeformScene3D.scene.fog.far = extent2 * 2.6;
+    freeformScene3D.rig.setScale(extent2);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   FREEFORM TAB — three.js scene + interaction
+   ════════════════════════════════════════════════════════════════════════ */
+
+const freeformScene3D = {
+  scene: null, camera: null, renderer: null, rig: null,
+  pointGroup: null, faceGroup: null, lineGroup: null, gridGroup: null,
+  clock: null, rafId: null, container: null, ro: null,
+};
+
+function setupFreeformScene() {
+  const container = document.getElementById('freeform-canvas-mount');
+  freeformScene3D.container = container;
+  const width = container.clientWidth || 800, height = container.clientHeight || 600;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x020d14);
+  scene.fog = new THREE.Fog(0x020d14, 28, 80);
+  freeformScene3D.scene = scene;
+
+  const camera = new THREE.PerspectiveCamera(48, width / height, 0.1, 4000);
+  freeformScene3D.camera = camera;
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.domElement.style.touchAction = 'none';
+  renderer.domElement.style.display = 'block';
+  container.appendChild(renderer.domElement);
+  freeformScene3D.renderer = renderer;
+
+  scene.add(new THREE.AmbientLight(0x40434c, 1.3));
+  const key = new THREE.DirectionalLight(0xfff1d6, 1.15);
+  key.position.set(6, 11, 7);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0x5d7bff, 0.35);
+  fill.position.set(-7, -2, -6);
+  scene.add(fill);
+
+  const gridGroup = buildGridGroup(state.gridSpacing);
+  scene.add(gridGroup);
+  freeformScene3D.gridGroup = gridGroup;
+
+  const pointGroup = new THREE.Group();
+  const faceGroup = new THREE.Group();
+  const lineGroup = new THREE.Group();
+  scene.add(pointGroup, faceGroup, lineGroup);
+  freeformScene3D.pointGroup = pointGroup;
+  freeformScene3D.faceGroup = faceGroup;
+  freeformScene3D.lineGroup = lineGroup;
+
+  const rig = createCameraRig(camera, new THREE.Vector3(0, 0.6, 0), computeExtent(state.gridSpacing) * 0.22);
+  rig.setScale(computeExtent(state.gridSpacing));
+  freeformScene3D.rig = rig;
+
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+
+  let mode = 'idle';
+  let dragMesh = null, dragId = null, dragPlaneY = 0;
+  let lastX = 0, lastY = 0, movedTotal = 0;
+
+  function getNDC(e) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+  function pickPoint(e) {
+    getNDC(e);
+    raycaster.setFromCamera(ndc, camera);
+    const markers = pointGroup.children.filter(function(c){ return c.userData && c.userData.pointId; });
+    const hits = raycaster.intersectObjects(markers, false);
+    if (hits.length === 0) return null;
+    return { id: hits[0].object.userData.pointId, mesh: hits[0].object };
+  }
+
+  function onPointerDown(e) {
+    if (e.button !== 0) return;
+    lastX = e.clientX; lastY = e.clientY; movedTotal = 0;
+    const picked = pickPoint(e);
+    if (picked) {
+      mode = 'draggingPoint';
+      dragMesh = picked.mesh; dragId = picked.id;
+      const p = state.points.find(function(pt){ return pt.id === picked.id; });
+      dragPlaneY = p ? p.y : 0;
+    } else {
+      mode = 'orbiting';
+    }
+  }
+  function onPointerMove(e) {
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    movedTotal += Math.abs(dx) + Math.abs(dy);
+    if (mode === 'draggingPoint' && dragMesh) {
+      getNDC(e);
+      raycaster.setFromCamera(ndc, camera);
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -dragPlaneY);
+      const pt = new THREE.Vector3();
+      if (raycaster.ray.intersectPlane(plane, pt)) {
+        dragMesh.position.x = pt.x;
+        dragMesh.position.z = pt.z;
+      }
+      lastX = e.clientX; lastY = e.clientY;
+      return;
+    }
+    if (mode === 'orbiting') {
+      freeformScene3D.rig.rotate(dx, dy);
+      lastX = e.clientX; lastY = e.clientY;
+    }
+  }
+  function onPointerUp(e) {
+    if (mode === 'draggingPoint' && dragMesh) {
+      if (movedTotal > 4) {
+        let x = dragMesh.position.x, z = dragMesh.position.z;
+        if (state.snapEnabled) { x = snapVal(x, state.gridSpacing); z = snapVal(z, state.gridSpacing); }
+        commitFreeformMove(dragId, x, z);
+      } else {
+        reuseFreeformPoint(dragId);
+      }
+    } else if (mode === 'orbiting') {
+      if (movedTotal <= 4) {
+        getNDC(e);
+        raycaster.setFromCamera(ndc, camera);
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -state.placementY);
+        const pt = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, pt)) {
+          let x = pt.x, y = state.placementY, z = pt.z;
+          if (state.snapEnabled) { x = snapVal(x, state.gridSpacing); y = snapVal(y, state.gridSpacing); z = snapVal(z, state.gridSpacing); }
+          addFreeformPoint(x, y, z);
+        }
+      }
+    }
+    mode = 'idle'; dragMesh = null; dragId = null;
+  }
+  function onWheel(e) { e.preventDefault(); freeformScene3D.rig.zoom(e.deltaY); }
+
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
+  renderer.domElement.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+  function onKeyDown(e) {
+    if (state.activeTab !== 'freeform') return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    if (!typing) freeformScene3D.rig.setKey(e.key, true);
+    if (typing) return;
+    if (e.key === 'Escape') cancelFace();
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (state.selectedPointId) deleteFreeformPoint(state.selectedPointId);
+    }
+  }
+  function onKeyUp(e) { if (state.activeTab === 'freeform') freeformScene3D.rig.setKey(e.key, false); }
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('keyup', onKeyUp);
+
+  function onResize() {
+    const w = container.clientWidth, h = container.clientHeight;
+    if (!w || !h) return;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  }
+  window.addEventListener('resize', onResize);
+  const ro = new ResizeObserver(onResize);
+  ro.observe(container);
+  freeformScene3D.ro = ro;
+
+  freeformScene3D.clock = new THREE.Clock();
+}
+
+function startFreeformLoop() {
+  if (freeformScene3D.rafId) return;
+  function animate() {
+    freeformScene3D.rafId = requestAnimationFrame(animate);
+    freeformScene3D.rig.tick(freeformScene3D.clock.getDelta());
+    const g = freeformScene3D.gridGroup;
+    if (g) {
+      const sp = state.gridSpacing, ext = g.userData.extent || 1;
+      const t = freeformScene3D.rig.camState.target;
+      g.position.x = Math.round(t.x / sp) * sp;
+      g.position.z = Math.round(t.z / sp) * sp;
+      if (g.children[1]) g.children[1].position.y = Math.max(ext, t.y + ext * 0.55);
+    }
+    freeformScene3D.renderer.render(freeformScene3D.scene, freeformScene3D.camera);
+  }
+  freeformScene3D.clock.getDelta();
+  animate();
+}
+function stopFreeformLoop() {
+  if (freeformScene3D.rafId) { cancelAnimationFrame(freeformScene3D.rafId); freeformScene3D.rafId = null; }
+}
+
+function rebuildFreeformMeshes() {
+  const pg = freeformScene3D.pointGroup, fg = freeformScene3D.faceGroup, lg = freeformScene3D.lineGroup;
+  if (!pg || !fg || !lg) return;
+
+  while (pg.children.length) { const c = pg.children.pop(); c.geometry.dispose(); c.material.dispose(); }
+  const usedInFaces = new Set();
+  for (const f of state.faces) for (const pid of f.pointIds) usedInFaces.add(pid);
+  for (const p of state.points) {
+    const inProg = state.inProgress.includes(p.id);
+    const isSel = p.id === state.selectedPointId;
+    const color = isSel ? 0xffffff : inProg ? 0xffb238 : usedInFaces.has(p.id) ? 0x6f7a8a : 0x9aa3b0;
+    const geo = new THREE.SphereGeometry(isSel ? 0.17 : 0.13, 14, 10);
+    const mat = new THREE.MeshBasicMaterial({ color: color });
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(p.x, p.y, p.z);
+    m.userData.pointId = p.id;
+    pg.add(m);
+  }
+
+  while (lg.children.length) { const c = lg.children.pop(); c.geometry.dispose(); c.material.dispose(); }
+  if (state.inProgress.length >= 2) {
+    const idToPoint = new Map(state.points.map(function(p){ return [p.id, p]; }));
+    const coords = state.inProgress.map(function(id){ return idToPoint.get(id); }).filter(Boolean);
+    const pts = coords.map(function(p){ return new THREE.Vector3(p.x, p.y, p.z); });
+    if (pts.length >= 2) {
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      lg.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffb238 })));
+    }
+    // Live fill preview — shows the interior, not just the outline, while you build
+    if (coords.length >= 3) {
+      const verts = coords.map(function(p){ return [p.x, p.y, p.z]; });
+      const faceIdx = [verts.map(function(_, i){ return i; })];
+      const fillGeo = toBufferGeometry(verts, faceIdx);
+      const fillMat = new THREE.MeshStandardMaterial({
+        color: 0xffb238, flatShading: true, side: THREE.DoubleSide,
+        transparent: true, opacity: 0.4, depthWrite: false, roughness: 0.6, metalness: 0.05,
+      });
+      lg.add(new THREE.Mesh(fillGeo, fillMat));
+    }
+  }
+
+  while (fg.children.length) { const c = fg.children.pop(); c.geometry.dispose(); c.material.dispose(); }
+  const shape = freeformToShape(state.points, state.faces);
+  if (shape.vertices.length) {
+    const geo = toBufferGeometry(shape.vertices, shape.faces);
+    const mat = new THREE.MeshStandardMaterial({ color: state.previewColor, flatShading: true, side: THREE.DoubleSide, roughness: 0.55, metalness: 0.06 });
+    fg.add(new THREE.Mesh(geo, mat));
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   BUILD TAB — actions (mutate state, then re-render the affected pieces)
+   ════════════════════════════════════════════════════════════════════════ */
+
+function placeBuildShape(type, x, z) {
+  const id = newId();
+  state.instances.push({
+    id: id, type: type,
+    position: { x: cleanNum(x), y: 0, z: cleanNum(z) },
+    rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 },
+    params: defaultParams(type), color: PRIMITIVE_META[type].swatch,
+  });
+  state.selectedId = id;
+  setBuildPendingType(null);
+  rebuildBuildMeshes();
+  renderBuildSelectedPanel();
+  renderBuildSceneList();
+  renderBuildCount();
+  refreshExportPanel();
+}
+
+function selectBuildShape(id) {
+  state.selectedId = id;
+  rebuildBuildMeshes();
+  renderBuildSelectedPanel();
+  renderBuildSceneList();
+}
+
+function commitBuildMove(id, x, z) {
+  const inst = state.instances.find(function(i){ return i.id === id; });
+  if (!inst) return;
+  inst.position.x = cleanNum(x);
+  inst.position.z = cleanNum(z);
+  syncBuildSelectedInputs();
+  refreshExportPanel();
+}
+
+function updateBuildSelected(patch) {
+  const inst = state.instances.find(function(i){ return i.id === state.selectedId; });
+  if (!inst) return;
+  Object.assign(inst, patch);
+  rebuildBuildMeshes();
+  refreshExportPanel();
+}
+
+function duplicateBuildSelected() {
+  const inst = state.instances.find(function(i){ return i.id === state.selectedId; });
+  if (!inst) return;
+  const id = newId();
+  const copy = JSON.parse(JSON.stringify(inst));
+  copy.id = id;
+  copy.position.x += 1.2; copy.position.z += 1.2;
+  state.instances.push(copy);
+  state.selectedId = id;
+  rebuildBuildMeshes();
+  renderBuildSelectedPanel();
+  renderBuildSceneList();
+  renderBuildCount();
+  refreshExportPanel();
+}
+
+function deleteBuildInstance(id) {
+  state.instances = state.instances.filter(function(i){ return i.id !== id; });
+  if (state.selectedId === id) state.selectedId = null;
+  rebuildBuildMeshes();
+  renderBuildSelectedPanel();
+  renderBuildSceneList();
+  renderBuildCount();
+  refreshExportPanel();
+}
+
+function setBuildPendingType(type) {
+  state.pendingType = type;
+  renderPalette();
+  renderBuildPlacingHint();
+}
+
+function clearBuildScene() {
+  if (!state.confirmClearBuild) {
+    state.confirmClearBuild = true;
+    document.getElementById('build-clear-label').textContent = 'Sure? Click again';
+    document.getElementById('build-clear').classList.add('btn-danger');
+    setTimeout(function(){
+      state.confirmClearBuild = false;
+      document.getElementById('build-clear-label').textContent = 'Clear Scene';
+      document.getElementById('build-clear').classList.remove('btn-danger');
+    }, 2200);
+    return;
+  }
+  state.instances = [];
+  state.selectedId = null;
+  state.confirmClearBuild = false;
+  document.getElementById('build-clear-label').textContent = 'Clear Scene';
+  document.getElementById('build-clear').classList.remove('btn-danger');
+  rebuildBuildMeshes();
+  renderBuildSelectedPanel();
+  renderBuildSceneList();
+  renderBuildCount();
+  refreshExportPanel();
+}
+
+function applyBuildCode(parsed) {
+  state.instances = [{
+    id: newId(), type: 'raw',
+    rawShape: { vertices: parsed.vertices, faces: parsed.faces },
+    position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 },
+    params: {}, color: '#e8b34a',
+  }];
+  state.selectedId = null;
+  if (parsed.scale != null) state.settings.scaleField = parsed.scale;
+  if (parsed.vertexesScale != null) state.settings.vertexesScale = parsed.vertexesScale;
+  rebuildBuildMeshes();
+  renderBuildSelectedPanel();
+  renderBuildSceneList();
+  renderBuildCount();
+  syncSettingsInputs();
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   FREEFORM TAB — actions
+   ════════════════════════════════════════════════════════════════════════ */
+
+function addFreeformPoint(x, y, z) {
+  const id = newId();
+  state.points.push({ id: id, x: cleanNum(x), y: cleanNum(y), z: cleanNum(z) });
+  state.inProgress.push(id);
+  state.selectedPointId = id;
+  rebuildFreeformMeshes();
+  renderFreeformSelectedPanel();
+  renderFreeformFaceBox();
+  renderFreeformCount();
+  refreshExportPanel();
+}
+
+function reuseFreeformPoint(id) {
+  // Reset the in-progress chain so we start FROM this dot with no connecting line.
+  // This lets you precisely anchor your next face to any existing vertex.
+  state.inProgress = [id];
+  state.selectedPointId = id;
+  rebuildFreeformMeshes();
+  renderFreeformSelectedPanel();
+  renderFreeformFaceBox();
+}
+
+function commitFreeformMove(id, x, z) {
+  const p = state.points.find(function(pt){ return pt.id === id; });
+  if (!p) return;
+  p.x = cleanNum(x); p.z = cleanNum(z);
+  syncFreeformSelectedInputs();
+  rebuildFreeformMeshes();
+  refreshExportPanel();
+}
+
+function updateFreeformSelectedAxis(axis, value) {
+  const p = state.points.find(function(pt){ return pt.id === state.selectedPointId; });
+  if (!p) return;
+  p[axis] = value;
+  rebuildFreeformMeshes();
+  refreshExportPanel();
+}
+
+function deleteFreeformPoint(id) {
+  state.points = state.points.filter(function(p){ return p.id !== id; });
+  state.inProgress = state.inProgress.filter(function(pid){ return pid !== id; });
+  state.faces = state.faces
+    .map(function(f){ return { id: f.id, pointIds: f.pointIds.filter(function(pid){ return pid !== id; }) }; })
+    .filter(function(f){ return f.pointIds.length >= 3; });
+  if (state.selectedPointId === id) state.selectedPointId = null;
+  rebuildFreeformMeshes();
+  renderFreeformSelectedPanel();
+  renderFreeformFaceBox();
+  renderFreeformFacesList();
+  renderFreeformCount();
+  refreshExportPanel();
+}
+
+function finishFace() {
+  if (state.inProgress.length < 3) return;
+  state.faces.push({ id: newId(), pointIds: state.inProgress.slice() });
+  state.inProgress = [];
+  rebuildFreeformMeshes();
+  renderFreeformFaceBox();
+  renderFreeformFacesList();
+  renderFreeformCount();
+  refreshExportPanel();
+}
+function undoLastPoint() {
+  state.inProgress = state.inProgress.slice(0, -1);
+  rebuildFreeformMeshes();
+  renderFreeformFaceBox();
+}
+function cancelFace() {
+  state.inProgress = [];
+  rebuildFreeformMeshes();
+  renderFreeformFaceBox();
+}
+function deleteFace(id) {
+  state.faces = state.faces.filter(function(f){ return f.id !== id; });
+  rebuildFreeformMeshes();
+  renderFreeformFacesList();
+  renderFreeformCount();
+  refreshExportPanel();
+}
+function clearFreeformAll() {
+  if (!state.confirmClearFreeform) {
+    state.confirmClearFreeform = true;
+    document.getElementById('freeform-clear-label').textContent = 'Sure? Click again';
+    document.getElementById('freeform-clear').classList.add('btn-danger');
+    setTimeout(function(){
+      state.confirmClearFreeform = false;
+      document.getElementById('freeform-clear-label').textContent = 'Clear All';
+      document.getElementById('freeform-clear').classList.remove('btn-danger');
+    }, 2200);
+    return;
+  }
+  state.points = []; state.faces = []; state.inProgress = []; state.selectedPointId = null;
+  state.confirmClearFreeform = false;
+  document.getElementById('freeform-clear-label').textContent = 'Clear All';
+  document.getElementById('freeform-clear').classList.remove('btn-danger');
+  rebuildFreeformMeshes();
+  renderFreeformSelectedPanel();
+  renderFreeformFaceBox();
+  renderFreeformFacesList();
+  renderFreeformCount();
+  refreshExportPanel();
+}
+
+function applyFreeformCode(parsed) {
+  const newPoints = parsed.vertices.map(function(v){ return { id: newId(), x: v[0], y: v[1], z: v[2] }; });
+  const newFaces = parsed.faces
+    .filter(function(f){ return Array.isArray(f) && f.length >= 3; })
+    .map(function(f){ return { id: newId(), pointIds: f.map(function(i){ return newPoints[i] && newPoints[i].id; }).filter(Boolean) }; })
+    .filter(function(f){ return f.pointIds.length >= 3; });
+  state.points = newPoints;
+  state.faces = newFaces;
+  state.inProgress = [];
+  state.selectedPointId = null;
+  if (parsed.scale != null) state.settings.scaleField = parsed.scale;
+  if (parsed.vertexesScale != null) state.settings.vertexesScale = parsed.vertexesScale;
+  rebuildFreeformMeshes();
+  renderFreeformSelectedPanel();
+  renderFreeformFaceBox();
+  renderFreeformFacesList();
+  renderFreeformCount();
+  syncSettingsInputs();
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   RENDER FUNCTIONS — Build tab
+   ════════════════════════════════════════════════════════════════════════ */
+
+function renderPalette() {
+  const el = document.getElementById('palette-list');
+  let html = '';
+  for (const type of PRIMITIVE_ORDER) {
+    const meta = PRIMITIVE_META[type];
+    const active = state.pendingType === type;
+    html += '<button class="palette-btn' + (active ? ' active' : '') + '" data-type="' + type + '">'
+      + '<span class="swatch" style="background:' + meta.swatch + '"></span>'
+      + '<span class="flex-1" style="min-width:0;">'
+      + '<div class="palette-label truncate">' + meta.label + '</div>'
+      + '<div class="palette-sub mono truncate">' + meta.sub + '</div>'
+      + '</span>'
+      + (active ? plusSvg() : '')
+      + '</button>';
+  }
+  el.innerHTML = html;
+  el.querySelectorAll('.palette-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const t = btn.getAttribute('data-type');
+      setBuildPendingType(state.pendingType === t ? null : t);
+    });
+  });
+}
+
+function renderBuildPlacingHint() {
+  const hint = document.getElementById('build-placing-hint');
+  if (state.pendingType) {
+    document.getElementById('build-placing-text').textContent = 'Placing ' + PRIMITIVE_META[state.pendingType].label + ' — click the grid';
+    hint.classList.remove('hidden');
+  } else {
+    hint.classList.add('hidden');
+  }
+}
+
+function renderBuildCount() {
+  document.getElementById('build-count').textContent = state.instances.length + ' shape' + (state.instances.length === 1 ? '' : 's');
+  document.getElementById('build-scene-count').textContent = '(' + state.instances.length + ')';
+}
+
+function axis3Html(idPrefix, values, step, min) {
+  const axes = ['x', 'y', 'z'];
+  const labelColor = { x: '#ff8a8a', y: '#7be8b0', z: '#7ec8ff' };
+  let html = '<div class="axis3">';
+  for (const ax of axes) {
+    html += '<div class="axis-box ' + ax + '"><span>' + ax.toUpperCase() + '</span>'
+      + '<input type="number" id="' + idPrefix + '-' + ax + '" value="' + values[ax] + '" step="' + step + '"' + (min != null ? ' min="' + min + '"' : '') + '></div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderBuildSelectedPanel() {
+  const el = document.getElementById('build-selected-panel');
+  const inst = state.instances.find(function(i){ return i.id === state.selectedId; });
+  if (!inst) {
+    el.innerHTML = '<div class="text-sm muted center-text" style="padding:24px 0;">Select or place a shape to edit it.</div>';
+    return;
+  }
+  const meta = PRIMITIVE_META[inst.type];
+  const colorVal = /^#/.test(inst.color) ? inst.color : '#e8b34a';
+  const uniformScale = (inst.scale.x + inst.scale.y + inst.scale.z) / 3;
+
+  let html = '';
+  html += '<div class="row gap-2" style="margin-bottom:12px;">'
+    + '<span class="swatch" style="background:' + inst.color + '"></span>'
+    + '<span class="text-sm">' + meta.label + '</span>'
+    + '<input type="color" id="sel-color" value="' + colorVal + '" style="margin-left:auto;width:30px;height:30px;padding:0;" title="Preview color (editor only)">'
+    + '</div>';
+
+  html += '<div class="field"><div class="field-label">Position</div>' + axis3Html('sel-pos', inst.position, 0.1) + '</div>';
+  const rotDeg = { x: Math.round(inst.rotation.x * 180 / Math.PI), y: Math.round(inst.rotation.y * 180 / Math.PI), z: Math.round(inst.rotation.z * 180 / Math.PI) };
+  html += '<div class="field"><div class="field-label">Rotation (&deg;)</div>' + axis3Html('sel-rot', rotDeg, 5) + '</div>';
+
+  html += '<div class="field"><div class="field-label">Uniform Size</div>'
+    + '<input type="range" id="sel-uniform-scale" min="0.05" max="50" step="0.05" value="' + uniformScale + '"></div>';
+
+  html += '<button id="sel-toggle-advanced" class="linkbtn mono">' + chevronSvg(state.advancedScale ? 'up' : 'down') + ' per-axis scale</button>';
+  if (state.advancedScale) {
+    html += '<div class="field" style="margin-top:8px;"><div class="field-label">Scale X / Y / Z</div>' + axis3Html('sel-scale', inst.scale, 0.05, 0.02) + '</div>';
+  }
+
+  if (meta.hasSides) {
+    const sides = inst.params.sides || 12;
+    html += '<div class="field"><div class="field-label">Sides (<span id="sel-sides-label">' + sides + '</span>)</div>'
+      + '<input type="range" id="sel-sides" min="3" max="32" step="1" value="' + sides + '"></div>';
+  }
+  if (meta.hasDetail) {
+    const detail = inst.params.detail != null ? inst.params.detail : 1;
+    html += '<div class="field"><div class="field-label">Smoothness (detail <span id="sel-detail-label">' + detail + '</span>)</div>'
+      + '<input type="range" id="sel-detail" min="0" max="3" step="1" value="' + detail + '"></div>';
+  }
+
+  html += '<div class="row gap-2" style="margin-top:4px;">'
+    + '<button id="sel-duplicate" class="btn btn-sm flex-1">Duplicate</button>'
+    + '<button id="sel-delete" class="btn btn-danger btn-sm flex-1">' + trashSvg() + ' Delete</button>'
+    + '</div>';
+
+  el.innerHTML = html;
+
+  document.getElementById('sel-color').addEventListener('input', function(e){ updateBuildSelected({ color: e.target.value }); document.querySelectorAll('.list-row[data-id="' + inst.id + '"] .swatch').forEach(function(s){ s.style.background = e.target.value; }); });
+  ['x','y','z'].forEach(function(ax){
+    document.getElementById('sel-pos-' + ax).addEventListener('input', function(e){ const v = Number(e.target.value); inst.position[ax] = v; rebuildBuildMeshes(); refreshExportPanel(); });
+    document.getElementById('sel-rot-' + ax).addEventListener('input', function(e){ const deg = Number(e.target.value); inst.rotation[ax] = deg * Math.PI / 180; rebuildBuildMeshes(); refreshExportPanel(); });
+  });
+  document.getElementById('sel-uniform-scale').addEventListener('input', function(e){
+    const v = Number(e.target.value);
+    inst.scale.x = v; inst.scale.y = v; inst.scale.z = v;
+    rebuildBuildMeshes(); refreshExportPanel();
+    if (state.advancedScale) { ['x','y','z'].forEach(function(ax){ const i = document.getElementById('sel-scale-' + ax); if (i) i.value = v; }); }
+  });
+  document.getElementById('sel-toggle-advanced').addEventListener('click', function(){ state.advancedScale = !state.advancedScale; renderBuildSelectedPanel(); });
+  if (state.advancedScale) {
+    ['x','y','z'].forEach(function(ax){
+      document.getElementById('sel-scale-' + ax).addEventListener('input', function(e){ inst.scale[ax] = Number(e.target.value); rebuildBuildMeshes(); refreshExportPanel(); });
+    });
+  }
+  if (meta.hasSides) {
+    document.getElementById('sel-sides').addEventListener('input', function(e){
+      const v = Number(e.target.value);
+      inst.params.sides = v;
+      document.getElementById('sel-sides-label').textContent = v;
+      rebuildBuildMeshes(); refreshExportPanel();
+    });
+  }
+  if (meta.hasDetail) {
+    document.getElementById('sel-detail').addEventListener('input', function(e){
+      const v = Number(e.target.value);
+      inst.params.detail = v;
+      document.getElementById('sel-detail-label').textContent = v;
+      rebuildBuildMeshes(); refreshExportPanel();
+    });
+  }
+  document.getElementById('sel-duplicate').addEventListener('click', duplicateBuildSelected);
+  document.getElementById('sel-delete').addEventListener('click', function(){ deleteBuildInstance(inst.id); });
+}
+
+function syncBuildSelectedInputs() {
+  const inst = state.instances.find(function(i){ return i.id === state.selectedId; });
+  if (!inst) return;
+  ['x','y','z'].forEach(function(ax){
+    const i = document.getElementById('sel-pos-' + ax);
+    if (i) i.value = inst.position[ax];
+  });
+}
+
+function renderBuildSceneList() {
+  const el = document.getElementById('build-scene-list');
+  if (state.instances.length === 0) {
+    el.innerHTML = '<div class="empty-hint mono">Empty — add a primitive from the left.</div>';
+    return;
+  }
+  let html = '';
+  state.instances.forEach(function(inst, idx){
+    const meta = PRIMITIVE_META[inst.type];
+    html += '<button class="list-row' + (inst.id === state.selectedId ? ' selected' : '') + '" data-id="' + inst.id + '">'
+      + '<span class="swatch" style="background:' + inst.color + '"></span>'
+      + '<span class="text-xs mono flex-1 truncate" style="text-align:left;">' + meta.label + ' #' + (idx + 1) + '</span>'
+      + '<span class="trash" data-del="' + inst.id + '">' + trashSvg() + '</span>'
+      + '</button>';
+  });
+  el.innerHTML = html;
+  el.querySelectorAll('.list-row').forEach(function(row){
+    row.addEventListener('click', function(e){
+      if (e.target.closest('[data-del]')) return;
+      selectBuildShape(row.getAttribute('data-id'));
+    });
+  });
+  el.querySelectorAll('[data-del]').forEach(function(t){
+    t.addEventListener('click', function(e){ e.stopPropagation(); deleteBuildInstance(t.getAttribute('data-del')); });
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   RENDER FUNCTIONS — Freeform tab
+   ════════════════════════════════════════════════════════════════════════ */
+
+function renderFreeformCount() {
+  document.getElementById('freeform-count').textContent = state.points.length + ' points \u00b7 ' + state.faces.length + ' faces';
+  document.getElementById('freeform-faces-count').textContent = '(' + state.faces.length + ')';
+}
+
+function renderFreeformFaceBox() {
+  document.getElementById('inprogress-count').textContent = state.inProgress.length;
+  document.getElementById('finish-face').disabled = state.inProgress.length < 3;
+  document.getElementById('undo-point').disabled = state.inProgress.length === 0;
+  document.getElementById('cancel-face').disabled = state.inProgress.length === 0;
+}
+
+function renderFreeformSelectedPanel() {
+  const el = document.getElementById('freeform-selected-panel');
+  const p = state.points.find(function(pt){ return pt.id === state.selectedPointId; });
+  if (!p) {
+    el.innerHTML = '<div class="text-sm muted center-text" style="padding:16px 0;">Click a point to fine-tune its position.</div>';
+    return;
+  }
+  let html = '';
+  html += '<div class="field"><div class="field-label">Position (exact)</div>' + axis3Html('pt-pos', p, 0.1) + '</div>';
+  html += '<button id="pt-delete" class="btn btn-danger btn-block btn-sm">' + trashSvg() + ' Delete Point</button>';
+  el.innerHTML = html;
+  ['x','y','z'].forEach(function(ax){
+    document.getElementById('pt-pos-' + ax).addEventListener('input', function(e){ updateFreeformSelectedAxis(ax, Number(e.target.value)); });
+  });
+  document.getElementById('pt-delete').addEventListener('click', function(){ deleteFreeformPoint(p.id); });
+}
+
+function syncFreeformSelectedInputs() {
+  const p = state.points.find(function(pt){ return pt.id === state.selectedPointId; });
+  if (!p) return;
+  ['x','y','z'].forEach(function(ax){
+    const i = document.getElementById('pt-pos-' + ax);
+    if (i) i.value = p[ax];
+  });
+}
+
+function renderFreeformFacesList() {
+  const el = document.getElementById('freeform-faces-list');
+  if (state.faces.length === 0) {
+    el.innerHTML = '<div class="empty-hint mono">None yet — build one on the left.</div>';
+    return;
+  }
+  let html = '';
+  state.faces.forEach(function(f, idx){
+    html += '<div class="list-row" style="cursor:default;">'
+      + '<span class="swatch" style="background:' + state.previewColor + '"></span>'
+      + '<span class="text-xs mono flex-1">Face #' + (idx + 1) + ' \u00b7 ' + f.pointIds.length + ' pts</span>'
+      + '<span class="trash" data-delface="' + f.id + '">' + trashSvg() + '</span>'
+      + '</div>';
+  });
+  el.innerHTML = html;
+  el.querySelectorAll('[data-delface]').forEach(function(t){
+    t.addEventListener('click', function(){ deleteFace(t.getAttribute('data-delface')); });
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   EXPORT PANEL — shared between both tabs, reflects whichever is active
+   ════════════════════════════════════════════════════════════════════════ */
+
+const SETTINGS_FIELDS = [
+  { key: 'shapeName', label: 'Shape var name', type: 'text' },
+  { key: 'className', label: 'Class name', type: 'text' },
+  { key: 'label', label: 'Label', type: 'text' },
+  { key: 'color', label: 'Color (name or #hex)', type: 'text' },
+  { key: 'value', label: 'Value', type: 'text' },
+  { key: 'parent', label: 'Parent', type: 'select', options: ['food', 'threeDFood'] },
+  { key: 'sizeField', label: 'Class SIZE', type: 'number' },
+  { key: 'scaleField', label: 'SCALE (shape size)', type: 'number' },
+  { key: 'vertexesScale', label: 'VERTEXES_SCALE', type: 'number', step: '0.01' },
+  { key: 'damage', label: 'Damage', type: 'number' },
+  { key: 'density', label: 'Density', type: 'number' },
+  { key: 'health', label: 'Health', type: 'number' },
+  { key: 'resist', label: 'Resist', type: 'number', step: '0.05' },
+  { key: 'penetration', label: 'Penetration', type: 'number' },
+  { key: 'acceleration', label: 'Acceleration', type: 'number', step: '0.001' },
+  { key: 'drawHealth', label: 'DRAW_HEALTH', type: 'check' },
+  { key: 'intangible', label: 'INTANGIBLE', type: 'check' },
+  { key: 'giveKillMessage', label: 'GIVE_KILL_MESSAGE', type: 'check' },
+];
+
+function renderSettingsGrid() {
+  const el = document.getElementById('settings-grid');
+  let html = '';
+  for (const f of SETTINGS_FIELDS) {
+    if (f.type === 'check') {
+      html += '<div class="set-check"><label><input type="checkbox" id="set-' + f.key + '" ' + (state.settings[f.key] ? 'checked' : '') + '><span class="mono">' + f.label + '</span></label></div>';
+    } else if (f.type === 'select') {
+      html += '<div class="set-field"><label>' + f.label + '</label><select id="set-' + f.key + '">';
+      for (const o of f.options) html += '<option value="' + o + '"' + (state.settings[f.key] === o ? ' selected' : '') + '>' + o + '</option>';
+      html += '</select></div>';
+    } else {
+      html += '<div class="set-field"><label>' + f.label + '</label><input type="' + f.type + '" id="set-' + f.key + '" value="' + state.settings[f.key] + '"' + (f.step ? ' step="' + f.step + '"' : '') + '></div>';
+    }
+  }
+  el.innerHTML = html;
+  for (const f of SETTINGS_FIELDS) {
+    const input = document.getElementById('set-' + f.key);
+    const ev = f.type === 'check' || f.type === 'select' ? 'change' : 'input';
+    input.addEventListener(ev, function(){
+      if (f.type === 'check') state.settings[f.key] = input.checked;
+      else if (f.type === 'number') state.settings[f.key] = numOr(input.value, state.settings[f.key]);
+      else state.settings[f.key] = input.value;
+      refreshExportPanel();
+    });
+  }
+}
+
+function syncSettingsInputs() {
+  for (const f of SETTINGS_FIELDS) {
+    const input = document.getElementById('set-' + f.key);
+    if (!input) continue;
+    if (f.type === 'check') input.checked = state.settings[f.key];
+    else input.value = state.settings[f.key];
+  }
+}
+
+function currentLiveShape() {
+  return state.activeTab === 'build' ? flattenInstances(state.instances) : freeformToShape(state.points, state.faces);
+}
+
+function refreshExportPanel() {
+  const liveCode = codeFromShape(currentLiveShape(), state.settings);
+  const ta = document.getElementById('code-textarea');
+  if (!state.codeDirty) ta.value = liveCode;
+  document.getElementById('apply-hint').textContent =
+    (state.activeTab === 'build'
+      ? 'Editing replaces every shape in the scene with this exact mesh as one custom block.'
+      : 'Editing replaces every point and face with this exact mesh.')
+    + ' Edit VERTEXES / FACES / SCALE directly below — click Apply to push your edits back into the 3D view.';
+  renderStatusRow();
+}
+
+function renderStatusRow() {
+  const ind = document.getElementById('status-indicator');
+  const text = document.getElementById('status-text');
+  const discardBtn = document.getElementById('discard-edits');
+  const applyBtn = document.getElementById('apply-code');
+  if (state.codeDirty) {
+    ind.className = 'status-dirty text-xs mono';
+    text.textContent = 'Edited — not yet applied to the scene';
+    discardBtn.classList.remove('hidden');
+    applyBtn.classList.remove('hidden');
+  } else {
+    ind.className = 'status-sync text-xs mono';
+    text.textContent = 'In sync with the scene';
+    discardBtn.classList.add('hidden');
+    applyBtn.classList.add('hidden');
+  }
+}
+
+function handleApplyCode() {
+  const ta = document.getElementById('code-textarea');
+  const parsed = parseShapeCode(ta.value);
+  const errEl = document.getElementById('apply-error');
+  if (!parsed) {
+    errEl.textContent = "Couldn't read VERTEXES / FACES — check the brackets and commas.";
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+  if (state.activeTab === 'build') applyBuildCode(parsed);
+  else applyFreeformCode(parsed);
+  state.codeDirty = false;
+  refreshExportPanel();
+}
+function handleDiscardCode() {
+  state.codeDirty = false;
+  document.getElementById('apply-error').classList.add('hidden');
+  refreshExportPanel();
+}
+async function handleCopyCode() {
+  const ta = document.getElementById('code-textarea');
+  const label = document.getElementById('copy-label');
+  try {
+    await navigator.clipboard.writeText(ta.value);
+    flashCopied(label);
+  } catch (e) {
+    ta.select();
+    try { document.execCommand('copy'); flashCopied(label); } catch (e2) { /* manual copy fallback */ }
+  }
+}
+function flashCopied(label) {
+  const original = label.textContent;
+  label.textContent = 'Copied';
+  setTimeout(function(){ label.textContent = original; }, 1500);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   TOP BAR + TAB SWITCHING + GRID CONTROLS
+   ════════════════════════════════════════════════════════════════════════ */
+
+function switchTab(tab) {
+  state.activeTab = tab;
+  document.getElementById('tab-build').classList.toggle('active', tab === 'build');
+  document.getElementById('tab-freeform').classList.toggle('active', tab === 'freeform');
+  document.getElementById('build-tab').classList.toggle('hidden', tab !== 'build');
+  document.getElementById('freeform-tab').classList.toggle('hidden', tab !== 'freeform');
+  if (tab === 'build') { stopFreeformLoop(); startBuildLoop(); }
+  else { stopBuildLoop(); startFreeformLoop(); }
+  state.codeDirty = false;
+  refreshExportPanel();
+}
+
+function applyGridSpacing(spacing) {
+  state.gridSpacing = spacing;
+  rebuildAllGrids();
+}
+
+function wireTopBar() {
+  document.getElementById('tab-build').addEventListener('click', function(){ switchTab('build'); });
+  document.getElementById('tab-freeform').addEventListener('click', function(){ switchTab('freeform'); });
+
+  const magnet = document.getElementById('magnet-toggle');
+  magnet.addEventListener('click', function(){
+    state.snapEnabled = !state.snapEnabled;
+    magnet.classList.toggle('active', state.snapEnabled);
+  });
+
+  document.getElementById('grid-spacing-input').addEventListener('change', function(e){
+    const v = Math.max(0.02, Number(e.target.value) || 1);
+    e.target.value = v;
+    applyGridSpacing(v);
+  });
+  document.getElementById('grid-spacing-reset').addEventListener('click', function(){
+    document.getElementById('grid-spacing-input').value = 1;
+    applyGridSpacing(1);
+  });
+  const spacingWrap = document.getElementById('grid-spacing-wrap');
+  spacingWrap.addEventListener('wheel', function(e){
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.09 : 1 / 1.09;
+    let v = state.gridSpacing * factor;
+    v = Math.max(0.02, Math.min(200, v));
+    v = Math.round(v * 1000) / 1000;
+    document.getElementById('grid-spacing-input').value = v;
+    applyGridSpacing(v);
+  }, { passive: false });
+}
+
+function wireBuildTabUI() {
+  document.getElementById('build-reset-view').addEventListener('click', function(){
+    const extent = computeExtent(state.gridSpacing);
+    buildScene3D.rig.reset(new THREE.Vector3(0, 0.6, 0), extent * 0.22);
+  });
+  document.getElementById('build-clear').addEventListener('click', clearBuildScene);
+  document.getElementById('build-placing-cancel').addEventListener('click', function(){ setBuildPendingType(null); });
+}
+
+function wireFreeformTabUI() {
+  document.getElementById('freeform-reset-view').addEventListener('click', function(){
+    const extent = computeExtent(state.gridSpacing);
+    freeformScene3D.rig.reset(new THREE.Vector3(0, 0.6, 0), extent * 0.22);
+  });
+  document.getElementById('freeform-clear').addEventListener('click', clearFreeformAll);
+
+  const placementSlider = document.getElementById('placement-y');
+  placementSlider.addEventListener('input', function(e){
+    state.placementY = Number(e.target.value);
+    document.getElementById('placement-y-label').textContent = state.placementY;
+  });
+
+  document.getElementById('finish-face').addEventListener('click', finishFace);
+  document.getElementById('undo-point').addEventListener('click', undoLastPoint);
+  document.getElementById('cancel-face').addEventListener('click', cancelFace);
+
+  document.getElementById('preview-color').addEventListener('input', function(e){
+    state.previewColor = e.target.value;
+    rebuildFreeformMeshes();
+    renderFreeformFacesList();
+  });
+}
+
+function wireExportPanel() {
+  const toggle = document.getElementById('export-toggle');
+  const body = document.getElementById('export-body');
+  const chevron = document.getElementById('export-chevron');
+  let open = true;
+  toggle.addEventListener('click', function(){
+    open = !open;
+    body.classList.toggle('hidden', !open);
+    chevron.innerHTML = open ? '<polyline points="6 9 12 15 18 9"/>' : '<polyline points="18 15 12 9 6 15"/>';
+  });
+
+  const ta = document.getElementById('code-textarea');
+  ta.addEventListener('input', function(){
+    state.codeDirty = true;
+    document.getElementById('apply-error').classList.add('hidden');
+    renderStatusRow();
+  });
+
+  document.getElementById('apply-code').addEventListener('click', handleApplyCode);
+  document.getElementById('discard-edits').addEventListener('click', handleDiscardCode);
+  document.getElementById('copy-code').addEventListener('click', handleCopyCode);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   INIT
+   ════════════════════════════════════════════════════════════════════════ */
+
+function init() {
+  wireTopBar();
+  wireBuildTabUI();
+  wireFreeformTabUI();
+  wireExportPanel();
+
+  setupBuildScene();
+  setupFreeformScene();
+
+  renderPalette();
+  renderBuildPlacingHint();
+  renderBuildCount();
+  renderBuildSelectedPanel();
+  renderBuildSceneList();
+  rebuildBuildMeshes();
+
+  renderFreeformCount();
+  renderFreeformFaceBox();
+  renderFreeformSelectedPanel();
+  renderFreeformFacesList();
+  rebuildFreeformMeshes();
+
+  renderSettingsGrid();
+  refreshExportPanel();
+
+  startBuildLoop();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();
+</script>
+</html>

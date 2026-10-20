@@ -1,0 +1,311 @@
+{
+  "YZU8YL": {
+    "savedBy": "Unknown",
+    "savedAt": "2026-05-15T00:09:38.022Z",
+    "classKey": "eternal",
+    "classDef": {
+      "PARENT": "miniboss",
+      "LABEL": "Eternal",
+      "SKILL": [
+        5,
+        9,
+        9,
+        9,
+        1,
+        0,
+        9,
+        9,
+        0,
+        0
+      ],
+      "VALUE": 4000000,
+      "SHAPE": 11,
+      "SIZE": 90,
+      "CONTROLLERS": [
+        [
+          "minion",
+          {
+            "orbit": 240
+          }
+        ]
+      ],
+      "BODY": {
+        "FOV": 1,
+        "HEALTH": 3000,
+        "SHIELD": 150,
+        "REGEN": 0.001,
+        "SPEED": 0.7875,
+        "DAMAGE": 18
+      },
+      "index": 1527
+    },
+    "GUNS": [],
+    "TURRETS": [],
+    "LABEL": "Eternal"
+  },
+  "T4UAN8": {
+    "savedBy": "Unknown",
+    "savedAt": "2026-05-15T00:14:08.097Z",
+    "classKey": "eternal",
+    "classDef": {
+      "PARENT": "miniboss",
+      "LABEL": "Eternal",
+      "SKILL": [
+        5,
+        9,
+        9,
+        9,
+        1,
+        0,
+        9,
+        9,
+        0,
+        0
+      ],
+      "VALUE": 4000000,
+      "SHAPE": 11,
+      "SIZE": 90,
+      "CONTROLLERS": [
+        [
+          "minion",
+          {
+            "orbit": 240
+          }
+        ]
+      ],
+      "BODY": {
+        "FOV": 1,
+        "HEALTH": 3000,
+        "SHIELD": 150,
+        "REGEN": 0.001,
+        "SPEED": 0.7875,
+        "DAMAGE": 18
+      },
+      "index": 1527
+    },
+    "GUNS": [],
+    "TURRETS": [],
+    "LABEL": "Eternal"
+  },
+  "7ARJA6": {
+    "savedBy": "Unknown",
+    "savedAt": "2026-05-15T00:18:21.829Z",
+    "classKey": "basic",
+    "classDef": {
+      "PARENT": "genericTank",
+      "LABEL": "Basic",
+      "DANGER": 4,
+      "BODY": {
+        "ACCELERATION": 1.6,
+        "SPEED": 5.25,
+        "HEALTH": 20,
+        "DAMAGE": 3,
+        "PENETRATION": 1.05,
+        "SHIELD": 5.75,
+        "REGEN": 0.01,
+        "FOV": 1.02,
+        "DENSITY": 0.5,
+        "PUSHABILITY": 1,
+        "HETERO": 3
+      },
+      "GUNS": [
+        {
+          "POSITION": {
+            "LENGTH": 18,
+            "WIDTH": 8,
+            "ASPECT": 1,
+            "X": 0,
+            "Y": 0,
+            "ANGLE": 0,
+            "DELAY": 0
+          },
+          "PROPERTIES": {
+            "SHOOT_SETTINGS": {
+              "reload": 10.5,
+              "recoil": 1.4,
+              "shudder": 0.1,
+              "size": 1,
+              "health": 1,
+              "damage": 0.75,
+              "pen": 1,
+              "speed": 5,
+              "maxSpeed": 1,
+              "range": 1,
+              "density": 1,
+              "spray": 15,
+              "resist": 1
+            },
+            "TYPE": "bullet",
+            "COLOR": "grey",
+            "LABEL": "",
+            "STAT_CALCULATOR": 0,
+            "WAIT_TO_CYCLE": false,
+            "AUTOFIRE": false,
+            "SYNCS_SKILLS": false,
+            "MAX_CHILDREN": 0,
+            "ALT_FIRE": false,
+            "NEGATIVE_RECOIL": false
+          }
+        }
+      ],
+      "UPGRADES_TIER_1": [
+        "twin",
+        "sniper",
+        "machineGun",
+        "flankGuard",
+        "director",
+        "pounder",
+        "trapper",
+        "desmos"
+      ],
+      "UPGRADES_TIER_2": [
+        "smasher"
+      ],
+      "index": 30,
+      "mockup": {
+        "position": {
+          "axis": 2.838305314136452,
+          "middle": {
+            "x": 0.41672977230198127,
+            "y": 0.08289159388613201
+          }
+        }
+      }
+    },
+    "GUNS": [],
+    "TURRETS": [],
+    "LABEL": "Basic"
+  },
+  "NGHMKG": {
+    "savedBy": "Unknown",
+    "savedAt": "2026-05-15T00:18:52.494Z",
+    "classKey": "triplet",
+    "classDef": {
+      "PARENT": "genericTank",
+      "LABEL": "Triplet",
+      "DANGER": 7,
+      "BODY": {
+        "FOV": 1.0710000000000002
+      },
+      "GUNS": [
+        {
+          "POSITION": {
+            "LENGTH": 17.5,
+            "WIDTH": 8,
+            "Y": 5.5,
+            "DELAY": 0.5
+          },
+          "PROPERTIES": {
+            "SHOOT_SETTINGS": {
+              "reload": 12.6,
+              "recoil": 0.4666666666666666,
+              "shudder": 0.08100000000000002,
+              "size": 1,
+              "health": 0.765,
+              "damage": 0.4462499999999999,
+              "pen": 0.9,
+              "speed": 5,
+              "maxSpeed": 1,
+              "range": 1,
+              "density": 1.1,
+              "spray": 16.2,
+              "resist": 0.95
+            },
+            "TYPE": "bullet"
+          }
+        },
+        {
+          "POSITION": {
+            "LENGTH": 17.5,
+            "WIDTH": 8,
+            "Y": -5.5,
+            "DELAY": 0.5,
+            "ANGLE": 0
+          },
+          "PROPERTIES": {
+            "SHOOT_SETTINGS": {
+              "reload": 12.6,
+              "recoil": 0.4666666666666666,
+              "shudder": 0.08100000000000002,
+              "size": 1,
+              "health": 0.765,
+              "damage": 0.4462499999999999,
+              "pen": 0.9,
+              "speed": 5,
+              "maxSpeed": 1,
+              "range": 1,
+              "density": 1.1,
+              "spray": 16.2,
+              "resist": 0.95
+            },
+            "TYPE": "bullet"
+          }
+        },
+        {
+          "POSITION": {
+            "LENGTH": 21,
+            "WIDTH": 8
+          },
+          "PROPERTIES": {
+            "SHOOT_SETTINGS": {
+              "reload": 12.6,
+              "recoil": 0.4666666666666666,
+              "shudder": 0.08100000000000002,
+              "size": 1,
+              "health": 0.765,
+              "damage": 0.4462499999999999,
+              "pen": 0.9,
+              "speed": 5,
+              "maxSpeed": 1,
+              "range": 1,
+              "density": 1.1,
+              "spray": 16.2,
+              "resist": 0.95
+            },
+            "TYPE": "bullet"
+          }
+        }
+      ],
+      "index": 245
+    },
+    "GUNS": [],
+    "TURRETS": [],
+    "LABEL": "Triplet"
+  },
+  "DPFA4A": {
+    "savedBy": "Unknown",
+    "savedAt": "2026-05-15T00:19:16.189Z",
+    "classKey": "elite",
+    "classDef": {
+      "PARENT": "miniboss",
+      "LABEL": "Elite Crasher",
+      "COLOR": "pink",
+      "SHAPE": 3,
+      "SIZE": 27,
+      "VALUE": 150000,
+      "SKILL": [
+        5,
+        9,
+        9,
+        9,
+        5,
+        1,
+        0,
+        9,
+        1,
+        0
+      ],
+      "BODY": {
+        "FOV": 1.25,
+        "SPEED": 0.7875,
+        "HEALTH": 180,
+        "DAMAGE": 13.5,
+        "REGEN": 0.005
+      },
+      "index": 1480
+    },
+    "GUNS": [],
+    "TURRETS": [],
+    "LABEL": "Elite Crasher"
+  }
+}
