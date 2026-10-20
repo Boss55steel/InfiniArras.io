@@ -3,9 +3,11 @@ name: TryCloudflare PR Preview
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches: [main] # Allows you to test it on main, but won't crash on the comment step
 
 permissions:
-  pull-requests: write # Allows the action to comment on the PR
+  pull-requests: write
 
 jobs:
   deploy-preview:
@@ -14,58 +16,57 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Optional: Add your game build steps here if needed (e.g., npm run build)
-      # - name: Install Dependencies & Build Game
-      #   run: |
-      #     npm install
-      #     npm run build
+      # 1. Setup Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-      # 1. Setup cloudflared CLI
+      # 2. Install dependencies and start your actual Node game server
+      # (Adjust 'npm start' or 'node index.js' depending on your package.json script)
+      # Replace 8080 with the actual port your InfiniArras server listens on (e.g., 3000, 8000)
+      name: Start Game Server
+        run: |
+          npm install
+          npm start &
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
+          sleep 3 # Give the Node server a moment to boot up
+
+      # 3. Setup cloudflared CLI
       - name: Setup cloudflared
         uses: AnimMouse/setup-cloudflared@v2
 
-      # 2. Run a local web server to host your game files
-      # Replace '8080' with your port, and ensure the directory points to your index.html
-      - name: Start Local Web Server
-        run: |
-          python3 -m http.server 8080 & 
-          echo "SERVER_PID=$!" >> $GITHUB_ENV
-
-      # 3. Start the Quick Tunnel and capture the randomized URL
+      # 4. Start TryCloudflare Tunnel (pointing to your Node server's port)
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
-          # Start cloudflared and pipe logs to a file to capture the printed URL
+          # Change 8080 to match your game's port if it uses something else (like 3000)
           cloudflared tunnel --url http://localhost:8080 > cloudflared.log 2>&1 &
           echo "TUNNEL_PID=$!" >> $GITHUB_ENV
           
-          # Give the tunnel a few seconds to connect and print the URL
           sleep 5
           cat cloudflared.log
           
-          # Extract the randomized trycloudflare.com link from the logs
           TUNNEL_URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' cloudflared.log | head -n 1)
           echo "Extracted URL: $TUNNEL_URL"
           echo "tunnel_url=$TUNNEL_URL" >> $GITHUB_OUTPUT
 
-      # 4. Post the randomized link as a comment on the Pull Request
+      # 5. Only comment if this is an actual Pull Request
       - name: Comment on PR
+        if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
             🚀 **Cloudflare Quick Tunnel Preview Live!**
             Your game preview is accessible here: ${{ steps.start_tunnel.outputs.tunnel_url }}
-            *(Note: This link will remain live for up to 5 minutes or until the GitHub job completes)*
           comment_tag: 'trycloudflare-preview'
 
-      # 5. Keep the tunnel alive briefly for testing (Adjust timeout as needed)
+      # 6. Keep alive for testing
       - name: Keep Alive for Testing
         run: |
-          echo "Tunnel is live at ${{ steps.start_tunnel.outputs.tunnel_url }}"
-          # Keeps the job running for 5 minutes so you can click and test the game
+          echo "Tunnel is active at: ${{ steps.start_tunnel.outputs.tunnel_url }}"
           sleep 300 
 
-      # 6. Clean up processes before completing the job
       - name: Stop Services
         if: always()
         run: |
