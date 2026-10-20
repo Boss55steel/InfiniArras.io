@@ -41,7 +41,7 @@ jobs:
         id: start_tunnel
         run: |
           # Change 8080 to match your game's port if it uses something else (like 3000)
-          cloudflared tunnel --url http://localhost:8080 > cloudflared.log 2>&1 &
+          cloudflared tunnel --url http://localhost:3000 > cloudflared.log 2>&1 &
           echo "TUNNEL_PID=$!" >> $GITHUB_ENV
           
           sleep 5
