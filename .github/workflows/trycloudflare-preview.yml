@@ -26,10 +26,11 @@ jobs:
       - name: Start Game Server
         run: |
           npm install
-          npm start &
+          # The > /dev/null 2>&1 & completely silences the background process logs so GitHub won't hang
+          npm start > /dev/null 2>&1 &
           echo "SERVER_PID=$!" >> $GITHUB_ENV
-          sleep 3
-
+          sleep 5
+          
       # 3. Setup cloudflared CLI
       - name: Setup cloudflared
         uses: AnimMouse/setup-cloudflared@v2
