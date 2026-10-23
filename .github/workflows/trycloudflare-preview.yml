@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   push:
-    branches: [main] # Allows you to test it on main, but won't crash on the comment step
+    branches: [main]
 
 permissions:
   pull-requests: write
@@ -23,25 +23,22 @@ jobs:
           node-version: 18
 
       # 2. Install dependencies and start your actual Node game server
-      # (Adjust 'npm start' or 'node index.js' depending on your package.json script)
-      # Replace 8080 with the actual port your InfiniArras server listens on (e.g., 3000, 8000)
-      name: Start Game Server
+      - name: Start Game Server
         run: |
           npm install
           npm start &
           echo "SERVER_PID=$!" >> $GITHUB_ENV
-          sleep 3 # Give the Node server a moment to boot up
+          sleep 3
 
       # 3. Setup cloudflared CLI
       - name: Setup cloudflared
         uses: AnimMouse/setup-cloudflared@v2
 
-      # 4. Start TryCloudflare Tunnel (pointing to your Node server's port)
+      # 4. Start TryCloudflare Tunnel
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
-          # Change 8080 to match your game's port if it uses something else (like 3000)
-          cloudflared tunnel --url http://localhost:3000 > cloudflared.log 2>&1 &
+          cloudflared tunnel --url http://localhost:8080 > cloudflared.log 2>&1 &
           echo "TUNNEL_PID=$!" >> $GITHUB_ENV
           
           sleep 5
@@ -61,11 +58,11 @@ jobs:
             Your game preview is accessible here: ${{ steps.start_tunnel.outputs.tunnel_url }}
           comment_tag: 'trycloudflare-preview'
 
-      # 6. Keep alive for testing
+      # 6. Keep alive for testing (Increased to 30 minutes)
       - name: Keep Alive for Testing
         run: |
           echo "Tunnel is active at: ${{ steps.start_tunnel.outputs.tunnel_url }}"
-          sleep 300 
+          sleep 1800 
 
       - name: Stop Services
         if: always()
