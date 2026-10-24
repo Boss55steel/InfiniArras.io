@@ -545,7 +545,7 @@ module.exports = {
         },
         {
             bosses: ["kronos"],
-            amount: [1], chance: 0.001,
+            amount: [1], chance: 0.01,
             message: "The sky darkens as the ground slowly begins to crumble... The end is near.",
         },
         {
