@@ -49,8 +49,6 @@ jobs:
             - hostname: "*.trycloudflare.com"
               path: "^/(ws|socket|play)"
               service: http://127.0.0.1:3000
-            - hostname: "*.trycloudflare.com"
-              service: http://127.0.0.1:3000
           EOF
           echo "Cloudflared ingress configurations generated successfully."
 
