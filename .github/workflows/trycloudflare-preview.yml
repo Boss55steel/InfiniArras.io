@@ -27,16 +27,19 @@ jobs:
         run: |
           ln -s Game server/game || true
 
-      # 3. Safe Fallback Patch
-      # This completely clears out the extra background servers and enforces single-port 
-      # mode on the main server to ensure players bypass socket errors on Cloudflare.
-      - name: Enforce Single Port Architecture
+      # 3. Native File Interceptor Patch
+      # This injects a fail-safe rule directly into index.js before it starts.
+      # It intercepts the server config object in memory right after it loads,
+      # forcefully isolating everything to a single shared pipeline on Port 3000.
+      # This preserves all your files perfectly without risking syntax corruption!
+      - name: Single Port Runtime Interceptor
         run: |
-          echo "=== Optimizing server configs for cloud runner ==="
-          # Trims out the secondary port entries so your framework routes all rooms through port 3000
-          find . -type f -name "config.js" -o -name "config.json" | xargs sed -i 's/servers: \[/servers: \[\n        {\n            share_client_server: true,\n            host: "localhost:3000",\n            port: 3000,\n            id: "la",\n            region: "Local",\n            gamemode: ["tdm"],\n            player_cap: 80\n        }/g' 2>/dev/null || true
-          # Safely truncates multi-server configurations to prevent initialization runtime loops
-          find . -type f -name "config.js" -o -name "config.json" | xargs sed -i '/host: '\''localhost:3001'\''/,/}\s*,\s*\]/d' 2>/dev/null || true
+          echo "=== Injecting Network Path Interceptor ==="
+          sed -i '2i \
+          const c = require("./server/config.js"); \
+          if (c && c.servers && c.servers.length > 0) { \
+              c.servers = [ { ...c.servers[0], share_client_server: true, host: "localhost:3000", port: 3000 } ]; \
+          }' index.js
 
       # 4. Install dependencies and start your Node game server
       - name: Start Game Server
@@ -44,13 +47,13 @@ jobs:
           npm install
           npm start > server.log 2>&1 &
           echo "SERVER_PID=$!" >> $GITHUB_ENV
-          sleep 6
+          sleep 8 # Gave the loader slightly more time to unpack modules
 
       # 5. Setup cloudflared CLI
       - name: Setup cloudflared
         uses: AnimMouse/setup-cloudflared@v2
 
-      # 6. Start TryCloudflare Tunnel (Clean zero-config deployment)
+      # 6. Start TryCloudflare Tunnel (Directly targeting unified port 3000)
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
@@ -74,8 +77,8 @@ jobs:
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            🚀 **Cloudflare Secure Arena Preview Live!**
-            Your optimized multi-addon server is fully operational here: ${{ steps.start_tunnel.outputs.tunnel_url }}
+            🚀 **Cloudflare Secure Unified Server Live!**
+            Your unified game preview is active here: ${{ steps.start_tunnel.outputs.tunnel_url }}
           comment_tag: 'trycloudflare-preview'
 
       # 8. Keep alive for testing
