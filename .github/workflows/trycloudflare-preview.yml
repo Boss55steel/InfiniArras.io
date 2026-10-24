@@ -44,7 +44,7 @@ jobs:
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
-          cloudflared tunnel --url http://127.0.0.1:3000 --url http://127.0.0.1:8000 > cloudflared.log 2>&1 &
+          cloudflared tunnel --url http://127.0.0.1:3000 --url http://127.0.0.1:3000 > cloudflared.log 2>&1 &
           echo "TUNNEL_PID=$!" >> $GITHUB_ENV
           
           sleep 6
