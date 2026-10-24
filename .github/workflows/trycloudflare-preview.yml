@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: 18
 
-      # 2. Fix Case Sensitivity (Links 'server/game' to 'server/Game')
+      # 2. Fix Case Sensitivity
       - name: Fix Case Sensitivity
         run: |
           ln -s Game server/game || true
@@ -33,20 +33,35 @@ jobs:
           npm install
           npm start > server.log 2>&1 &
           echo "SERVER_PID=$!" >> $GITHUB_ENV
-          sleep 5
-          
+          sleep 6 # Give the heavily modded game extra time to compile and load all 21 groups
+
       # 4. Setup cloudflared CLI
       - name: Setup cloudflared
         uses: AnimMouse/setup-cloudflared@v2
 
-      # 5. Start TryCloudflare Tunnel
+      # 5. Build dynamic multi-port Tunnel config to stop socket errors
+      # This handles standard web traffic on 3000 and websocket paths seamlessly
+      name: Create Cloudflared Configuration
+        run: |
+          mkdir -p ~/.cloudflared
+          cat << 'EOF' > ~/.cloudflared/config.yml
+          ingress:
+            - hostname: "*.trycloudflare.com"
+              path: "^/(ws|socket|play)"
+              service: http://127.0.0.1:8000
+            - hostname: "*.trycloudflare.com"
+              service: http://127.0.0.1:3000
+          EOF
+          echo "Cloudflared ingress configurations generated successfully."
+
+      # 6. Start TryCloudflare Tunnel using the unified config mapping
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
-          cloudflared tunnel --url http://127.0.0.1:3000 > cloudflared.log 2>&1 &
+          cloudflared tunnel --config ~/.cloudflared/config.yml run-quick > cloudflared.log 2>&1 &
           echo "TUNNEL_PID=$!" >> $GITHUB_ENV
           
-          sleep 5
+          sleep 6
           echo "=== CLOUDFLARE TUNNEL LOGS ==="
           cat cloudflared.log
           
@@ -57,17 +72,17 @@ jobs:
           echo "Extracted URL: $TUNNEL_URL"
           echo "tunnel_url=$TUNNEL_URL" >> $GITHUB_OUTPUT
 
-      # 6. Comment on PR
+      # 7. Comment on PR
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            🚀 **Cloudflare Quick Tunnel Preview Live!**
-            Your game preview is accessible here: ${{ steps.start_tunnel.outputs.tunnel_url }}
+            🚀 **Cloudflare Unified Game Server Live!**
+            Your game and sockets are fully accessible here: ${{ steps.start_tunnel.outputs.tunnel_url }}
           comment_tag: 'trycloudflare-preview'
 
-      # 7. Keep alive for testing
+      # 8. Keep alive for testing
       - name: Keep Alive for Testing
         run: |
           echo "Tunnel is active at: ${{ steps.start_tunnel.outputs.tunnel_url }}"
