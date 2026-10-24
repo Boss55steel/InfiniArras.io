@@ -2,8 +2,8 @@ const { combineStats, weaponArray, makeTurret } = require('../facilitators.js');
 const { base } = require('../constants.js');
 const g = require('../gunvals.js');
 
-if (!Class.CMCSolar)        throw new Error('[SolarsAndAntediluvians] CMCSolar missing — set createSolars=true');
-if (!Class.CMCAntediluvian) throw new Error('[SolarsAndAntediluvians] CMCAntediluvian missing — set createAntediluvian=true');
+// if (!Class.CMCSolar)        throw new Error('[SolarsAndAntediluvians] CMCSolar missing — set createSolars=true');
+// if (!Class.CMCAntediluvian) throw new Error('[SolarsAndAntediluvians] CMCAntediluvian missing — set createAntediluvian=true');
 
 // ── Gunval thing ────────────────────────────────────────────────────────────
 g.pound      = g.pound      || g.pounder;
