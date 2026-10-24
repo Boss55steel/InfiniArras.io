@@ -22,7 +22,12 @@ jobs:
         with:
           node-version: 18
 
-      # 2. Start game server and save output to server.log to catch crashes
+      # 2. Fix Case Sensitivity (Links 'server/game' to 'server/Game')
+      - name: Fix Case Sensitivity
+        run: |
+          ln -s Game server/game || true
+
+      # 3. Install dependencies and start your Node game server
       - name: Start Game Server
         run: |
           npm install
@@ -30,11 +35,11 @@ jobs:
           echo "SERVER_PID=$!" >> $GITHUB_ENV
           sleep 5
           
-      # 3. Setup cloudflared CLI
+      # 4. Setup cloudflared CLI
       - name: Setup cloudflared
         uses: AnimMouse/setup-cloudflared@v2
 
-      # 4. Start TryCloudflare Tunnel
+      # 5. Start TryCloudflare Tunnel
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
@@ -52,7 +57,7 @@ jobs:
           echo "Extracted URL: $TUNNEL_URL"
           echo "tunnel_url=$TUNNEL_URL" >> $GITHUB_OUTPUT
 
-      # 5. Comment on PR
+      # 6. Comment on PR
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@v2
@@ -62,7 +67,7 @@ jobs:
             Your game preview is accessible here: ${{ steps.start_tunnel.outputs.tunnel_url }}
           comment_tag: 'trycloudflare-preview'
 
-      # 6. Keep alive for testing
+      # 7. Keep alive for testing
       - name: Keep Alive for Testing
         run: |
           echo "Tunnel is active at: ${{ steps.start_tunnel.outputs.tunnel_url }}"
