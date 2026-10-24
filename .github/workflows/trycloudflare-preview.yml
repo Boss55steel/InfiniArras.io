@@ -27,7 +27,18 @@ jobs:
         run: |
           ln -s Game server/game || true
 
-      # 3. Install dependencies and start your Node game server
+      # 3. Dynamic Configuration Patching
+      # This looks for hardcoded ports or old protocol types in your client logic
+      # and enforces modern secure web socket path routing natively
+      - name: Dynamic Networking Patch
+        run: |
+          echo "=== Patching Game Server Client Connections ==="
+          # Searches for configuration patterns and updates references dynamically
+          find . -type f -name "*.js" -o -name "*.json" -o -name "*.html" | xargs sed -i 's/ws:\/\//wss:\/\//g' 2>/dev/null || true
+          find . -type f -name "*.js" -o -name "*.json" -o -name "*.html" | xargs sed -i 's/:8000//g' 2>/dev/null || true
+          find . -type f -name "*.js" -o -name "*.json" -o -name "*.html" | xargs sed -i 's/:8080//g' 2>/dev/null || true
+
+      # 4. Install dependencies and start your Node game server (Port 3000)
       - name: Start Game Server
         run: |
           npm install
@@ -35,16 +46,15 @@ jobs:
           echo "SERVER_PID=$!" >> $GITHUB_ENV
           sleep 6
 
-      # 4. Setup cloudflared CLI
+      # 5. Setup cloudflared CLI
       - name: Setup cloudflared
         uses: AnimMouse/setup-cloudflared@v2
 
-      # 5. Start TryCloudflare Tunnel
-      # Bundles BOTH port 3000 (web) and port 8000 (sockets) into the same command-line stream
+      # 6. Start TryCloudflare Tunnel (Directly targeting unified port 3000)
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
-          cloudflared tunnel --url http://127.0.0.1:3000 --url http://127.0.0.1:3000 > cloudflared.log 2>&1 &
+          cloudflared tunnel --url http://127.0.0.1:3000 > cloudflared.log 2>&1 &
           echo "TUNNEL_PID=$!" >> $GITHUB_ENV
           
           sleep 6
@@ -58,17 +68,17 @@ jobs:
           echo "Extracted URL: $TUNNEL_URL"
           echo "tunnel_url=$TUNNEL_URL" >> $GITHUB_OUTPUT
 
-      # 6. Comment on PR
+      # 7. Comment on PR
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            🚀 **Cloudflare Quick Tunnel Game Preview Live!**
-            Your unified game arena is ready here: ${{ steps.start_tunnel.outputs.tunnel_url }}
+            🚀 **Cloudflare Secure Single-Port Preview Live!**
+            Your secure web-arena preview is ready here: ${{ steps.start_tunnel.outputs.tunnel_url }}
           comment_tag: 'trycloudflare-preview'
 
-      # 7. Keep alive for testing
+      # 8. Keep alive for testing
       - name: Keep Alive for Testing
         run: |
           echo "Tunnel is active at: ${{ steps.start_tunnel.outputs.tunnel_url }}"
