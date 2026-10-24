@@ -27,13 +27,16 @@ jobs:
         run: |
           ln -s Game server/game || true
 
-      # 3. Dynamic Configuration Patching
-      # Forces all room variants to securely share port 3000 to eliminate socket conflicts
-      - name: Dynamic Networking Patch
+      # 3. Safe Fallback Patch
+      # This completely clears out the extra background servers and enforces single-port 
+      # mode on the main server to ensure players bypass socket errors on Cloudflare.
+      - name: Enforce Single Port Architecture
         run: |
-          echo "=== Patching Game Server Configurations ==="
-          # Overrides multi-port configurations to safely bundle under a single unified pipeline
-          find . -type f -name "config.js" -o -name "config.json" | xargs sed -i 's/share_client_server: false/share_client_server: true/g' 2>/dev/null || true
+          echo "=== Optimizing server configs for cloud runner ==="
+          # Trims out the secondary port entries so your framework routes all rooms through port 3000
+          find . -type f -name "config.js" -o -name "config.json" | xargs sed -i 's/servers: \[/servers: \[\n        {\n            share_client_server: true,\n            host: "localhost:3000",\n            port: 3000,\n            id: "la",\n            region: "Local",\n            gamemode: ["tdm"],\n            player_cap: 80\n        }/g' 2>/dev/null || true
+          # Safely truncates multi-server configurations to prevent initialization runtime loops
+          find . -type f -name "config.js" -o -name "config.json" | xargs sed -i '/host: '\''localhost:3001'\''/,/}\s*,\s*\]/d' 2>/dev/null || true
 
       # 4. Install dependencies and start your Node game server
       - name: Start Game Server
@@ -47,7 +50,7 @@ jobs:
       - name: Setup cloudflared
         uses: AnimMouse/setup-cloudflared@v2
 
-      # 6. Start TryCloudflare Tunnel (Unified Interface pipeline)
+      # 6. Start TryCloudflare Tunnel (Clean zero-config deployment)
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
@@ -71,8 +74,8 @@ jobs:
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            🚀 **Cloudflare Secure Unified Server Live!**
-            Your multi-room game arena is fully ready here: ${{ steps.start_tunnel.outputs.tunnel_url }}
+            🚀 **Cloudflare Secure Arena Preview Live!**
+            Your optimized multi-addon server is fully operational here: ${{ steps.start_tunnel.outputs.tunnel_url }}
           comment_tag: 'trycloudflare-preview'
 
       # 8. Keep alive for testing
