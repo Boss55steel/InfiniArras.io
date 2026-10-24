@@ -48,7 +48,7 @@ jobs:
           ingress:
             - hostname: "*.trycloudflare.com"
               path: "^/(ws|socket|play)"
-              service: http://127.0.0.1:8000
+              service: http://127.0.0.1:3000
             - hostname: "*.trycloudflare.com"
               service: http://127.0.0.1:3000
           EOF
