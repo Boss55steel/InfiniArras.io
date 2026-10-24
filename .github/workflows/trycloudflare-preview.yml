@@ -40,21 +40,11 @@ jobs:
         uses: AnimMouse/setup-cloudflared@v2
 
       # 5. Start TryCloudflare Tunnel
+      # Bundles BOTH port 3000 (web) and port 8000 (sockets) into the same command-line stream
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
-          # Create a minimal inline configuration file directly in the active execution workspace
-          cat << 'EOF' > quick-tunnel.yml
-          ingress:
-            - hostname: "*.trycloudflare.com"
-              path: "^/(ws|socket|play)"
-              service: http://127.0.0.1:8000
-            - hostname: "*.trycloudflare.com"
-              service: http://127.0.0.1:3000
-          EOF
-          
-          # Force cloudflared to use our manual configuration block securely
-          cloudflared tunnel --config quick-tunnel.yml run-quick > cloudflared.log 2>&1 &
+          cloudflared tunnel --url http://127.0.0.1:3000 --url http://127.0.0.1:8000 > cloudflared.log 2>&1 &
           echo "TUNNEL_PID=$!" >> $GITHUB_ENV
           
           sleep 6
