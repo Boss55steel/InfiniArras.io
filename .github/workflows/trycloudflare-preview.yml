@@ -22,12 +22,11 @@ jobs:
         with:
           node-version: 18
 
-      # 2. Install dependencies and start your actual Node game server
+      # 2. Start game server and save output to server.log to catch crashes
       - name: Start Game Server
         run: |
           npm install
-          # The > /dev/null 2>&1 & completely silences the background process logs so GitHub won't hang
-          npm start > /dev/null 2>&1 &
+          npm start > server.log 2>&1 &
           echo "SERVER_PID=$!" >> $GITHUB_ENV
           sleep 5
           
@@ -39,17 +38,21 @@ jobs:
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
-          cloudflared tunnel --url http://localhost:3000 > cloudflared.log 2>&1 &
+          cloudflared tunnel --url http://127.0.0.1:3000 > cloudflared.log 2>&1 &
           echo "TUNNEL_PID=$!" >> $GITHUB_ENV
           
           sleep 5
+          echo "=== CLOUDFLARE TUNNEL LOGS ==="
           cat cloudflared.log
+          
+          echo "=== GAME SERVER STARTUP LOGS ==="
+          cat server.log
           
           TUNNEL_URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' cloudflared.log | head -n 1)
           echo "Extracted URL: $TUNNEL_URL"
           echo "tunnel_url=$TUNNEL_URL" >> $GITHUB_OUTPUT
 
-      # 5. Only comment if this is an actual Pull Request
+      # 5. Comment on PR
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@v2
@@ -59,7 +62,7 @@ jobs:
             Your game preview is accessible here: ${{ steps.start_tunnel.outputs.tunnel_url }}
           comment_tag: 'trycloudflare-preview'
 
-      # 6. Keep alive for testing (Increased to 30 minutes)
+      # 6. Keep alive for testing
       - name: Keep Alive for Testing
         run: |
           echo "Tunnel is active at: ${{ steps.start_tunnel.outputs.tunnel_url }}"
