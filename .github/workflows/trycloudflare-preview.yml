@@ -28,17 +28,14 @@ jobs:
           ln -s Game server/game || true
 
       # 3. Dynamic Configuration Patching
-      # This looks for hardcoded ports or old protocol types in your client logic
-      # and enforces modern secure web socket path routing natively
+      # Forces all room variants to securely share port 3000 to eliminate socket conflicts
       - name: Dynamic Networking Patch
         run: |
-          echo "=== Patching Game Server Client Connections ==="
-          # Searches for configuration patterns and updates references dynamically
-          find . -type f -name "*.js" -o -name "*.json" -o -name "*.html" | xargs sed -i 's/ws:\/\//wss:\/\//g' 2>/dev/null || true
-          find . -type f -name "*.js" -o -name "*.json" -o -name "*.html" | xargs sed -i 's/:8000//g' 2>/dev/null || true
-          find . -type f -name "*.js" -o -name "*.json" -o -name "*.html" | xargs sed -i 's/:8080//g' 2>/dev/null || true
+          echo "=== Patching Game Server Configurations ==="
+          # Overrides multi-port configurations to safely bundle under a single unified pipeline
+          find . -type f -name "config.js" -o -name "config.json" | xargs sed -i 's/share_client_server: false/share_client_server: true/g' 2>/dev/null || true
 
-      # 4. Install dependencies and start your Node game server (Port 3000)
+      # 4. Install dependencies and start your Node game server
       - name: Start Game Server
         run: |
           npm install
@@ -50,7 +47,7 @@ jobs:
       - name: Setup cloudflared
         uses: AnimMouse/setup-cloudflared@v2
 
-      # 6. Start TryCloudflare Tunnel (Directly targeting unified port 3000)
+      # 6. Start TryCloudflare Tunnel (Unified Interface pipeline)
       - name: Start TryCloudflare Tunnel
         id: start_tunnel
         run: |
@@ -74,8 +71,8 @@ jobs:
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            🚀 **Cloudflare Secure Single-Port Preview Live!**
-            Your secure web-arena preview is ready here: ${{ steps.start_tunnel.outputs.tunnel_url }}
+            🚀 **Cloudflare Secure Unified Server Live!**
+            Your multi-room game arena is fully ready here: ${{ steps.start_tunnel.outputs.tunnel_url }}
           comment_tag: 'trycloudflare-preview'
 
       # 8. Keep alive for testing
