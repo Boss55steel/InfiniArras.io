@@ -43,8 +43,8 @@ class Assault {
                     this.win(TEAM_BLUE);
                 }
             }
-            global.gameManager.socketManager.broadcastRoomUpdate(tile.gridLoc.x, tile.gridLoc.y, tile.color);
-        });
+            global.gameManager.socketManager.broadcastRoom();
+        })
     }
 
     defineProperties() {
@@ -61,7 +61,7 @@ class Assault {
         this.gameActive = false;
         setTimeout(() => {
             global.gameManager.closeArena();
-        }, 3000);
+        }, 3000)
     }
 
     start() {
@@ -88,7 +88,7 @@ class Assault {
             if (this.minuteTimer == 0) {
                 clearInterval(this.timerInterval);
             }
-        }, 60000);
+        }, 800000)
         this.secondaryTimeInterval = setInterval(() => {
             if (global.gameManager.arenaClosed) clearInterval(this.secondaryTimeInterval);
             if (!this.gameActive || this.timerPaused) return;
@@ -116,11 +116,11 @@ class Assault {
                     this.secondTimer == 1
                 ) {
                     global.gameManager.socketManager.broadcast(
-                        `${this.secondTimer} secon${this.secondTimer == 1 ? "d" : "ds"} left until ${getTeamName(TEAM_GREEN)} wins!`
+                        `${this.secondTimer} secon${this.secondTimer == 1 ? "d" : "ds"} left until ${getTeamName(TEAM_GREEN)} wins!`,
                     );
                 }
             }
-        }, 1000);
+        }, 1000)
     }
 
     reset() {

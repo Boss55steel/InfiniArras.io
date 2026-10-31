@@ -2,7 +2,7 @@ let launchForce = 7500,
     gravity = 33500,
     minibossPush = 30000,
 
-    portals = [];
+portals = [];
 
 tileClass.portal = new Tile({
     COLOR: "black",
@@ -30,7 +30,7 @@ tileClass.portal = new Tile({
 
             //that tank is not close enough, suck them in!
             let eventHorizon = Math.min(room.tileWidth, room.tileHeight) / 5;
-            if (dist2 > eventHorizon ** 2) {
+            if (dist2 > eventHorizon ** 2 ) {
                 force *= gravity / dist2;
                 entity.velocity.x -= dx * force;
                 entity.velocity.y -= dy * force;
@@ -51,9 +51,9 @@ tileClass.portal = new Tile({
             setTimeout(() => {
                 entity.velocity.x = ax * force;
                 entity.velocity.y = ay * force;
-                setTimeout(() => entity.cannotTeleport = false, 200);
-            }, 100);
-            entity.protect();
+                setTimeout(() => entity.cannotTeleport = false, 200)
+            }, 100)
+            entity.protect()
 
             //also don't forget to bring her kids along the ride
             for (let o of entities.values()) {

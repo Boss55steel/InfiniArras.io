@@ -8,16 +8,15 @@ const skcnv = {
     atk: 6,
     hlt: 7,
     rgn: 8,
-    mob: 9
+    mob: 9,
 };
 
 let curvePoints = [];
 
 let curve = (x) => {
     let index = x * Config.skill_cap;
-    if (!curvePoints[index]) {
-        curvePoints[index] = Math.log(4 * (index / Config.skill_cap) + 1) / 1.6; 
-    }
+    if (!curvePoints[index])
+        curvePoints[index] = Math.log(4 * (index / Config.skill_cap) + 1) / 1.6;
     return curvePoints[index];
 };
 function apply(f, x) {
@@ -26,7 +25,7 @@ function apply(f, x) {
 
 class Skill {
     constructor(inital = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]) {
-    // Just skill stuff.
+        // Just skill stuff.
         this.raw = inital;
         this.caps = [];
         this.setCaps(Array(10).fill(Config.skill_cap));
@@ -40,7 +39,7 @@ class Skill {
             "Body Damage",
             "Max Health",
             "Shield Regeneration",
-            "Movement Speed"
+            "Movement Speed",
         ];
         this.atk = 0;
         this.hlt = 0;
@@ -143,9 +142,6 @@ class Skill {
         return this.LSPF ? this.LSPF(this.level) : Config.defineLevelSkillPoints(this.level);
     }
     cap(skill, real = false) {
-        if (!real && this.level < Config.skill_cap_soft) {
-            return Math.round(this.caps[skcnv[skill]] * Config.soft_max_skill);
-        } 
         return this.caps[skcnv[skill]];
     }
     upgrade(stat) {

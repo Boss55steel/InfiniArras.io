@@ -1,4 +1,4 @@
-let EventEmitter = require("events");
+let EventEmitter = require('events');
 class turretEntity extends EventEmitter {
     constructor(position, bond, master) {
         super();
@@ -22,7 +22,7 @@ class turretEntity extends EventEmitter {
             main: false,
             alt: false,
             fire: false,
-            power: 0
+            power: 0,
         };
         // Initalize.
         this.guns = new Map();
@@ -54,9 +54,9 @@ class turretEntity extends EventEmitter {
         // Fake activation stuff
         this.activation = {
             check: () => {
-                return this.bond.activation.check();
+                return this.bond.activation.check()
             }   
-        };
+        }
         // Get my position.
         if (Array.isArray(position)) {
             position = { 
@@ -86,14 +86,10 @@ class turretEntity extends EventEmitter {
     }
     fixFacing() {
         this.facing = this.bond.facing + this.bound.angle;
-        if (this.facingType.includes("Target") || this.facingType.includes("Speed")) {
-            this.facingType = "bound", this.facingTypeArgs = {}, 
-            this.facingTypeArgs = {smoothness: this.settings.smoothness ?? 4}; 
-        } 
+        if (this.facingType.includes('Target') || this.facingType.includes('Speed')) this.facingType = "bound", this.facingTypeArgs = {}, 
+        this.facingTypeArgs = {smoothness: this.settings.smoothness ?? 4}; 
     }
-    life() {
-        bringToLife(this); 
-    }
+    life() { bringToLife(this); }
 
     addController(newIO) {
         if (!Array.isArray(newIO)) newIO = [newIO];
@@ -155,7 +151,7 @@ class turretEntity extends EventEmitter {
                     addedSuccess = true;
                 }
                 this.addController(toAdd);
-            } catch(e) {
+            } catch (e) {
                 console.error(addedSuccess ? `Controller ${set.CONTROLLERS} ran into an error!` : `Controller "${set.CONTROLLERS}" was attempted to be gotten but does not exist!`);
                 throw new Error(e);
             }
@@ -169,6 +165,10 @@ class turretEntity extends EventEmitter {
                 this.facingTypeArgs = {};
             }
         };
+        if (set.SKILL_CAP != null && set.SKILL_CAP != []) {
+            if (set.SKILL_CAP.length != 10) throw "Inappropiate skill cap amount.";
+            this.skill.setCaps(set.SKILL_CAP);
+        }
         if ("function" === typeof set.defineLevelSkillPoints) this.skill.LSPF = set.defineLevelSkillPoints;
         if (set.RECALC_SKILL != null) {
             let score = this.skill.score;
@@ -265,9 +265,7 @@ class turretEntity extends EventEmitter {
         this.blend = ref.blend;
     };
 
-    face() {
-        global.runFace(this); 
-    };
+    face() { global.runFace(this) };
     
     syncTurrets() {
         for (let gun of this.guns.values()) gun.syncChildren();
@@ -279,29 +277,26 @@ class turretEntity extends EventEmitter {
     };
 
     camera() {
-        if (!this.cameraInfo) this.cameraInfo = { guns: [], turrets: [] };
-        const info = this.cameraInfo;
-        info.type = 0x01;
-        info.index = this.index;
-        info.size = this.size;
-        info.realSize = this.realSize;
-        info.facing = this.facing;
-        info.angle = this.bound.angle;
-        info.direction = this.bound.direction;
-        info.offset = this.bound.offset;
-        info.sizeFactor = this.bound.size;
-        info.mirrorMasterAngle = this.settings.mirrorMasterAngle ?? false;
-        info.layer = this.bound.layer;
-        info.color = this.color.compiled;
-        info.guns.length = 0;
-        for (const gun of this.guns.values()) info.guns.push(gun.getPhotoInfo());
-        info.turrets.length = 0;
-        for (const turret of this.turrets.values()) info.turrets.push(turret.camera());
-        return info;
+        return {
+            type: 0x01,
+            index: this.index,
+            size: this.size,
+            realSize: this.realSize,
+            facing: this.facing,
+            angle: this.bound.angle,
+            direction: this.bound.direction,
+            offset: this.bound.offset,
+            sizeFactor: this.bound.size,
+            mirrorMasterAngle: this.settings.mirrorMasterAngle ?? false,
+            layer: this.bound.layer,
+            color: this.color.compiled,
+            guns: Array.from(this.guns.values()).map(gun => gun.getPhotoInfo()),
+            turrets: Array.from(this.turrets.values()).map(turret => turret.camera()),
+        };
     };
 
     destroy() {
-    // Remove from bullet lists if needed
+        // Remove from bullet lists if needed
         if (this.bulletparent != null) {
             util.remove(this.bulletparent.bulletchildren, this.bulletparent.bulletchildren.indexOf(this)); // the only reason this exists is for bacteria.
             for (let gun of this.bulletparent.guns.values()) {

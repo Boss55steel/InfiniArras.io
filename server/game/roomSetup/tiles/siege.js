@@ -6,7 +6,7 @@ tileClass.outBorder = new Tile({
             if (!entity.isBoss && 
                 !entity.master.master.isBoss && 
                 !entity.isArenaCloser && 
-                (!entity.master.master.isArenaCloser || entity.isArenaCloser === false) &&
+                !entity.master.master.isArenaCloser &&
                 !entity.godmode &&
                 entity.type !== "wall"
             ) entity.kill();
@@ -17,14 +17,14 @@ tileClass.outBorder = new Tile({
 let addTileToBossSpawnTile = (tile, room) => {
     if (!room.spawnable["bossSpawnTile"]) room.spawnable["bossSpawnTile"] = [];
     room.spawnable["bossSpawnTile"].push(tile);
-};
+}
 let bossTick = (tile, pushTo, allow) => {
     for (let i = 0; i < tile.entities.length; i++) {
         let entity = tile.entities[i];
         if (!entity.isBoss && 
             !entity.master.master.isBoss && 
             !entity.isArenaCloser && 
-            (!entity.master.master.isArenaCloser || entity.isArenaCloser === false) &&
+            !entity.master.master.isArenaCloser &&
             !entity.godmode &&
             entity.type !== "wall"
         ) entity.kill();
@@ -37,7 +37,7 @@ let bossTick = (tile, pushTo, allow) => {
             entity.x += 2 / 0.9;
         }
     }
-};
+}
 
 tileClass.bossSpawn = new Tile({
     COLOR: "red",
@@ -54,7 +54,7 @@ tileClass.bossSpawnVoid = new Tile({
         if (Config.blitz || Config.fortress || Config.citadel) addTileToBossSpawnTile(tile, room);
     },
     TICK: (tile, room) => bossTick(tile, "right", "blitz")
-});
+})
 
 tileClass.sbase1 = new Tile({
     COLOR: "blue",
@@ -62,8 +62,8 @@ tileClass.sbase1 = new Tile({
     INIT: (tile, room) => {
         if (!room.spawnable[TEAM_BLUE]) room.spawnable[TEAM_BLUE] = [];
         room.spawnable[TEAM_BLUE].push(tile);
-    }
-});
+    },
+})
 
 tileClass.stopAI = new Tile({
     COLOR: "white",
@@ -82,4 +82,4 @@ tileClass.stopAI = new Tile({
             }
         }
     }
-});
+})

@@ -5,15 +5,9 @@ class Activation {
         this.timer = 15;
     }
     update() {
-        if (this.body.skipLife) {
-            return this.active = false; 
-        }
-        if (this.body.alwaysActive) {
-            return this.active = true; 
-        }
-        if (this.body.isDead()) {
-            return 0; 
-        }
+        if (this.body.skipLife) { return this.active = false; }
+        if (this.body.alwaysActive) { return this.active = true; }
+        if (this.body.isDead()) { return 0; }
         switch (this.active) {
             case false:
                 this.body.removeFromGrid();
@@ -27,24 +21,22 @@ class Activation {
                 break;
         }
     }
-    check() {
-        return this.active; 
-    };
+    check() { return this.active };
 }
 
-const dirtyCheck = function(p, r) {
+const dirtyCheck = function (p, r) {
     for (let i = 0; i < entitiesToAvoid.length; i++) {
         let e = entitiesToAvoid[i];
         if (Math.abs(p.x - e.x) < r + e.size && Math.abs(p.y - e.y) < r + e.size) return true;
     }
-    return false;
+    return false
 };
 
 let remapTarget = (i, ref, self) => {
     if (i.target == null || !(i.main || i.alt)) return undefined;
     return {
         x: i.target.x + ref.x - self.x,
-        y: i.target.y + ref.y - self.y
+        y: i.target.y + ref.y - self.y,
     };
 };
 
@@ -65,4 +57,4 @@ lazyRealSizes = new Proxy(lazyRealSizes, {
     }
 });
 
-module.exports = { dirtyCheck, remapTarget, lazyRealSizes, Activation };
+module.exports = { dirtyCheck, remapTarget, lazyRealSizes, Activation }

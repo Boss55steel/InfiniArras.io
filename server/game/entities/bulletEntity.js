@@ -14,7 +14,7 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
             main: false,
             alt: false,
             fire: false,
-            power: 0
+            power: 0,
         };
         this.isInGrid = false;
         this.removeFromGrid = () => {
@@ -31,13 +31,11 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
         this.controllers = [];
         // Initalize
         this.skill = new Skill();
-        this.health = new HealthType(1, "static", 0);
-        this.shield = new HealthType(0, "dynamic");
-        this.blend = { amount: 0 };
+        this.health = new HealthType(1, 'static', 0);
+        this.shield = new HealthType(0, 'dynamic');
         this.x = position.x;
         this.y = position.y;
         this.settings = {};
-        this.globalStore = {};
         this.aiSettings = {};
         this.guns = new Map();
         this.children = [];
@@ -88,9 +86,7 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
         for (let v of global.gameManager.views) v.add(this);
     }
 
-    life() {
-        bringToLife(this); 
-    };
+    life() { bringToLife(this) };
 
     addController(newIO) {
         if (!Array.isArray(newIO)) newIO = [newIO];
@@ -159,7 +155,7 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
                     addedSuccess = true;
                 }
                 this.addController(toAdd);
-            } catch(e) {
+            } catch (e) {
                 console.error(addedSuccess ? `Controller ${set.CONTROLLERS} ran into an error!` : `Controller "${set.CONTROLLERS}" was attempted to be gotten but does not exist!`);
                 throw new Error(e);
             }
@@ -200,6 +196,35 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
         if (set.CLEAR_ON_MASTER_UPGRADE != null) this.settings.clearOnMasterUpgrade = set.CLEAR_ON_MASTER_UPGRADE;
         if (set.HEALTH_WITH_LEVEL != null) this.settings.healthWithLevel = set.HEALTH_WITH_LEVEL;
         if (set.OBSTACLE != null) this.settings.obstacle = set.OBSTACLE;
+        if (set.NECRO != null) {
+            this.settings.necroTypes = Array.isArray(set.NECRO) ? set.NECRO : set.NECRO ? [this.shape] : [];
+
+            // Necro function for tanks
+            this.settings.necroDefineGuns = {};
+            for (let shape of this.settings.necroTypes) {
+                // Pick the first gun with the right necroType to use for stats and use its defineBullet function
+                this.settings.necroDefineGuns[shape] = Array.from(this.guns).filter((gun) => gun[1].bulletType.NECRO && (gun[1].bulletType.NECRO === shape || (gun[1].bulletType.NECRO === true && gun[1].bulletType.SHAPE === this.shape) || gun[1].bulletType.NECRO.includes(shape)))[0];
+            }
+
+            this.necro = (host) => {
+                let gun = this.settings.necroDefineGuns[host.shape];
+                if (!gun || !gun.checkShootPermission()) return false;
+
+                let savedFacing = host.facing;
+                let savedSize = host.SIZE;
+                
+                host.controllers = [];
+                host.define("genericEntity");
+                gun.bulletInit(host);
+                host.team = this.master.master.team;
+                host.master = this.master;
+                host.color.base = this.color.base;
+                host.facing = savedFacing;
+                host.SIZE = savedSize;
+                host.health.amount = host.health.max;
+                return true;
+            }
+        }
         if (set.HAS_NO_RECOIL != null) this.settings.hasNoRecoil = set.HAS_NO_RECOIL;
         if (set.CRAVES_ATTENTION != null) this.settings.attentionCraver = set.CRAVES_ATTENTION;
         if (set.HEALER) this.healer = true;
@@ -256,35 +281,6 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
             for (let guns of newGuns) {
                 this.guns.set(guns.id, guns);
             }
-        }
-        if (set.NECRO != null) {
-            this.settings.necroTypes = Array.isArray(set.NECRO) ? set.NECRO : set.NECRO ? [this.shape] : [];
-
-            // Necro function for tanks
-            this.settings.necroDefineGuns = {};
-            for (let shape of this.settings.necroTypes) {
-                // Pick the first gun with the right necroType to use for stats and use its defineBullet function
-                this.settings.necroDefineGuns[shape] = Array.from(this.guns.values()).filter((gun) => gun.bulletType.NECRO && (gun.bulletType.NECRO === shape || (gun.bulletType.NECRO === true && gun.bulletType.SHAPE === this.shape) || gun.bulletType.NECRO.includes(shape)))[0];
-            }
-            
-            this.necro = (host) => {
-                let gun = this.settings.necroDefineGuns[host.shape];
-                if (!gun || !gun.checkShootPermission()) return false;
-
-                let savedFacing = host.facing;
-                let savedSize = host.SIZE;
-                
-                host.controllers = [];
-                host.define("genericEntity");
-                gun.bulletInit(host);
-                host.team = this.master.master.team;
-                host.master = this.master;
-                host.color.base = this.color.base;
-                host.facing = savedFacing;
-                host.SIZE = savedSize;
-                host.health.amount = host.health.max;
-                return true;
-            };
         }
         if (set.EXTRA_SKILL != null) this.skill.points += set.EXTRA_SKILL;
         if (set.BODY != null) {
@@ -352,16 +348,12 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
 
     updateBodyInfo() {};
 
-    move() {
-        global.runMove(this); 
-    };
-    face() {
-        global.runFace(this); 
-    };
+    move() { global.runMove(this) };
+    face() { global.runFace(this) };
 
     damageMultiplier() {
         switch (this.type) {
-            case "swarm": return 0.25 + 1.5 * util.clamp(this.range / (this.RANGE + 1), 0, 1);
+            case 'swarm': return 0.25 + 1.5 * util.clamp(this.range / (this.RANGE + 1), 0, 1);
             default: return 1;
         }
     }
@@ -379,14 +371,13 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
             realSize: this.realSize,
             health: this.health.display(),
             shield: 0,
-            hit: this.blend.amount,
             alpha: this.alpha,
             facing: this.facing,
             vfacing: this.vfacing,
             layer: this.layerID ? this.layerID : this.type === "wall" ? 11 : this.type === "food" ? 10 : this.type === "tank" ? 5 : this.type === "crasher" ? 1 : 0,
             color: this.color.compiled,
             guns: Array.from(this.guns.values()).map(gun => gun.getPhotoInfo()),
-            turrets: []
+            turrets: [],
         };
     };
 
@@ -397,7 +388,7 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
 
     physics() {
         if (this.accel.x == null || this.velocity.x == null) {
-            util.error("Void Error!");
+            util.error('Void Error!');
             util.error(this.collisionArray);
             util.error(this.label);
             util.error(this);
@@ -429,7 +420,7 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
 
     confinementToTheseEarthlyShackles() {
         if (this.x == null || this.x == null) {
-            util.error("Void Error!");
+            util.error('Void Error!');
             util.error(this.collisionArray);
             util.error(this.label);
             util.error(this);
@@ -438,11 +429,11 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
             return 0;
         }
         if (!this.settings.canGoOutsideRoom) {
-            if (Config.round_arena) {
+            if (Config.arena_shape === "circle") {
                 let centerPoint = {
-                        x: global.gameManager.room.width - global.gameManager.room.width,
-                        y: global.gameManager.room.height - global.gameManager.room.height
-                    }, dist = util.getDistance(this, centerPoint);
+                    x: global.gameManager.room.width - global.gameManager.room.width,
+                    y: global.gameManager.room.height - global.gameManager.room.height,
+                }, dist = util.getDistance(this, centerPoint);
                 if (dist > global.gameManager.room.width - global.gameManager.room.width / 2) {
                     let strength = (dist - global.gameManager.room.width / 2) * Config.room_bound_force / (Config.run_speed * 350);
                     this.x = util.lerp(this.x, centerPoint.x, strength);
@@ -479,9 +470,8 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
         // Health damage
         if (this.damageReceived) {
             let healthDamage = this.health.getDamage(this.damageReceived);
-            this.blend.amount = 1;
             this.health.amount -= healthDamage;
-        } else this.blend.amount = 0;
+        }
         this.damageReceived = 0;
         // Check for death
         if (this.isDead()) {
@@ -506,7 +496,7 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
     };
 
     destroy() {
-    // Remove this from views
+        // Remove this from views
         global.gameManager.views.forEach(v => v.remove(this));
         // Remove from bullet lists if needed
         if (this.bulletparent != null) {
@@ -551,9 +541,7 @@ class bulletEntity { // Basically an (Entity) but with heavy limitations to impr
         targetableEntities.delete(this.id);
     }
 
-    isDead() {
-        return this.health.amount <= 0; 
-    };
+    isDead() { return this.health.amount <= 0; };
     emit() {} // Placeholder
 }
 

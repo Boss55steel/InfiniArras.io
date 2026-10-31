@@ -12,7 +12,7 @@ class HealthType {
         this.regen = regen;
     }
     display() {
-        return this.max ? this.amount / this.max : 0;
+        return this.amount / this.max;
     }
     getDamage(amount, capped = true) {
         let damageToMax = this.amount - this.max;
@@ -21,7 +21,7 @@ class HealthType {
                 return Math.max(capped
                     ? Math.min(amount * this.permeability, this.amount)
                     : amount * this.permeability,
-                damageToMax);
+                    damageToMax);
             case "static":
                 return Math.max(
                     capped ? Math.min(amount, this.amount) : amount,

@@ -1,4 +1,4 @@
-const { combineStats, removeUpgrades, makeAuto, makeBird, makeDrive, makeFlank, makeGuard, makeOver, makeRadialAuto, makeWhirlwind, weaponArray, weaponMirror, weaponStack } = require("../../facilitators.js");
+const { combineStats, removeUpgrades, makeAuto, makeBird, makeBattle, makeFlank, makeGuard, makeOver, makeRadialAuto, makeWhirlwind, weaponArray, weaponMirror, weaponStack } = require("../../facilitators.js");
 const { base, smshskl, statnames } = require("../../constants.js");
 const g = require("../../gunvals.js");
 const preset = require("../../presets.js");
@@ -2093,7 +2093,7 @@ Class.landmine = {
     PARENT: "genericSmasher",
     LABEL: "Landmine",
     INVISIBLE: [0.06, 0.01],
-    TOOLTIP: preset.tooltip.invisible,
+    TOOLTIP: preset.invisible,
     TURRETS: [
         {
             TYPE: ["hexagonHat_spin", {COLOR: "black"}],
@@ -2166,7 +2166,7 @@ Class.manager = {
         SPEED: 14 / 15 * base.SPEED
     },
     INVISIBLE: [0.08, 0.03],
-    TOOLTIP: preset.tooltip.invisible,
+    TOOLTIP: preset.invisible,
     GUNS: [
         {
             POSITION: {
@@ -2193,7 +2193,7 @@ Class.maleficitor = {
     DANGER: 7,
     NECRO: [4],
     SIZE: 11.5,
-    TOOLTIP: `Press ${key("override")} and wait to turn your drones invisible.`,
+    TOOLTIP: `Press R and wait to turn your drones invisible.`,
     STAT_NAMES: statnames.necro,
     SHAPE: 4,
     MAX_CHILDREN: 20,
@@ -2530,7 +2530,7 @@ Class.ordnance = {
         }
     ]
 };
-Class.overdrive = makeDrive("overseer", "Overdrive");
+Class.overdrive = makeBattle("overseer", "Overdrive");
 Class.overgunner = makeOver({
     PARENT: "genericTank",
     LABEL: "Gunner",
@@ -3313,7 +3313,7 @@ Class.stalker = {
     DANGER: 7,
     BODY: Class.assassin.BODY,
     INVISIBLE: [0.08, 0.03],
-    TOOLTIP: preset.tooltip.invisible,
+    TOOLTIP: preset.invisible,
     GUNS: [
         {
             POSITION: {

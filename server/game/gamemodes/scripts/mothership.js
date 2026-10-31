@@ -1,6 +1,6 @@
 class Mothership {
     constructor() {
-        if ((new Date().getMonth() === 10 && new Date().getDay() === 4 && today.getDate() >= 22 && today.getDate() <= 28) || Config.force_thanksgiving) {
+        if (Config.thanksgiving) {
             this.choices = ["turkey"];
         } else if (Config.arms_race) {
             this.choices = ["flagship"];
@@ -9,8 +9,8 @@ class Mothership {
         }
         this.defineProperties();
         Config.mothership_data = {
-            getData: () => this.globalMotherships
-        };
+            getData: () => this.globalMotherships,
+        }
     };
     defineProperties() {
         this.motherships = [];
@@ -26,28 +26,28 @@ class Mothership {
     spawn() {
         let locs = [{
             x: global.gameManager.room.width * 0.1 - global.gameManager.room.width / 2,
-            y: global.gameManager.room.height * 0.1 - global.gameManager.room.height / 2
+            y: global.gameManager.room.height * 0.1 - global.gameManager.room.height / 2,
         }, {
             x: global.gameManager.room.width * 0.9 - global.gameManager.room.width / 2,
-            y: global.gameManager.room.height * 0.9 - global.gameManager.room.height / 2
+            y: global.gameManager.room.height * 0.9 - global.gameManager.room.height / 2,
         }, {
             x: global.gameManager.room.width * 0.9 - global.gameManager.room.width / 2,
-            y: global.gameManager.room.height * 0.1 - global.gameManager.room.height / 2
+            y: global.gameManager.room.height * 0.1 - global.gameManager.room.height / 2,
         }, {
             x: global.gameManager.room.width * 0.1 - global.gameManager.room.width / 2,
-            y: global.gameManager.room.height * 0.9 - global.gameManager.room.height / 2
+            y: global.gameManager.room.height * 0.9 - global.gameManager.room.height / 2,
         }, {
             x: global.gameManager.room.width * 0.9 - global.gameManager.room.width / 2,
-            y: global.gameManager.room.height * 0.5 - global.gameManager.room.height / 2
+            y: global.gameManager.room.height * 0.5 - global.gameManager.room.height / 2,
         }, {
             x: global.gameManager.room.width * 0.1 - global.gameManager.room.width / 2,
-            y: global.gameManager.room.height * 0.5 - global.gameManager.room.height / 2
+            y: global.gameManager.room.height * 0.5 - global.gameManager.room.height / 2,
         }, {
             x: global.gameManager.room.width * 0.5 - global.gameManager.room.width / 2,
-            y: global.gameManager.room.height * 0.9 - global.gameManager.room.height / 2
+            y: global.gameManager.room.height * 0.9 - global.gameManager.room.height / 2,
         }, {
             x: global.gameManager.room.width * 0.5 - global.gameManager.room.width / 2,
-            y: global.gameManager.room.height * 0.1 - global.gameManager.room.height / 2
+            y: global.gameManager.room.height * 0.1 - global.gameManager.room.height / 2,
         }].sort(() => 0.5 - Math.random());
         for (let i = 0; i < Config.teams; i++) {
             let o = new Entity(locs[i]),
@@ -56,7 +56,7 @@ class Mothership {
             o.define({ ACCEPTS_SCORE: false, VALUE: 643890 });
             o.color.base = getTeamColor(team);
             o.team = team;
-            if ((new Date().getMonth() === 10 && new Date().getDay() === 4 && today.getDate() >= 22 && today.getDate() <= 28) || Config.force_thanksgiving) {
+            if (Config.thanksgiving) {
                 o.name = "Turkey";
             } else if (Config.arms_race) {
                 o.name = "Flagship";
@@ -70,7 +70,7 @@ class Mothership {
             this.globalMotherships.push(o);
             o.on("dead", () => {
                 this.death(o, team);
-            });
+            })
         }
     };
 
@@ -93,9 +93,7 @@ class Mothership {
 
     winner(teamId) {
         global.gameManager.socketManager.broadcast(getTeamName(teamId) + " has won the game!");
-        setTimeout(() => {
-            global.gameManager.closeArena(); 
-        }, 3000);
+        setTimeout(() => { global.gameManager.closeArena() }, 3000);
     };
 
     loop() {
@@ -110,9 +108,7 @@ class Mothership {
         });
         if (aliveNow.length === 1) {
             this.teamWon = true;
-            setTimeout(() => {
-                this.winner(aliveNow[0][1]); 
-            }, 2500);
+            setTimeout(() => {this.winner(aliveNow[0][1])}, 2500);
         }
         this.motherships = aliveNow;
     };

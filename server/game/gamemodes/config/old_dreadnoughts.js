@@ -1,5 +1,6 @@
 module.exports = {
-    classic_food: true
+    classic_food: true,
+    tier_cap: 13,
     //level_cap_cheat: 180,
     //level_cap: 180,
     /*growth: true,
@@ -10,4 +11,4 @@ module.exports = {
         if (level % 10 == 1) return 1;
         return 0;
     },*/
-};
+}

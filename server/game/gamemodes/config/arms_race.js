@@ -4,11 +4,11 @@ module.exports = {
         [1, [
             [1, "crasher"]
         ]],
-        [1 / 20, [
+        [1/20, [
             [1, "sentinelGun"], [1, "sentinelSwarm"], [1, "sentinelTrap"]
         ]]
-    ]
-    /*boss_types: [
+    ],
+    boss_types: [
             {
             bosses: ["eliteDestroyer", "eliteGunner", "eliteSprayer", "eliteBattleship", "eliteSpawner"],
             amount: [5, 5, 4, 2, 1], chance: 2, nameType: "a",
@@ -23,5 +23,5 @@ module.exports = {
             amount: [2, 2, 1], chance: 1, nameType: "a",
             message: "A strange trembling...",
         }
-    ]*/
-};
+    ]
+}

@@ -70,7 +70,7 @@ function timeOfImpact(p, v, s) {
     
     // Handle the case where projectile speed equals target speed
     if (Math.abs(a) < 1e-10) {
-    // Linear equation: bt + c = 0
+        // Linear equation: bt + c = 0
         return b !== 0 ? Math.max(0, -c / b) : 0;
     }
     
