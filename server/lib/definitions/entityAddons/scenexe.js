@@ -1,11 +1,11 @@
-const {base} = require("../constants.js");
+const {base} = require('../constants.js');
 const {basePolygonDamage, basePolygonHealth, statnames} = require("../constants");
 const {combineStats, makeTurret, makeHat, weaponMirror, weaponArray, makeAuto} = require("../facilitators");
 
 // This addon is enabled by default. If you want to enable it, simply make the line below run.
-return; //console.log("[scenexe.js]: Addon disabled.");
+return //console.log("[scenexe.js]: Addon disabled.");
 
-let enableOnSpawn = true; // edit this to toggle spawning as a scenexe tank in the server
+let enableOnSpawn = false; // edit this to toggle spawning as a scenexe tank in the server
 
 let g = {
     // Bases
@@ -26,13 +26,13 @@ let g = {
     tripleShot: { reload: 1.1, shudder: 0.8, health: 0.9, pen: 0.8, density: 0.8, spray: 0.5 },
     spreadshotMain: { recoil: 0.25, shudder: 0.5, health: 1.1 },
     spreadshot: { reload: 1.5, shudder: 0.25, speed: 0.7, maxSpeed: 0.7, spray: 0.25, health: 0.84 },
-    triplet: { reload: 1.2, recoil: 2 / 3, shudder: 0.9, health: 0.85, damage: 0.85, pen: 0.9, density: 1.1, spray: 0.9, resist: 0.95 },
+    triplet: { reload: 1.2, recoil: 2/3, shudder: 0.9, health: 0.85, damage: 0.85, pen: 0.9, density: 1.1, spray: 0.9, resist: 0.95 },
     turret: { reload: 2, health: 0.8, damage: 0.6, pen: 0.7, density: 0.1 },
     autoTurret: { reload: 0.9, recoil: 0.75, shudder: 0.5, size: 0.8, health: 0.9, damage: 0.6, pen: 1.2, range: 0.8, density: 1.3, resist: 1.25 },
     quint: { reload: 1.5, recoil: 0.667, shudder: 0.9, pen: 0.9, density: 1.1, spray: 0.9, resist: 0.95 },
     machineShot: { reload: 0.3, recoil: 0.8, shudder: 0.4, health: 0.7, damage: 0.7, speed: 4.5, maxSpeed: 5.9, spray: 19 },
 
-    // Snipers
+// Snipers
     sniper: { reload: 1.35, shudder: 0.25, damage: 0.8, pen: 1.1, speed: 1.5, maxSpeed: 1.5, density: 1.5, spray: 0.2, resist: 1.15 },
     crossbow: { reload: 2, health: 0.6, damage: 0.6, pen: 0.8 },
     assassin: { reload: 1.65, shudder: 0.25, health: 1.15, pen: 1.1, speed: 1.18, maxSpeed: 1.18, density: 3, resist: 1.3 },
@@ -43,9 +43,9 @@ let g = {
     rifle: { reload: 0.8, recoil: 0.8, shudder: 1.5, health: 0.8, damage: 0.8, pen: 0.9, spray: 2 },
     blunderbuss: { recoil: 0.1, shudder: 0.5, health: 0.4, damage: 0.2, pen: 0.4, spray: 0.5 },
     railgun: { reload: 4.2, damage: 0.81, health: 3.06, resist: 2.3, density: 0.7, speed: 1.375, maxSpeed: 1.375 },
-    marksman: { pen: 2, damage: 0.12, health: 25 / 3, reload: 1.75 },
+    marksman: { pen: 2, damage: 0.12, health: 25/3, reload: 1.75 },
 
-    // Machine guns
+// Machine guns
     machineGun: { reload: 0.5, recoil: 0.8, shudder: 1.7, health: 0.7, damage: 0.7, maxSpeed: 0.8, spray: 2.5 },
     minigun: { reload: 1.25, recoil: 0.6, size: 0.8, health: 0.55, damage: 0.45, pen: 1.25, speed: 1.33, density: 1.25, spray: 0.5, resist: 1.1 },
     streamliner: { reload: 1.1, recoil: 0.6, damage: 0.65, speed: 1.24 },
@@ -54,19 +54,19 @@ let g = {
     gunner: { recoil: 0.25, shudder: 1.5, size: 1.2, health: 1.35, damage: 0.25, pen: 1.25, speed: 0.8, maxSpeed: 0.65, density: 1.5, spray: 1.5, resist: 1.2 },
     machineGunner: { reload: 0.66, recoil: 0.8, shudder: 2, damage: 0.75, speed: 1.2, maxSpeed: 0.8, spray: 2.5 },
     blaster: { recoil: 1.2, shudder: 1.25, size: 1.1, health: 1.5, pen: 0.6, speed: 0.8, maxSpeed: 0.33, range: 0.6, density: 0.5, spray: 1.5, resist: 0.8 },
-    focal: { reload: 1.25, recoil: 4 / 3, shudder: 0.8, health: 0.8, pen: 1.1, speed: 1.25, maxSpeed: 1.25, range: 1.1, density: 1.25, spray: 0.5, resist: 1.1 },
+    focal: { reload: 1.25, recoil: 4/3, shudder: 0.8, health: 0.8, pen: 1.1, speed: 1.25, maxSpeed: 1.25, range: 1.1, density: 1.25, spray: 0.5, resist: 1.1 },
     atomizer: { reload: 0.3, recoil: 0.8, size: 0.5, damage: 0.75, speed: 1.2, maxSpeed: 0.8, spray: 2.25 },
     spam: { reload: 1.1, size: 1.05, damage: 1.1, speed: 0.9, maxSpeed: 0.7, resist: 1.05 },
     gunnerDominator: { reload: 1.1, recoil: 0, shudder: 1.1, size: 0.5, health: 0.5, damage: 0.5, speed: 1.1, density: 0.9, spray: 1.2, resist: 0.8 },
 
-    // Flanks
+// Flanks
     flankGuard: { recoil: 1.2, health: 1.02, damage: 0.81, pen: 0.9, maxSpeed: 0.85, density: 1.2 },
     cyclone: { health: 1.3, damage: 1.3, pen: 1.1, speed: 1.5, maxSpeed: 1.15 },
     triAngle: { recoil: 0.9, health: 0.9, speed: 0.8, maxSpeed: 0.8, range: 0.6 },
     triAngleFront: { recoil: 0.2, speed: 1.3, maxSpeed: 1.1, range: 1.5 },
     thruster: { recoil: 1.5, shudder: 2, health: 0.5, damage: 0.5, pen: 0.7, spray: 0.5, resist: 0.7 },
 
-    // Drones
+// Drones
     overseer: { reload: 1.25, size: 0.85, health: 0.7, damage: 0.8, maxSpeed: 0.9, density: 2 },
     overdrive: { reload: 2.5, health: 0.8, damage: 0.8, pen: 0.8, speed: 0.9, maxSpeed: 0.9, range: 0.9, spray: 1.2 },
     commander: { reload: 1.5, health: 0.4, damage: 0.7 },
@@ -83,7 +83,7 @@ let g = {
     mothership: { reload: 1.25, pen: 1.1, speed: 0.775, maxSpeed: 0.8, range: 15, resist: 1.15 },
     satellite: { size: 0.8, reload: 3, damage: 1.875 },
 
-    // Heavy cannons
+// Heavy cannons
     pounder: { reload: 2, recoil: 1.6, damage: 2, speed: 0.85, maxSpeed: 0.8, density: 1.5, resist: 1.15 },
     destroyer: { reload: 2, recoil: 1.8, shudder: 0.5, health: 2, damage: 0.90, pen: 1.2, speed: 0.50, maxSpeed: 0.6, density: 2, resist: 3 },
     annihilator: { reload: 1, recoil: 1.35, damage: 0.86 },
@@ -93,7 +93,7 @@ let g = {
     shotgun: { reload: 8, recoil: 0.4, size: 1.5, damage: 0.4, pen: 0.8, speed: 1.8, maxSpeed: 0.6, density: 1.2, spray: 1.2 },
     destroyerDominator: { reload: 6.5, recoil: 0, size: 0.975, health: 5, damage: 5, pen: 5, speed: 0.575, maxSpeed: 0.475, spray: 0.5 },
 
-    // Missiles
+// Missiles
     launcher: { reload: 1.5, recoil: 1.5, shudder: 0.1, size: 0.72, health: 1.05, damage: 0.925, speed: 0.9, maxSpeed: 1.2, range: 1.1, resist: 1.5 },
     skimmer: { recoil: 0.8, shudder: 0.8, size: 0.9, health: 1.35, damage: 0.8, pen: 2, speed: 0.85, maxSpeed: 0.85, resist: 1.1 },
     snake: { reload: 0.4, shudder: 4, health: 1.5, damage: 0.9, pen: 1.2, speed: 0.1, maxSpeed: 0.35, density: 3, spray: 6, resist: 0.5 },
@@ -103,10 +103,10 @@ let g = {
     missileTrail: { reload: 0.6, recoil: 0.25, shudder: 2, damage: 0.9, pen: 0.7, speed: 0.4, range: 0.5 },
     rocketeerMissileTrail: { reload: 0.5, recoil: 7, shudder: 1.5, size: 0.8, health: 0.8, damage: 0.7, speed: 0.9, maxSpeed: 0.8, spray: 5 },
 
-    // Traps and blocks
+// Traps and blocks
     setTrap: { reload: 1.1, recoil: 2, shudder: 0.1, size: 1.5, health: 2, pen: 1.25, speed: 2.2, maxSpeed: 2.15, range: 1.25, resist: 1.25 },
     construct: { reload: 1.3, size: 0.9, maxSpeed: 1.1 },
-    boomerang: { reload: 0.8, health: 0.5, damage: 0.5, speed: 0.75, maxSpeed: 0.75, range: 4 / 3 },
+    boomerang: { reload: 0.8, health: 0.5, damage: 0.5, speed: 0.75, maxSpeed: 0.75, range: 4/3 },
     nestKeeper: { reload: 3, size: 0.75, health: 1.05, damage: 1.05, pen: 1.1, speed: 0.5, maxSpeed: 0.5, range: 0.5, density: 1.1 },
     hexaTrapper: { reload: 1.3, shudder: 1.25, speed: 0.8, range: 0.5 },
     trapperDominator: { reload: 1.46, recoil: 0, shudder: 0.25, health: 1.25, damage: 1.45, pen: 1.6, speed: 0.5, maxSpeed: 2, range: 1.1, spray: 0.5 },
@@ -115,12 +115,12 @@ let g = {
     gamma: { reload: 1.6, damage: 2, speed: 0.2, pen: 1.5 },
     rubble: { reload: 0.9, health: 0.87 },
 
-    // Speed
+// Speed
     fast: { speed: 1.2 },
     veryfast: { speed: 2.5 },
     morespeed: { speed: 1.3, maxSpeed: 1.3 },
 
-    // Misc
+// Misc
     blank: { reload: 1, recoil: 1, shudder: 1, size: 1, health: 1, damage: 1, pen: 1, speed: 1, maxSpeed: 1, range: 1, density: 1, spray: 1, resist: 1 },
     weak: { reload: 2, health: 0.6, damage: 0.6, pen: 0.8, speed: 0.5, maxSpeed: 0.7, range: 0.25, density: 0.3 },
     power: { shudder: 0.6, size: 1.2, pen: 1.25, density: 2, spray: 0.5, resist: 1.5 },
@@ -131,17 +131,17 @@ let g = {
     lowPower: { shudder: 2, health: 0.5, damage: 0.5, pen: 0.7, spray: 0.5, resist: 0.7 },
     halfrange: { range: 0.5 },
     aura: { reload: 0.001, recoil: 0.001, shudder: 0.001, size: 6, speed: 0.001, maxSpeed: 0.001, spray: 0.001 },
-    noSpread: { shudder: 0, spray: 0 }
-};
+    noSpread: { shudder: 0, spray: 0 },
+}
 
 const baseScenexe = {
     FOV: base.FOV * 1.6,
     HEALTH: base.HEALTH * 1.05
-};
+}
 
 if (enableOnSpawn) {
-    Config.spawn_class = ["scenexeBase", "scenexeNode"];
-    Config.level_cap_cheat = 45;
+    Config.spawn_class = ["scenexeBase", "scenexeNode"]
+    Config.level_cap_cheat = 45
 }
 
 Class.scenexeTrap = {
@@ -159,9 +159,9 @@ Class.scenexeTrap = {
         RANGE: 450,
         DENSITY: 2.5,
         RESIST: 2.5,
-        SPEED: 0
-    }
-};
+        SPEED: 0,
+    },
+}
 Class.scenexePillbox = {
     PARENT: "scenexeTrap",
     LABEL: "Auto-Trap",
@@ -170,10 +170,10 @@ Class.scenexePillbox = {
     TURRETS: [
         {
             POSITION: [11, 0, 0, 0, 360, 1],
-            TYPE: "scenexePillboxTurret"
-        }
-    ]
-};
+            TYPE: "scenexePillboxTurret",
+        },
+    ],
+}
 
 Class.triangle = {
     PARENT: "food",
@@ -190,8 +190,8 @@ Class.triangle = {
         ACCELERATION: 0.0075
     },
     DRAW_HEALTH: true,
-    INTANGIBLE: false
-};
+    INTANGIBLE: false,
+}
 
 Class.square = {
     PARENT: "food",
@@ -208,8 +208,8 @@ Class.square = {
         PENETRATION: 1.5,
         ACCELERATION: 0.005
     },
-    DRAW_HEALTH: true
-};
+    DRAW_HEALTH: true,
+}
 
 Class.hexagon = {
     PARENT: "food",
@@ -227,11 +227,11 @@ Class.hexagon = {
         PENETRATION: 1.1,
         ACCELERATION: 0.003
     },
-    DRAW_HEALTH: true
-};
+    DRAW_HEALTH: true,
+}
 
-Class.octagonDeco = makeHat(8, { color: "green" });
-Class.hearthDeco = makeHat(0, { color: "red"});
+Class.octagonDeco = makeHat(8, { color: "green" })
+Class.hearthDeco = makeHat(0, { color: "red"})
 
 makeHearth = (damageFactor = 1, sizeFactor = 1, opacity = 0.3, auraColor) => {
     let isHeal = damageFactor < 0;
@@ -244,29 +244,29 @@ makeHearth = (damageFactor = 1, sizeFactor = 1, opacity = 0.3, auraColor) => {
         COLOR: "grey",
         GUNS: [
             {
-                POSITION: [0, 20, 1, 0, 0, 0, 0],
+                POSITION: [0, 20, 1, 0, 0, 0, 0,],
                 PROPERTIES: {
                     SHOOT_SETTINGS: combineStats([g.aura, { size: sizeFactor, damage: damageFactor }]),
                     TYPE: [auraType, { COLOR: auraColor, ALPHA: opacity }],
                     MAX_CHILDREN: 1,
                     AUTOFIRE: true,
-                    SYNCS_SKILLS: true
-                }
-            }
+                    SYNCS_SKILLS: true,
+                },
+            },
         ],
         TURRETS: isHeal ? [
             {
                 POSITION: [6.4 * sizeFactor, 0, 0, 0, 360, 1],
-                TYPE: ["octagonDeco", { INDEPENDENT: true }]
-            }
+                TYPE: ['octagonDeco', { INDEPENDENT: true }],
+            },
         ] : [
             {
                 POSITION: [6.4 * sizeFactor, 0, 0, 0, 360, 1],
-                TYPE: ["hearthDeco", { INDEPENDENT: true }]
+                TYPE: ['hearthDeco', { INDEPENDENT: true }],
             }
         ]
     };
-};
+}
 Class.scenexePillboxTurret = makeTurret({
     HAS_NO_RECOIL: true,
     GUNS: [
@@ -276,42 +276,42 @@ Class.scenexePillboxTurret = makeTurret({
                 SHOOT_SETTINGS: combineStats([g.basic, g.minionGun, g.turret, g.autoTurret, g.power, { density: 0.1, speed: 0.5, range: 1.5 }]),
                 TYPE: "bullet",
                 WAIT_TO_CYCLE: true
-            }
-        }
-    ]
-}, {independent: true, extraStats: []});
+            },
+        },
+    ],
+}, {independent: true, extraStats: []})
 Class.scenexeSentryTurret = makeTurret({
     GUNS: [
         {
             POSITION: [22, 10, 1, 0, 0, 0, 0],
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, g.pelleter, g.power, { recoil: 1.15 }, g.turret]),
-                TYPE: "bullet"
-            }
-        }
-    ]
-}, {label: "Turret", fov: 0.8, extraStats: []});
+                TYPE: "bullet",
+            },
+        },
+    ],
+}, {label: "Turret", fov: 0.8, extraStats: []})
 Class.scenexeTurretTurret = makeTurret({
     GUNS: weaponMirror(
         {
             POSITION: [22, 8, 1, 0, -5.5, 0, 0],
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, g.pelleter, g.power, { recoil: 1.15 }, g.turret]),
-                TYPE: "bullet"
-            }
-        }, {delayIncrement: 0.5})
-}, {label: "Turret", fov: 0.8, extraStats: []});
+                TYPE: "bullet",
+            },
+        }, {delayIncrement: 0.5}),
+}, {label: "Turret", fov: 0.8, extraStats: []})
 Class.scenexeArtilleryTurret = makeTurret({
     GUNS: [
         {
             POSITION: [22, 14, 1, 0, 0, 0, 0],
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, g.pelleter, g.power, { recoil: 1.15 }, g.turret, g.pounder]),
-                TYPE: "bullet"
-            }
-        }
-    ]
-}, {label: "Turret", fov: 0.8, extraStats: []});
+                TYPE: "bullet",
+            },
+        },
+    ],
+}, {label: "Turret", fov: 0.8, extraStats: []})
 Class.scenexeTripletTurret = makeTurret({
     GUNS: [
         ...weaponMirror({
@@ -329,7 +329,7 @@ Class.scenexeTripletTurret = makeTurret({
             }
         }
     ]
-}, {label: "Turret", fov: 0.8, extraStats: []});
+}, {label: "Turret", fov: 0.8, extraStats: []})
 Class.scenexeHangarTurret = makeTurret({
     GUNS: [
         {
@@ -345,7 +345,7 @@ Class.scenexeHangarTurret = makeTurret({
             }
         }
     ]
-}, {label: "Drone Turret", fov: 0.8, extraStats: []});
+}, {label: "Drone Turret", fov: 0.8, extraStats: []})
 Class.scenexeBattleshipTurret = makeTurret({
     GUNS: [
         {
@@ -361,7 +361,7 @@ Class.scenexeBattleshipTurret = makeTurret({
             }
         }
     ]
-}, {label: "Drone Turret", fov: 0.8, extraStats: []});
+}, {label: "Drone Turret", fov: 0.8, extraStats: []})
 Class.scenexeHangarTurret.SHAPE = 4;
 Class.scenexeBattleshipTurret.SHAPE = 4;
 
@@ -373,17 +373,17 @@ Class.scenexeMinion = {
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, g.minionGun]),
                 WAIT_TO_CYCLE: true,
-                TYPE: "bullet"
-            }
-        }
-    ]
-};
+                TYPE: "bullet",
+            },
+        },
+    ],
+}
 
 Class.scenexeNode = {
     PARENT: "genericTank",
     REROOT_UPGRADE_TREE: ["scenexeNode", "scenexeBase"],
-    LABEL: "Node"
-};
+    LABEL: "Node",
+}
 Class.scenexeBase = {
     PARENT: "genericTank",
     REROOT_UPGRADE_TREE: ["scenexeNode", "scenexeBase"],
@@ -391,8 +391,8 @@ Class.scenexeBase = {
     BODY: {
         FOV: baseScenexe.FOV,
         HEALTH: baseScenexe.HEALTH
-    }
-};
+    },
+}
 /* NODE */
 /// MONO
 // Tier 0
@@ -404,11 +404,11 @@ Class.scenexeMono = {
             POSITION: { LENGTH: 21,  WIDTH: 10,  ASPECT: 1 },
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic]),
-                TYPE: "bullet"
+                TYPE: "bullet",
             }
         }
     ]
-};
+}
 
 // Tier 1
 Class.scenexeDuo = {
@@ -425,7 +425,7 @@ Class.scenexeDuo = {
             TYPE: "bullet"
         }
     }, {delayIncrement: 0.5})
-};
+}
 
 Class.scenexeFlank = {
     PARENT: "scenexeNode",
@@ -435,18 +435,18 @@ Class.scenexeFlank = {
             POSITION: { LENGTH: 21, WIDTH: 10, ASPECT: 1 },
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, g.flankGuard]),
-                TYPE: "bullet"
+                TYPE: "bullet",
             }
         },
         {
             POSITION: { LENGTH: 16, WIDTH: 10, ASPECT: 1, ANGLE: 180 },
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, g.flankGuard]),
-                TYPE: "bullet"
+                TYPE: "bullet",
             }
         }
     ]
-};
+}
 Class.scenexeSplit = {
     PARENT: "scenexeNode",
     LABEL: "Split",
@@ -458,17 +458,17 @@ Class.scenexeSplit = {
                     SHOOT_SETTINGS: combineStats([g.basic, { damage: 0.75, pen: 1.15, recoil: 0.1 }]),
                     TYPE: "bullet"
                 }
-            }
+            },
         ),
         {
             POSITION: { LENGTH: 21,  WIDTH: 10,  ASPECT: 1 },
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, { recoil: 0.9 }]),
-                TYPE: "bullet"
+                TYPE: "bullet",
             }
         }
     ]
-};
+}
 Class.scenexeSingle = {
     PARENT: "scenexeNode",
     LABEL: "Single",
@@ -476,10 +476,10 @@ Class.scenexeSingle = {
         POSITION: { LENGTH: 21.5, WIDTH: 12.5 },
         PROPERTIES: {
             SHOOT_SETTINGS: combineStats([g.basic, g.pounder]),
-            TYPE: "bullet"
+            TYPE: 'bullet'
         }
     }]
-};
+}
 Class.scenexeSniper = {
     PARENT: "scenexeNode",
     LABEL: "Sniper",
@@ -495,7 +495,7 @@ Class.scenexeSniper = {
             }
         }
     ]
-};
+}
 
 //Tier 2
 Class.scenexeTrio = {
@@ -517,7 +517,7 @@ Class.scenexeTrio = {
             }
         }
     ]
-};
+}
 Class.scenexeGunner = {
     PARENT: "scenexeNode",
     LABEL: "Gunner",
@@ -537,7 +537,7 @@ Class.scenexeGunner = {
             }
         }
     ], { delayIncrement: 0.25 })
-};
+}
 Class.scenexeArc = {
     PARENT: "scenexeNode",
     LABEL: "Arc",
@@ -549,13 +549,13 @@ Class.scenexeArc = {
                 TYPE: "bullet"
             }
         },
-        {
-            POSITION: [21, 10, 1, 0, 0, 90, 0],
-            PROPERTIES: {
-                SHOOT_SETTINGS: combineStats([g.basic, g.twin, g.tripleShot, { recoil: 0.9 }]),
-                TYPE: "bullet"
-            }
-        }]),
+            {
+                POSITION: [21, 10, 1, 0, 0, 90, 0],
+                PROPERTIES: {
+                    SHOOT_SETTINGS: combineStats([g.basic, g.twin, g.tripleShot, { recoil: 0.9 }]),
+                    TYPE: "bullet"
+                }
+            }]),
         {
             POSITION: [21, 10, 1, 0, 0, 0, 0],
             PROPERTIES: {
@@ -564,7 +564,7 @@ Class.scenexeArc = {
             }
         }
     ]
-};
+}
 Class.scenexeQuad = {
     PARENT: "scenexeNode",
     LABEL: "Quad",
@@ -572,10 +572,10 @@ Class.scenexeQuad = {
         POSITION: { LENGTH: 21, WIDTH: 10, ASPECT: 1 },
         PROPERTIES: {
             SHOOT_SETTINGS: combineStats([g.basic, g.flankGuard]),
-            TYPE: "bullet"
+            TYPE: "bullet",
         }
     }, 4)
-};
+}
 Class.scenexeWake = {
     PARENT: "scenexeNode",
     LABEL: "Wake",
@@ -608,7 +608,7 @@ Class.scenexeWake = {
             }
         })
     ]
-};
+}
 Class.scenexeConglomerate = {
     PARENT: "scenexeNode",
     LABEL: "Conglomerate",
@@ -648,43 +648,43 @@ Class.scenexeConglomerate = {
             }
         })
     ]
-};
+}
 Class.scenexeSpread = {
     PARENT: "scenexeNode",
     LABEL: "Spread",
     GUNS: [
         ...weaponMirror([
             {
-                POSITION: { LENGTH: 18, WIDTH: 5, ANGLE: 45, Y: 2, X: -2, DELAY: 3 / 4 },
+                POSITION: { LENGTH: 18, WIDTH: 5, ANGLE: 45, Y: 2, X: -2, DELAY: 3/4 },
                 PROPERTIES: {
                     SHOOT_SETTINGS: combineStats([g.basic, { damage: 0.75, pen: 1.15, recoil: 0.1 }, g.spreadshot]),
                     TYPE: "bullet"
                 }
             },
             {
-                POSITION: { LENGTH: 18, WIDTH: 5, ANGLE: 30, Y: 2, X: -1, DELAY: 2 / 4 },
+                POSITION: { LENGTH: 18, WIDTH: 5, ANGLE: 30, Y: 2, X: -1, DELAY: 2/4 },
                 PROPERTIES: {
                     SHOOT_SETTINGS: combineStats([g.basic, { damage: 0.75, pen: 1.15, recoil: 0.1 }, g.spreadshot]),
                     TYPE: "bullet"
                 }
             },
             {
-                POSITION: { LENGTH: 18, WIDTH: 5, ANGLE: 15, Y: 2, DELAY: 1 / 4 },
+                POSITION: { LENGTH: 18, WIDTH: 5, ANGLE: 15, Y: 2, DELAY: 1/4 },
                 PROPERTIES: {
                     SHOOT_SETTINGS: combineStats([g.basic, { damage: 0.75, pen: 1.15, recoil: 0.1 }, g.spreadshot]),
                     TYPE: "bullet"
                 }
-            }
+            },
         ]),
         {
             POSITION: { LENGTH: 21,  WIDTH: 10,  ASPECT: 1 },
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, { recoil: 0.9 }, g.spreadshotMain]),
-                TYPE: "bullet"
+                TYPE: "bullet",
             }
         }
     ]
-};
+}
 Class.scenexeDestroyer = {
     PARENT: "scenexeNode",
     LABEL: "Destroyer",
@@ -693,11 +693,11 @@ Class.scenexeDestroyer = {
             POSITION: [21, 14, 1, 0, 0, 0, 0],
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, g.pounder, g.destroyer]),
-                TYPE: "bullet"
-            }
-        }
-    ]
-};
+                TYPE: "bullet",
+            },
+        },
+    ],
+}
 Class.scenexeCompound = {
     PARENT: "scenexeNode",
     LABEL: "Compound",
@@ -722,7 +722,7 @@ Class.scenexeCompound = {
             }
         }
     ]
-};
+}
 Class.scenexeAssassin = {
     PARENT: "genericTank",
     DANGER: 6,
@@ -739,31 +739,31 @@ Class.scenexeAssassin = {
             }
         }
     ]
-};
+}
 Class.scenexeFactory = {
     PARENT: "scenexeNode",
     LABEL: "Factory",
     STAT_NAMES: statnames.drone,
     GUNS: [
         {
-            POSITION: [7.5, 7, 1, 13.5, 0, 0, 0]
+            POSITION: [7.5, 7, 1, 13.5, 0, 0, 0],
         },
         {
             POSITION: [3, 9, 1, 20, 0, 0, 0],
             PROPERTIES: {
                 MAX_CHILDREN: 4,
-                SHOOT_SETTINGS: combineStats([g.spawner, { size: 1.2 }]),
+                SHOOT_SETTINGS: combineStats([g.minion, { size: 1.2 }]),
                 TYPE: "scenexeMinion",
                 STAT_CALCULATOR: "drone",
                 AUTOFIRE: true,
-                SYNCS_SKILLS: true
-            }
+                SYNCS_SKILLS: true,
+            },
         },
         {
-            POSITION: [14.5, 9, 1, 0, 0, 0, 0]
-        }
-    ]
-};
+            POSITION: [14.5, 9, 1, 0, 0, 0, 0],
+        },
+    ],
+}
 Class.scenexeManager = {
     PARENT: "scenexeNode",
     LABEL: "Manager",
@@ -779,7 +779,7 @@ Class.scenexeManager = {
             WAIT_TO_CYCLE: true
         }
     }]
-};
+}
 
 //TRAPPER
 Class.scenexeTrapper = {
@@ -799,23 +799,23 @@ Class.scenexeTrapper = {
             }
         }
     ]
-};
+}
 
 //Tier 1
 Class.scenexeGamma = {
     PARENT: "scenexeNode",
     LABEL: "Gamma",
     GUNS: [{
-        POSITION: { LENGTH: 15, WIDTH: 9 }
-    },
-    {
+            POSITION: { LENGTH: 15, WIDTH: 9 }
+        },
+        {
         POSITION: { LENGTH: 5, WIDTH: 9, ASPECT: 1.7, X: 15 },
         PROPERTIES: {
             SHOOT_SETTINGS: combineStats([g.trap, g.gamma]),
             TYPE: "scenexeTrap"
         }
     }]
-};
+}
 Class.scenexeGuard = {
     PARENT: "scenexeNode",
     LABEL: "Guard",
@@ -836,11 +836,11 @@ Class.scenexeGuard = {
             POSITION: { LENGTH: 21,  WIDTH: 10,  ASPECT: 1 },
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, g.flankGuard]),
-                TYPE: "bullet"
+                TYPE: "bullet",
             }
-        }
+        },
     ]
-};
+}
 Class.scenexeBlockade = {
     PARENT: "scenexeNode",
     LABEL: "Blockade",
@@ -867,9 +867,9 @@ Class.scenexeBlockade = {
                 TYPE: "scenexeTrap",
                 STAT_CALCULATOR: "trap"
             }
-        }
+        },
     ]
-};
+}
 Class.scenexeRubble = {
     PARENT: "scenexeNode",
     LABEL: "Rubble",
@@ -887,7 +887,7 @@ Class.scenexeRubble = {
             }
         }
     ], 4)
-};
+}
 Class.scenexeScrap = {
     PARENT: "scenexeNode",
     LABEL: "Scrap",
@@ -905,7 +905,7 @@ Class.scenexeScrap = {
             }
         }
     ], 6)
-};
+}
 Class.scenexeEngineer = {
     PARENT: "scenexeNode",
     LABEL: "Engineer",
@@ -920,7 +920,7 @@ Class.scenexeEngineer = {
                 SYNCS_SKILLS: true,
                 DESTROY_OLDEST_CHILD: true,
                 STAT_CALCULATOR: "block"
-            }
+            },
         },
         {
             POSITION: { LENGTH: 13, WIDTH: 9 }
@@ -928,8 +928,8 @@ Class.scenexeEngineer = {
         {
             POSITION: { LENGTH: 3, WIDTH: 9, ASPECT: 1.7, X: 13 }
         }
-    ]
-};
+   ]
+}
 
 //Tier 2
 Class.scenexeBeta = {
@@ -947,7 +947,7 @@ Class.scenexeBeta = {
             }
         }
     ]
-};
+}
 Class.scenexeStockade = {
     PARENT: "scenexeNode",
     LABEL: "Stockade",
@@ -965,7 +965,7 @@ Class.scenexeStockade = {
             }
         }
     ], 3)
-};
+}
 Class.scenexeBarricade = {
     PARENT: "scenexeNode",
     LABEL: "Barricade",
@@ -989,9 +989,9 @@ Class.scenexeBarricade = {
                 TYPE: "scenexeTrap",
                 STAT_CALCULATOR: "trap"
             }
-        }
+        },
     ]
-};
+}
 
 //COMMANDER
 //Tier 0
@@ -1013,7 +1013,7 @@ Class.scenexeCommander = {
             }
         }
     ]
-};
+}
 
 //Tier 1
 Class.scenexeAlloy = {
@@ -1025,7 +1025,7 @@ Class.scenexeAlloy = {
             POSITION: { LENGTH: 21,  WIDTH: 10,  ASPECT: 1 },
             PROPERTIES: {
                 SHOOT_SETTINGS: combineStats([g.basic, g.flankGuard]),
-                TYPE: "bullet"
+                TYPE: "bullet",
             }
         },
         {
@@ -1041,7 +1041,7 @@ Class.scenexeAlloy = {
             }
         }
     ]
-};
+}
 Class.scenexeOverseer = {
     PARENT: "scenexeNode",
     LABEL: "Overseer",
@@ -1070,9 +1070,9 @@ Class.scenexeOverseer = {
                 MAX_CHILDREN: 4,
                 WAIT_TO_CYCLE: true
             }
-        }
+        },
     ]
-};
+}
 Class.scenexeDirector = {
     PARENT: "scenexeNode",
     LABEL: "Director",
@@ -1088,7 +1088,7 @@ Class.scenexeDirector = {
             WAIT_TO_CYCLE: true
         }
     }]
-};
+}
 Class.scenexeFusion = {
     PARENT: "scenexeNode",
     LABEL: "Fusion",
@@ -1118,7 +1118,7 @@ Class.scenexeFusion = {
             }
         }
     ]
-};
+}
 
 //Tier 2
 
@@ -1138,7 +1138,7 @@ Class.scenexeOverlord = {
             WAIT_TO_CYCLE: true
         }
     }, 3)
-};
+}
 
 //BASE
 
@@ -1150,9 +1150,9 @@ Class.scenexeWall = {
     SHAPE: 6,
     BODY: {
         HEALTH: 1.75 * baseScenexe.HEALTH,
-        SPEED: 0.95 * base.SPEED
+        SPEED: 0.95 * base.SPEED,
     }
-};
+}
 
 //Tier 1
 Class.scenexeStronghold = {
@@ -1161,7 +1161,7 @@ Class.scenexeStronghold = {
     SHAPE: 6,
     BODY: {
         HEALTH: 2.45 * baseScenexe.HEALTH,
-        SPEED: 0.92 * base.SPEED
+        SPEED: 0.92 * base.SPEED,
     },
     TURRETS: [
         {
@@ -1169,22 +1169,22 @@ Class.scenexeStronghold = {
             TYPE: ["hexagon", {COLOR: "mirror"}]
         }
     ]
-};
+}
 Class.scenexeCitadel = {
     PARENT: "scenexeBase",
     LABEL: "Citadel",
     SHAPE: 6,
     BODY: {
         HEALTH: 1.75 * baseScenexe.HEALTH,
-        SPEED: 0.95 * base.SPEED
+        SPEED: 0.95 * base.SPEED,
     },
     TURRETS: [
         {
             POSITION: { SIZE: 10, ANGLE: 160, ARC: 360, LAYER: 1 },
-            TYPE: ["scenexeSentryTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }]
+            TYPE: ["scenexeSentryTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }],
         }
     ]
-};
+}
 
 //Tier 2
 Class.scenexePalace = {
@@ -1193,7 +1193,7 @@ Class.scenexePalace = {
     SHAPE: 8.5,
     BODY: {
         HEALTH: 3.75 * baseScenexe.HEALTH,
-        SPEED: 0.9 * base.SPEED
+        SPEED: 0.9 * base.SPEED,
     },
     TURRETS: [
         {
@@ -1201,7 +1201,7 @@ Class.scenexePalace = {
             TYPE: ["hexagon", {COLOR: "mirror"}]
         }
     ]
-};
+}
 
 //SMASHER
 //Tier 0
@@ -1211,13 +1211,13 @@ Class.scenexeSmasherBody = {
     SHAPE: 6,
     SIZE: 12,
     INDEPENDENT: true
-};
+}
 Class.scenexeSmasher = {
     PARENT: "scenexeBase",
     LABEL: "Smasher",
     BODY: {
         SPEED: 1.1 * base.SPEED,
-        DAMAGE: 1.5 * base.DAMAGE
+        DAMAGE: 1.5 * base.DAMAGE,
     },
     TURRETS: [
         {
@@ -1225,7 +1225,7 @@ Class.scenexeSmasher = {
             TYPE: "scenexeSmasherBody"
         }
     ]
-};
+}
 
 //Tier 1
 Class.scenexeSpikeBody = {
@@ -1234,7 +1234,7 @@ Class.scenexeSpikeBody = {
     SHAPE: 4,
     SIZE: 12,
     INDEPENDENT: true
-};
+}
 Class.scenexeSpike = {
     PARENT: "scenexeBase",
     LABEL: "Spike",
@@ -1249,7 +1249,7 @@ Class.scenexeSpike = {
             TYPE: "scenexeSpikeBody"
         }
     ]
-};
+}
 Class.scenexeFortress = {
     PARENT: "scenexeBase",
     LABEL: "Fortress",
@@ -1265,13 +1265,13 @@ Class.scenexeFortress = {
             TYPE: "scenexeSmasherBody"
         }
     ]
-};
+}
 Class.scenexeArmory = {
     PARENT: "scenexeBase",
     LABEL: "Armory",
     BODY: {
         SPEED: 1.1 * base.SPEED,
-        DAMAGE: 1.5 * base.DAMAGE
+        DAMAGE: 1.5 * base.DAMAGE,
     },
     TURRETS: [
         {
@@ -1280,10 +1280,10 @@ Class.scenexeArmory = {
         },
         {
             POSITION: { SIZE: 10, ANGLE: 160, ARC: 360, LAYER: 1 },
-            TYPE: ["scenexeSentryTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }]
+            TYPE: ["scenexeSentryTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }],
         }
     ]
-};
+}
 
 //Tier 2
 Class.scenexeForge = {
@@ -1304,7 +1304,7 @@ Class.scenexeForge = {
             TYPE: "bonfireGen"
         }
     ]
-};
+}
 Class.scenexeBrigade = {
     PARENT: "scenexeBase",
     LABEL: "Brigade",
@@ -1320,17 +1320,17 @@ Class.scenexeBrigade = {
         },
         {
             POSITION: { SIZE: 10, ANGLE: 160, ARC: 360, LAYER: 1 },
-            TYPE: ["scenexeTurretTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }]
+            TYPE: ["scenexeTurretTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }],
         }
     ]
-};
+}
 Class.scenexeThornBody = {
     LABEL: "",
     COLOR: "black",
     SHAPE: 5,
     SIZE: 12,
     INDEPENDENT: true
-};
+}
 Class.scenexeThorn = {
     PARENT: "scenexeBase",
     LABEL: "Thorn",
@@ -1345,7 +1345,7 @@ Class.scenexeThorn = {
             TYPE: "scenexeThornBody"
         }
     ]
-};
+}
 Class.scenexeCastle = {
     PARENT: "scenexeBase",
     LABEL: "Castle",
@@ -1361,14 +1361,14 @@ Class.scenexeCastle = {
         },
         {
             POSITION: { SIZE: 10, ANGLE: 160, ARC: 360, LAYER: 2 },
-            TYPE: ["scenexeSentryTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }]
+            TYPE: ["scenexeSentryTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }],
         },
         {
             POSITION: [14.5, 0, 0, 0, 360, 1],
             TYPE: ["hexagon", { COLOR: "mirror" }]
         }
     ]
-};
+}
 
 //SENTRY
 //Tier 0
@@ -1378,10 +1378,10 @@ Class.scenexeSentry = {
     TURRETS: [
         {
             POSITION: { SIZE: 10, ANGLE: 160, ARC: 360, LAYER: 1 },
-            TYPE: ["scenexeSentryTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }]
+            TYPE: ["scenexeSentryTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }],
         }
     ]
-};
+}
 
 //Tier 1
 Class.scenexeTurret = {
@@ -1390,10 +1390,10 @@ Class.scenexeTurret = {
     TURRETS: [
         {
             POSITION: { SIZE: 10, ANGLE: 160, ARC: 360, LAYER: 1 },
-            TYPE: ["scenexeTurretTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }]
+            TYPE: ["scenexeTurretTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }],
         }
     ]
-};
+}
 
 //Tier 2
 Class.scenexeArtillery = {
@@ -1402,20 +1402,20 @@ Class.scenexeArtillery = {
     TURRETS: [
         {
             POSITION: { SIZE: 10, ANGLE: 160, ARC: 360, LAYER: 1 },
-            TYPE: ["scenexeArtilleryTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }]
+            TYPE: ["scenexeArtilleryTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }],
         }
     ]
-};
+}
 Class.scenexeTriplet = {
     PARENT: "scenexeBase",
     LABEL: "Triplet",
     TURRETS: [
         {
             POSITION: { SIZE: 10, ANGLE: 160, ARC: 360, LAYER: 1 },
-            TYPE: ["scenexeTripletTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }]
+            TYPE: ["scenexeTripletTurret", { CONTROLLERS: ["nearestDifferentMaster"], INDEPENDENT: true, COLOR: 16 }],
         }
     ]
-};
+}
 
 //HEARTH
 //Tier 0
@@ -1428,8 +1428,8 @@ Class.scenexeHearth = {
             POSITION: [14, 0, 0, 0, 0, 1],
             TYPE: "hearthGen"
         }
-    ]
-};
+    ],
+}
 
 //Tier 1
 Class.bonfireGen = makeHearth(1, 1.6);
@@ -1441,8 +1441,8 @@ Class.scenexeBonfire = {
             POSITION: [14, 0, 0, 0, 0, 1],
             TYPE: "bonfireGen"
         }
-    ]
-};
+    ],
+}
 Class.menderGen = makeHearth(-1, 1.6);
 Class.scenexeMender = {
     PARENT: "scenexeBase",
@@ -1452,8 +1452,8 @@ Class.scenexeMender = {
             POSITION: [14, 0, 0, 0, 0, 1],
             TYPE: "menderGen"
         }
-    ]
-};
+    ],
+}
 
 //Tier 2
 Class.flareGen = makeHearth(1, 2);
@@ -1465,8 +1465,8 @@ Class.scenexeFlare = {
             POSITION: [14, 0, 0, 0, 0, 1],
             TYPE: "flareGen"
         }
-    ]
-};
+    ],
+}
 Class.remedyGen = makeHearth(-1, 2);
 Class.scenexeRemedy = {
     PARENT: "scenexeBase",
@@ -1476,8 +1476,8 @@ Class.scenexeRemedy = {
             POSITION: [14, 0, 0, 0, 0, 1],
             TYPE: "remedyGen"
         }
-    ]
-};
+    ],
+}
 
 //HANGAR
 Class.scenexeHangar = {
@@ -1486,120 +1486,120 @@ Class.scenexeHangar = {
     TURRETS: [
         {
             POSITION: [8.5, 0, 0, 0, 0, 1],
-            TYPE: "scenexeHangarTurret"
+            TYPE: "scenexeHangarTurret",
         }
     ]
-};
+}
 Class.scenexeWarship = {
     PARENT: "scenexeBase",
     LABEL: "Warship",
     TURRETS: [
         {
             POSITION: [8.5, 0, -8, 0, 0, 1],
-            TYPE: "scenexeHangarTurret"
+            TYPE: "scenexeHangarTurret",
         },
         {
             POSITION: [8.5, 0, 8, 0, 0, 1],
-            TYPE: "scenexeHangarTurret"
+            TYPE: "scenexeHangarTurret",
         }
     ]
-};
+}
 Class.scenexeBattleship = {
     PARENT: "scenexeBase",
     LABEL: "Battleship",
     TURRETS: [
         {
             POSITION: [8.5, 0, 8, -30, 0, 1],
-            TYPE: "scenexeHangarTurret"
+            TYPE: "scenexeHangarTurret",
         },
         {
             POSITION: [8.5, 0, 8, 90, 0, 1],
-            TYPE: "scenexeHangarTurret"
+            TYPE: "scenexeHangarTurret",
         },
         {
             POSITION: [8.5, 0, 8, -150, 0, 1],
-            TYPE: "scenexeBattleshipTurret"
+            TYPE: "scenexeBattleshipTurret",
         }
     ]
-};
+}
 Class.scenexeMothership = {
     PARENT: "scenexeBase",
     LABEL: "Mothership",
     TURRETS: weaponArray({
         POSITION: [8.5, 0, 8, 0, 0, 1],
-        TYPE: "scenexeBattleshipTurret"
+        TYPE: "scenexeBattleshipTurret",
     }, 4)
-};
+}
 
-Class.scenexeNode.UPGRADES_TIER_0 = ["scenexeMono", "scenexeTrapper", "scenexeCommander"];
-Class.scenexeBase.UPGRADES_TIER_0 = ["scenexeWall", "scenexeSmasher", "scenexeSentry", "scenexeHearth", "scenexeHangar"];
+Class.scenexeNode.UPGRADES_TIER_0 = ["scenexeMono", "scenexeTrapper", "scenexeCommander"]
+Class.scenexeBase.UPGRADES_TIER_0 = ["scenexeWall", "scenexeSmasher", "scenexeSentry", "scenexeHearth", "scenexeHangar"]
 
 //Gun upgrades
 
-Class.scenexeMono.UPGRADES_TIER_1 = ["scenexeDuo", "scenexeFlank", "scenexeSplit", "scenexeSingle", "scenexeSniper", "scenexeAlloy", "scenexeGuard"];
-Class.scenexeCommander.UPGRADES_TIER_1 = ["scenexeAlloy", "scenexeOverseer", "scenexeDirector", "scenexeFusion"];
-Class.scenexeTrapper.UPGRADES_TIER_1 = ["scenexeGuard", "scenexeGamma", "scenexeBlockade", "scenexeRubble", "scenexeFusion"];
+Class.scenexeMono.UPGRADES_TIER_1 = ["scenexeDuo", "scenexeFlank", "scenexeSplit", "scenexeSingle", "scenexeSniper", "scenexeAlloy", "scenexeGuard"]
+Class.scenexeCommander.UPGRADES_TIER_1 = ["scenexeAlloy", "scenexeOverseer", "scenexeDirector", "scenexeFusion"]
+Class.scenexeTrapper.UPGRADES_TIER_1 = ["scenexeGuard", "scenexeGamma", "scenexeBlockade", "scenexeRubble", "scenexeFusion"]
 
-Class.scenexeDuo.UPGRADES_TIER_2 = ["scenexeTrio", "scenexeGunner", "scenexeArc", "scenexeQuad"];
-Class.scenexeSplit.UPGRADES_TIER_2 = ["scenexeSpread", "scenexeTrio", "scenexeGunner", "scenexeArc", "scenexeQuad"];
-Class.scenexeFlank.UPGRADES_TIER_2 = ["scenexeWake", "scenexeConglomerate", "scenexeOverlord", "scenexeQuad"];
-Class.scenexeSingle.UPGRADES_TIER_2 = ["scenexeDestroyer", "scenexeCompound", "scenexeAssassin"];
-Class.scenexeAlloy.UPGRADES_TIER_2 = ["scenexeCompound", "scenexeConglomerate"];
-Class.scenexeGuard.UPGRADES_TIER_2 = ["scenexeConglomerate", "scenexeWake"];
-Class.scenexeSniper.UPGRADES_TIER_2 = ["scenexeAssassin", "scenexeDestroyer", "scenexeWake"];
-Class.scenexeOverseer.UPGRADES_TIER_2 = ["scenexeOverlord", "scenexeFactory"];
-Class.scenexeDirector.UPGRADES_TIER_2 = ["scenexeManager", "scenexeCompound"];
-Class.scenexeFusion.UPGRADES_TIER_2 = ["scenexeConglomerate"];
-Class.scenexeGamma.UPGRADES_TIER_2 = ["scenexeBeta", "scenexeEngineer"];
-Class.scenexeBlockade.UPGRADES_TIER_2 = ["scenexeBarricade", "scenexeStockade", "scenexeConglomerate"];
-Class.scenexeRubble.UPGRADES_TIER_2 = ["scenexeScrap"];
+Class.scenexeDuo.UPGRADES_TIER_2 = ["scenexeTrio", "scenexeGunner", "scenexeArc", "scenexeQuad"]
+Class.scenexeSplit.UPGRADES_TIER_2 = ["scenexeSpread", "scenexeTrio", "scenexeGunner", "scenexeArc", "scenexeQuad"]
+Class.scenexeFlank.UPGRADES_TIER_2 = ["scenexeWake", "scenexeConglomerate", "scenexeOverlord", "scenexeQuad"]
+Class.scenexeSingle.UPGRADES_TIER_2 = ["scenexeDestroyer", "scenexeCompound", "scenexeAssassin"]
+Class.scenexeAlloy.UPGRADES_TIER_2 = ["scenexeCompound", "scenexeConglomerate"]
+Class.scenexeGuard.UPGRADES_TIER_2 = ["scenexeConglomerate", "scenexeWake"]
+Class.scenexeSniper.UPGRADES_TIER_2 = ["scenexeAssassin", "scenexeDestroyer", "scenexeWake"]
+Class.scenexeOverseer.UPGRADES_TIER_2 = ["scenexeOverlord", "scenexeFactory"]
+Class.scenexeDirector.UPGRADES_TIER_2 = ["scenexeManager", "scenexeCompound"]
+Class.scenexeFusion.UPGRADES_TIER_2 = ["scenexeConglomerate"]
+Class.scenexeGamma.UPGRADES_TIER_2 = ["scenexeBeta", "scenexeEngineer"]
+Class.scenexeBlockade.UPGRADES_TIER_2 = ["scenexeBarricade", "scenexeStockade", "scenexeConglomerate"]
+Class.scenexeRubble.UPGRADES_TIER_2 = ["scenexeScrap"]
 
-Class.scenexeTrio.UPGRADES_TIER_3 = [];
-Class.scenexeGunner.UPGRADES_TIER_3 = [];
-Class.scenexeArc.UPGRADES_TIER_3 = [];
-Class.scenexeQuad.UPGRADES_TIER_3 = [];
-Class.scenexeSpread.UPGRADES_TIER_3 = [];
-Class.scenexeWake.UPGRADES_TIER_3 = [];
-Class.scenexeConglomerate.UPGRADES_TIER_3 = [];
-Class.scenexeOverlord.UPGRADES_TIER_3 = [];
-Class.scenexeDestroyer.UPGRADES_TIER_3 = [];
-Class.scenexeCompound.UPGRADES_TIER_3 = [];
-Class.scenexeAssassin.UPGRADES_TIER_3 = [];
-Class.scenexeFactory.UPGRADES_TIER_3 = [];
-Class.scenexeManager.UPGRADES_TIER_3 = [];
-Class.scenexeBeta.UPGRADES_TIER_3 = [];
-Class.scenexeEngineer.UPGRADES_TIER_3 = [];
-Class.scenexeBarricade.UPGRADES_TIER_3 = [];
-Class.scenexeStockade.UPGRADES_TIER_3 = [];
-Class.scenexeScrap.UPGRADES_TIER_3 = [];
+Class.scenexeTrio.UPGRADES_TIER_3 = []
+Class.scenexeGunner.UPGRADES_TIER_3 = []
+Class.scenexeArc.UPGRADES_TIER_3 = []
+Class.scenexeQuad.UPGRADES_TIER_3 = []
+Class.scenexeSpread.UPGRADES_TIER_3 = []
+Class.scenexeWake.UPGRADES_TIER_3 = []
+Class.scenexeConglomerate.UPGRADES_TIER_3 = []
+Class.scenexeOverlord.UPGRADES_TIER_3 = []
+Class.scenexeDestroyer.UPGRADES_TIER_3 = []
+Class.scenexeCompound.UPGRADES_TIER_3 = []
+Class.scenexeAssassin.UPGRADES_TIER_3 = []
+Class.scenexeFactory.UPGRADES_TIER_3 = []
+Class.scenexeManager.UPGRADES_TIER_3 = []
+Class.scenexeBeta.UPGRADES_TIER_3 = []
+Class.scenexeEngineer.UPGRADES_TIER_3 = []
+Class.scenexeBarricade.UPGRADES_TIER_3 = []
+Class.scenexeStockade.UPGRADES_TIER_3 = []
+Class.scenexeScrap.UPGRADES_TIER_3 = []
 
 //Body upgrades
 
-Class.scenexeHangar.UPGRADES_TIER_1 = ["scenexeWarship"];
-Class.scenexeHearth.UPGRADES_TIER_1 = ["scenexeBonfire", "scenexeMender"];
-Class.scenexeWall.UPGRADES_TIER_1 = ["scenexeStronghold", "scenexeFortress", "scenexeCitadel"];
-Class.scenexeSmasher.UPGRADES_TIER_1 = ["scenexeSpike", "scenexeFortress", "scenexeArmory"];
-Class.scenexeSentry.UPGRADES_TIER_1 = ["scenexeTurret", "scenexeArmory", "scenexeCitadel"];
+Class.scenexeHangar.UPGRADES_TIER_1 = ["scenexeWarship"]
+Class.scenexeHearth.UPGRADES_TIER_1 = ["scenexeBonfire", "scenexeMender"]
+Class.scenexeWall.UPGRADES_TIER_1 = ["scenexeStronghold", "scenexeFortress", "scenexeCitadel"]
+Class.scenexeSmasher.UPGRADES_TIER_1 = ["scenexeSpike", "scenexeFortress", "scenexeArmory"]
+Class.scenexeSentry.UPGRADES_TIER_1 = ["scenexeTurret", "scenexeArmory", "scenexeCitadel"]
 
-Class.scenexeWarship.UPGRADES_TIER_2 = ["scenexeBattleship"];
-Class.scenexeBonfire.UPGRADES_TIER_2 = ["scenexeFlare"];
-Class.scenexeMender.UPGRADES_TIER_2 = ["scenexeRemedy"];
-Class.scenexeStronghold.UPGRADES_TIER_2 = ["scenexePalace", "scenexeCastle"];
-Class.scenexeFortress.UPGRADES_TIER_2 = ["scenexeCastle", "scenexePalace"];
-Class.scenexeCitadel.UPGRADES_TIER_2 = ["scenexeCastle"];
-Class.scenexeTurret.UPGRADES_TIER_2 = ["scenexeArtillery", "scenexeTriplet", "scenexeCastle", "scenexeBrigade"];
-Class.scenexeSpike.UPGRADES_TIER_2 = ["scenexeThorn", "scenexeForge", "scenexeCastle"];
-Class.scenexeArmory.UPGRADES_TIER_2 = ["scenexeCastle", "scenexeBrigade"];
+Class.scenexeWarship.UPGRADES_TIER_2 = ["scenexeBattleship"]
+Class.scenexeBonfire.UPGRADES_TIER_2 = ["scenexeFlare"]
+Class.scenexeMender.UPGRADES_TIER_2 = ["scenexeRemedy"]
+Class.scenexeStronghold.UPGRADES_TIER_2 = ["scenexePalace", "scenexeCastle"]
+Class.scenexeFortress.UPGRADES_TIER_2 = ["scenexeCastle", "scenexePalace"]
+Class.scenexeCitadel.UPGRADES_TIER_2 = ["scenexeCastle"]
+Class.scenexeTurret.UPGRADES_TIER_2 = ["scenexeArtillery", "scenexeTriplet", "scenexeCastle", "scenexeBrigade"]
+Class.scenexeSpike.UPGRADES_TIER_2 = ["scenexeThorn", "scenexeForge", "scenexeCastle"]
+Class.scenexeArmory.UPGRADES_TIER_2 = ["scenexeCastle", "scenexeBrigade"]
 
-Class.scenexeBattleship.UPGRADES_TIER_3 = ["scenexeMothership"];
-Class.scenexeFlare.UPGRADES_TIER_3 = [];
-Class.scenexeRemedy.UPGRADES_TIER_3 = [];
-Class.scenexePalace.UPGRADES_TIER_3 = [];
-Class.scenexeCastle.UPGRADES_TIER_3 = [];
-Class.scenexeArtillery.UPGRADES_TIER_3 = [];
-Class.scenexeTriplet.UPGRADES_TIER_3 = [];
-Class.scenexeBrigade.UPGRADES_TIER_3 = [];
-Class.scenexeThorn.UPGRADES_TIER_3 = [];
-Class.scenexeForge.UPGRADES_TIER_3 = [];
+Class.scenexeBattleship.UPGRADES_TIER_3 = ["scenexeMothership"]
+Class.scenexeFlare.UPGRADES_TIER_3 = []
+Class.scenexeRemedy.UPGRADES_TIER_3 = []
+Class.scenexePalace.UPGRADES_TIER_3 = []
+Class.scenexeCastle.UPGRADES_TIER_3 = []
+Class.scenexeArtillery.UPGRADES_TIER_3 = []
+Class.scenexeTriplet.UPGRADES_TIER_3 = []
+Class.scenexeBrigade.UPGRADES_TIER_3 = []
+Class.scenexeThorn.UPGRADES_TIER_3 = []
+Class.scenexeForge.UPGRADES_TIER_3 = []
 
-Class.menu_addons.UPGRADES_TIER_0.push(["scenexeBase", "scenexeNode"]);
+Class.menu_addons.UPGRADES_TIER_0.push(["scenexeBase", "scenexeNode"])

@@ -4,49 +4,24 @@ import { config } from "./config.js";
 import { Canvas } from "./canvas.js";
 import { color as colors } from "./color.js";
 import { gameDraw } from "./gameDraw.js";
-import { keybinderHandler } from "./keybindsHandler.js";
 import * as socketStuff from "./socketinit.js";
 
-const THEME_PALETTE_KEYS = [
-    "teal", "lgreen", "orange", "yellow", "aqua", "pink", "vlgrey", "lgrey",
-    "guiwhite", "black", "blue", "green", "red", "gold", "purple", "magenta",
-    "grey", "dgrey", "white", "guiblack",
-];
-const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
-
-(async function (util, global, config, Canvas, color, gameDraw, socketStuff, keybinderHandler) {
+(async function (util, global, config, Canvas, color, gameDraw, socketStuff) {
     let { socketInit, resync, gui, leaderboard, minimap, moveCompensation, lag, getNow } = socketStuff;
     // Get the changelog
-    fetch("CHANGELOG.md", { cache: "no-cache" }).then(response => response.text()).then(response => {
-        let b = [];
-        var c = [];
-        for (let d of response.split("\n"))
-            0 !== d.length &&
-            ((response = d.charAt(0)),
-            "#" === response
-            ? (b.push(c), (c = [d.slice(1).trim()]))
-            : "-" === response
-            ? c.push(d.slice(1).trim())
-            : (c[c.length - 1] += " " + d.trim()))
-        b.push(c);
-        for (c = 0; c < b.length; ) {
-            if (addChangelog(b[c], 157248e5)) {
-                c++;
-                continue;
-            }
-            b = b.slice(c);
-            let d = addChangelog([
-                "Older Changelogs",
-                '<a class="view-older-changelogs" href="javascript:;">Click here to load changelogs more than 6 months old.</a>',
-            ]);
-            [c] = d.getElementsByClassName("view-older-changelogs");
-            c.addEventListener("click", () => {
-                d.remove();
-                for (let g of b) addChangelog(g);
-            });
-            break;
+    fetch("changelog.md", { cache: "no-cache" }).then(response => response.text()).then(response => {
+        let a = [];
+        for (let c of response.split("\n")) {
+            0 !== c.length && (response = c.charAt(0), "#" === response ? (initalizeChangelog(a, !0), a = [c.slice(1).trim()]) : "-" === response ? a.push(c.slice(1).trim()) : a[a.length - 1] += " " + c.trim());
         }
     });
+
+    let controls = document.getElementById("controlSettings"),
+        resetButton = document.getElementById("resetControls"),
+        selectedElement = null,
+        controlsArray = [],
+        defaultKeybinds = {},
+        keybinds = {};
 
     global.clearUpgrades = (clearNow = false) => {
         if (clearNow) gui.upgrades = [];
@@ -80,38 +55,95 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
     // Tips setup :D
     let tips = global.tips[Math.floor(Math.random() * global.tips.length)];
     global.tips = tips[Math.floor(Math.random() * tips.length)];
-
     // Window setup <3
     global.mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
     global.mobile && document.body.classList.add("mobile");
-    !global.mobile && document.body.classList.add("not-mobile");
-    if (global.mobile) {
-        document.getElementById("tabAppearance").style.height = "84.5%";
-        document.getElementById("tabOptions").style.height = "84.5%";
-        document.getElementById("tabAbout").style.height = "84.5%";
-        document.getElementById("tabAddons").style.height = "84.5%";
+    if (!global.mobile) {
+        document.getElementById("tabAppearance").classList.remove("shadowScroll");
+        document.getElementById("tabOptions").classList.remove("shadowScroll");
     };
+
+    function getKeybinds() {
+        let kb = localStorage.getItem("keybinds");
+        keybinds = typeof kb === "string" && kb.startsWith("{") ? JSON.parse(kb) : {};
+    }
+
+    function setKeybinds() {
+        localStorage.setItem("keybinds", JSON.stringify(keybinds));
+    }
+
+    function unselectElement() {
+        if (window.getSelection) {
+            window.getSelection().removeAllRanges();
+        }
+        selectedElement.element.parentNode.parentNode.classList.remove("editing");
+        selectedElement = null;
+    }
+
+    function selectElement(element) {
+        selectedElement = element;
+        selectedElement.element.parentNode.parentNode.classList.add("editing");
+        if (selectedElement.keyCode !== -1 && window.getSelection) {
+            let selection = window.getSelection();
+            selection.removeAllRanges();
+            let range = document.createRange();
+            range.selectNodeContents(selectedElement.element);
+            selection.addRange(range);
+        }
+    }
+
+    function setKeybind(key, keyCode) {
+        selectedElement.element.parentNode.parentNode.classList.remove("editing");
+        resetButton.classList.add("active");
+        if (keyCode !== selectedElement.keyCode) {
+            let otherElement = controlsArray.find(c => c.keyCode === keyCode);
+            if (keyCode !== -1 && otherElement) {
+                otherElement.keyName = selectedElement.keyName;
+                otherElement.element.innerText = selectedElement.keyName;
+                otherElement.keyCode = selectedElement.keyCode;
+                global[otherElement.keyId] = selectedElement.keyCode;
+                keybinds[otherElement.keyId] = [selectedElement.keyName, selectedElement.keyCode];
+            }
+        }
+        selectedElement.keyName = key;
+        selectedElement.element.innerText = key;
+        selectedElement.keyCode = keyCode;
+        global[selectedElement.keyId] = keyCode;
+        keybinds[selectedElement.keyId] = [key, keyCode];
+        setKeybinds();
+    }
+
+    function getElements(kb, storeInDefault) {
+        for (let row of controls.rows) {
+            for (let cell of row.cells) {
+                let element = cell.firstChild.firstChild;
+                if (!element) continue;
+                let key = element.dataset.key;
+                if (storeInDefault) defaultKeybinds[key] = [element.innerText, global[key]];
+                if (kb[key]) {
+                    element.innerText = kb[key][0];
+                    global[key] = kb[key][1];
+                    resetButton.classList.add("active");
+                }
+                let obj = {
+                    element,
+                    keyId: key,
+                    keyName: element.innerText,
+                    keyCode: global[key]
+                };
+                controlsArray.push(obj);
+            }
+        }
+    }
 
     window.onload = async () => {
         // Prepare the server selector
         global.serverMap = {};
         global.servers = [];
         // Set up the socket
-        global.loadServerSelector(false, "Loading..."); // The code is at ./serverSelectorHandler.js
+        global.loadServerSelector(false, "Connecting..."); // The code is at ./serverSelectorHandler.js
 
         fetch("/getServers.json").then(response => response.json()).then(json => {
-            if (localStorage.getItem("optShowLocalhostChecked") === "true") json.unshift({
-                id: json.some(server => server.id === "x") ? "localhost" : "x",
-                ip: "localhost:5000",
-                players: 0,
-                maxPlayers: 80,
-                featured: false,
-                hidden: false,
-                private: false,
-                region: "Local",
-                location: "Localhost",
-                gameMode: "Private"
-            });
             global.servers = json;
             global.loadServerSelector(json); // The code is at ./serverSelectorHandler.js
         }).catch(error => {
@@ -119,7 +151,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         })
 
         // Retrieve forms
-        util.retrieveFromLocalStorage("optName");
+        util.retrieveFromLocalStorage("playerNameInput");
         util.retrieveFromLocalStorage("playerKeyInput");
         util.retrieveFromLocalStorage("optSharpEdges");
         util.retrieveFromLocalStorage("optSlowerFOV");
@@ -137,7 +169,6 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         util.retrieveFromLocalStorage("optCenterMinimap");
         util.retrieveFromLocalStorage("optBorders");
         util.retrieveFromLocalStorage("optNoGrid");
-        util.retrieveFromLocalStorage("optHexaGrid");
         util.retrieveFromLocalStorage("optColoredNest");
         util.retrieveFromLocalStorage("optRenderKillbar");
         util.retrieveFromLocalStorage("separatedHealthbars");
@@ -157,17 +188,8 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         util.retrieveFromLocalStorage("showJoystick");
         util.retrieveFromLocalStorage("optFullHD");
         util.retrieveFromLocalStorage("optUiScale");
-        util.retrieveFromLocalStorage("optAllowIngameOptions");
-        util.retrieveFromLocalStorage("optOldUiStyle");
         // Game
         util.retrieveFromLocalStorage("optIncognitoMode");
-        util.retrieveFromLocalStorage("optDeltaEntities");
-        config.game.rainbowTeamColors = localStorage.getItem("optRainbowTeamColorsChecked") === "true";
-        // Default to true
-        if (localStorage.getItem("optDeltaEntitiesChecked") === null) {
-            document.getElementById("optDeltaEntities").checked = true;
-            util.submitToLocalStorage("optDeltaEntities");
-        }
         // Set default theme
         if (document.getElementById("optColors").value === "") {
             document.getElementById("optColors").value = "normal";
@@ -191,11 +213,8 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             document.getElementById("optRenderPlayerBars").checked = true;
             document.getElementById("optFancy").checked = true;
             document.getElementById("optInterpolation").checked = true;
-            document.getElementById("optLerpAnim").checked = true;
-            document.getElementById("smoothCamera").checked = true;
             document.getElementById("optFancy").checked = true;
             document.getElementById("autoLevelUp").checked = true;
-            document.getElementById("optDeltaEntities").checked = true;
             if (global.mobile) document.getElementById("showCrosshair").checked = true, document.getElementById("showJoystick").checked = true;
             // Dont forget to save it.
             util.submitToLocalStorage("optRenderGui");
@@ -209,11 +228,8 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             util.submitToLocalStorage("showCrosshair");
             util.submitToLocalStorage("showJoystick");
             util.submitToLocalStorage("optInterpolation");
-            util.submitToLocalStorage("optLerpAnim");
-            util.submitToLocalStorage("smoothCamera");
             util.submitToLocalStorage("optFancy");
             util.submitToLocalStorage("autoLevelUp");
-            util.submitToLocalStorage("optDeltaEntities");
             localStorage.setItem("loadedForFirstTime", "true");
             localStorage.setItem("uiScaleSettings", null);
         }
@@ -224,10 +240,29 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         }
         loadSettings();
         // Keybinds stuff
-        keybinderHandler.initalize("controlSettings", "resetControls", "keybinds"); // Gameplay keys
-        keybinderHandler.initalize("sandboxControlSettings", "resetSandboxControls", "sandboxkeybinds"); // Sandbox command keys
-        keybinderHandler.initalize("sandboxSkillControlSettings", "resetSandboxSkillControls", "sandboxskillkeybinds"); // Sandbox command keys (Skill)
-        keybinderHandler.initalize("sandboxAttributeControlSettings", "resetSandboxAttributeControls", "sandboxattributekeybinds"); // Sandbox command keys (Attribute)
+        getKeybinds();
+        getElements(keybinds, true);
+        document.addEventListener("click", event => {
+            if (!global.gameStart) {
+                if (selectedElement) {
+                    unselectElement();
+                } else {
+                    let element = controlsArray.find(({ element }) => element === event.target);
+                    if (element) selectElement(element);
+                }
+            }
+        });
+        resetButton.addEventListener("click", () => {
+            keybinds = {};
+            setKeybinds();
+            controlsArray = [];
+            getElements(defaultKeybinds);
+            resetButton.classList.add("spin");
+            setTimeout(() => {
+                resetButton.classList.remove("active");
+                resetButton.classList.remove("spin");
+            }, 400);
+        });
 
         // Tab menu creater
         global.createTabMenu = (text, type, addDismissButton = false) => {
@@ -236,7 +271,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 "critical",
                 "discord",
                 "stat",
-                "achieve"
+                "achieve",
             ];
             if (allowedType.includes(type)) {
                 let b = document.getElementById("menuTabs");
@@ -260,12 +295,12 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         try {
             fetch("/version").then(json => json.json()).then(ve => {
                 global.version = ve.ver;
-                if (ve.dev_build) {
-                    global.dev_build = true;
-                    global.createTabMenu(`Open Source Arras ${global.version} (dev build)`, "warning", true);
+                if (ve.devBuild) {
+                    global.devBuild = true;
+                    global.createTabMenu(`This server is running a development build of InfiniArras.io. (${global.version})`, "warning");
                 }
                 // Addon info handler
-                let keyValue = localStorage.getItem("playerKeyInputValue");
+                let keyValue = localStorage.getItem('playerKeyInputValue');
                 (async function() {
                     let A_response = await fetch(`/api/getAddonAuthors?token=${keyValue}`);
                     let A_data = await A_response.json().catch(() => false);
@@ -285,9 +320,16 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         document.getElementById("startButton").onclick = () => startGame();
         document.onkeydown = (e) => {
             if (!(global.gameStart || e.shiftKey || e.ctrlKey || e.altKey)) {
-                keybinderHandler.triggerKey(e);
-                let key = e.code;
-                if (key === "Enter") {
+                let key = e.which || e.keyCode;
+                if (selectedElement) {
+                    if (1 !== e.key.length /*|| /[0-9]/.test(e.key) // this code prevents numbers */ || 3 === e.location) {
+                        if (!("Backspace" !== e.key && "Delete" !== e.key)) {
+                            setKeybind("", -1);
+                        }
+                    } else {
+                        setKeybind(e.key.toUpperCase(), e.keyCode);
+                    }
+                } else if (key === global.KEY_ENTER) {
                     startGame();
                 }
             }
@@ -310,17 +352,16 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                     ? "translate(2px, -2px) rotate(45deg)"
                     : "rotate(-45deg)";
                 h.innerText = clicked ? "close options" : "view options"; // Change the text.
-                clicked ? u.classList.add(global.uncappedMenu ? "slided2" : "slided") : u.classList.remove(global.uncappedMenu ? "slided2" : "slided"); // Slide it up.
+                clicked ? u.classList.add("slided") : u.classList.remove("slided"); // Slide it up.
                 y[0].style.opacity = clicked ? 0 : 1; // Fade it away.
                 y[2].style.opacity = clicked ? 1 : 0; // same for this.
             };
         a.onclick = () => { // When the button is triggered, This code runs.
             clicked = !clicked;
-            global.optionsMenuToggle = clicked;
             toggle();
         };
         return () => {
-            clicked || ((clicked = true), toggle());
+            clicked || ((clicked = !0), toggle());
         };
     };
 
@@ -331,45 +372,8 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 document.getElementById("tabAppearance"),
                 document.getElementById("tabOptions"),
                 document.getElementById("tabControls"),
-                document.getElementById("tabAbout"),
+                document.getElementById("tabLinks"),
                 document.getElementById("tabAddons"),
-            ];
-        for (let g = 1; g < tabOptions.length; g++) tabOptions[g].style.display = "none";
-        let e = 0;
-        for (let g = 0; g < buttonTabs.children.length; g++)
-            buttonTabs.children[g].addEventListener("click", () => {
-                e !== g &&
-                    (buttonTabs.children[e].classList.remove("active"), // Remove the active class
-                        buttonTabs.children[g].classList.add("active"), // Add the clicked active class
-                        (tabOptions[e].style.display = "none"), // Dont display the old menu.
-                        (tabOptions[g].style.display = "block"), // Display the menu.
-                        (e = g))
-            });
-    }
-    function tabControlsMenuSwitcher() {
-        let buttonTabs = document.getElementById("controlsMenuTabs"),
-            tabOptions = [
-                document.getElementById("tabGameplay"),
-                document.getElementById("tabSandbox"),
-            ];
-        for (let g = 1; g < tabOptions.length; g++) tabOptions[g].style.display = "none";
-        let e = 0;
-        for (let g = 0; g < buttonTabs.children.length; g++)
-            buttonTabs.children[g].addEventListener("click", () => {
-                e !== g &&
-                    (buttonTabs.children[e].classList.remove("active"), // Remove the active class
-                        buttonTabs.children[g].classList.add("active"), // Add the clicked active class
-                        (tabOptions[e].style.display = "none"), // Dont display the old menu.
-                        (tabOptions[g].style.display = "block"), // Display the menu.
-                        (e = g))
-            });
-    }
-    function tabSandboxControlsMenuSwitcher() {
-        let buttonTabs = document.getElementById("sandboxControlsMenuTabs"),
-            tabOptions = [
-                document.getElementById("tabSandboxMain"),
-                document.getElementById("tabSandboxSkill"),
-                document.getElementById("tabSandboxAttribute"),
             ];
         for (let g = 1; g < tabOptions.length; g++) tabOptions[g].style.display = "none";
         let e = 0;
@@ -389,33 +393,18 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         for (let doc of document.getElementById("optionMenuTabs").children) {
             if (doc.textContent.toLowerCase() === "addons") doc.style.display = "";
         }
-
         // OSA info
         let i_div = document.createElement("div");
         i_div.classList.add("optionsHeader");
-        i_div.textContent = `Open Source Arras ${global.version}` + `${global.dev_build ? " (dev build)" : ""}`;
+        i_div.textContent = `InfiniArras.io ${global.version}` + `${global.devBuild ? " (Dev build)" : ""}`;
         mainDoc.appendChild(i_div);
 
         // Addon stuff
         for (let e of data) {
             let warnDoc = null;
             if (e["osa-version"].target !== global.version) {
-                if (global.version.startsWith("v") && e["osa-version"].minimum.startsWith("v")) {
-                    let targetVersion = global.version.split("v")[1];
-                    let target = "";
-                    targetVersion.split(".").forEach(e => {
-                        target += e;
-                    })
-                    let minimumVersion = e["osa-version"].minimum.split("v")[1];
-                    let minimum = "";
-                    minimumVersion.split(".").forEach(e => {
-                        minimum += e;
-                    })
-                    if (parseInt(minimum) > parseInt(target)) {
-                        warnDoc = document.createElement("ul3");
-                        warnDoc.textContent = "This addon may be incompatible with your version!";
-                    }
-                }
+                warnDoc = document.createElement("ul3");
+                warnDoc.textContent = "This addon may be incompatible with your version";
             }
             let divDoc = document.createElement("div");
             divDoc.classList.add("optionsHeader");
@@ -425,9 +414,10 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             let author = document.createElement("ul");
             let authorValue = document.createElement("ul2");
             let targetVer = document.createElement("ul");
+            let targetVerValue = document.createElement("ul2");
 
             name.textContent = e.name;
-            addonVer.textContent = "Version: ";
+            addonVer.textContent = 'Version: ';
             versionValue.textContent = `${e["addon-version"]}`;
             addonVer.appendChild(versionValue);
             author.textContent = "Author(s): ";
@@ -437,7 +427,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 authorValue.textContent += `${i !== 0 ? ", " : ""}${auth}`;
             }
             author.appendChild(authorValue);
-            targetVer.textContent = `Made for Open Source Arras ${e["osa-version"].target}`;
+            targetVer.textContent = `Made for OSA version ${e["osa-version"].target}`;
 
             divDoc.appendChild(name);
             divDoc.appendChild(author);
@@ -447,145 +437,6 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
 
             mainDoc.appendChild(divDoc);
         }
-    }
-    function menuSettingsHandler() {
-        let menu_mainWrapperHeight = window.getComputedStyle(document.getElementsByClassName("mainWrapper")[0]).getPropertyValue("height").toString();
-        let menu_mainWrapperHeight_padding = window.getComputedStyle(document.getElementsByClassName("mainWrapper")[0]).getPropertyValue("padding").toString();
-        let menu_menuHeight = window.getComputedStyle(document.getElementsByClassName("startMenu")[0]).getPropertyValue("height").toString();
-        let menu_addonScrollHeight = window.getComputedStyle(document.getElementById("tabAddons")).getPropertyValue("height").toString();
-
-        // Uncap menu height
-        util.retrieveFromLocalStorage("unlimitedMenuHeight");
-        let menu_uncapbutton = document.getElementById("unlimitedMenuHeight");
-        let menu_uncap_lessHeight = false;
-        let menu_uncap_lessHeightReach = 750;
-
-        let menu_uncapClick = () => {
-            let setHeight = (doc, x) => doc.style.maxHeight = doc.style.height = x;
-            if (menu_uncapbutton.checked) {
-                document.getElementById("startMenuSlidingTrigger").style.display = "none";
-                // Thanks to Taureon's "Arras.io - Start Menu Modifier" Greasyfork script. (Modified by AE)
-                if (menu_uncap_lessHeight) {
-                    document.getElementById("startMenuSlidingTrigger").style.display = "block";
-                    document.getElementById("tabOptions").classList.remove("shadowScroll");
-                    document.getElementById("controlSettingsScollbar").classList.remove("shadowScroll");
-                    document.getElementById("tabAddons").style.height = "";
-                    document.getElementById("tabAddons").style.maxHeight = "300px";
-                    if (global.optionsMenuToggle) {
-                        document.getElementsByClassName("sliderHolder")[0].classList.remove("slided");
-                        document.getElementsByClassName("sliderHolder")[0].classList.add("slided2");
-                    } else document.getElementsByClassName("slider")[2].style.opacity = 0;
-                } else {
-                    document.getElementById("tabOptions").classList.add("shadowScroll");
-                    document.getElementById("controlSettingsScollbar").classList.add("shadowScroll");
-                    document.getElementById("tabAddons").style.height = menu_addonScrollHeight;
-                    document.getElementById("tabAddons").style.maxHeight = "";
-                    document.getElementsByClassName("sliderHolder")[0].classList.remove("slided");
-                    document.getElementsByClassName("sliderHolder")[0].classList.remove("slided2");
-                    document.getElementsByClassName("slider")[2].style.opacity = 1;
-                    document.getElementsByClassName("slider")[0].style.opacity = 1;
-                }
-                for (let docs of [".serverSelector", ".slider", ".sliderHolder", ".startMenuHolder", ".startMenuHolder.changelogHolder", ".startMenu", ".mainWrapper", "#startMenuWrapper", "#patchNotes"]) {
-                    let doc;
-                    if (docs.startsWith("#")) doc = document.getElementById(docs.substring(docs.length, 1));
-                    if (docs.startsWith(".")) doc = document.getElementsByClassName(docs.substring(docs.length, 1))[0];
-                    switch (docs) {
-                        case ".mainWrapper":
-                            doc.style.padding = "0px";
-                            setHeight(doc, "calc(100% - 55px)");
-                            break;
-                        case "#startMenuWrapper":
-                            setHeight(doc, "calc(100% - 20px)");
-                            break;
-                        case ".startMenuHolder":
-                            doc = document.getElementsByClassName("startMenuHolder")[1];
-                            setHeight(doc, "calc(100% - 20px)");
-                            break;
-                        case ".startMenu":
-                            setHeight(doc, "calc(100%)");
-                            break;
-                        case ".slider":
-                            doc = document.getElementsByClassName("slider")[0];
-                            if (menu_uncap_lessHeight) {
-                                setHeight(doc, "calc(100% - 30px)");
-                            } else setHeight(doc, "calc(100% - 280px)");
-                            break;
-                        case ".sliderHolder":
-                            setHeight(doc, "calc(100% - 50px)");
-                            break;
-                        case ".serverSelector":
-                            if (menu_uncap_lessHeight) {
-                                setHeight(doc, "calc(100% - 170px)");
-                            } else setHeight(doc, "calc(100% - 180px)");
-                            break;
-                        case ".startMenuHolder.changelogHolder":
-                            doc = document.getElementsByClassName("changelogHolder")[0];
-                            setHeight(doc, "calc(100% - 20px)");
-                            break;
-                        case "#patchNotes":
-                            setHeight(doc, "calc(100% - 39px)");
-                            break;
-                    }
-                }
-            } else {
-                document.getElementById("startMenuSlidingTrigger").style.display = "block";
-                if (menu_uncap_lessHeight) {
-                    document.getElementById("tabOptions").classList.add("shadowScroll");
-                    document.getElementById("controlSettingsScollbar").classList.add("shadowScroll");
-                    document.getElementById("tabAddons").style.height = menu_addonScrollHeight;
-                    document.getElementById("tabAddons").style.maxHeight = "";
-                }
-                for (let docs of [".serverSelector", ".slider", ".sliderHolder", ".startMenuHolder.changelogHolder", ".startMenu", ".mainWrapper", "#startMenuWrapper", "#patchNotes"]) {
-                    let doc;
-                    if (docs.startsWith("#")) doc = document.getElementById(docs.substring(docs.length, 1));
-                    if (docs.startsWith(".")) doc = document.getElementsByClassName(docs.substring(docs.length, 1))[0];
-                    switch (docs) {
-                        case ".mainWrapper":
-                            doc.style.padding = menu_mainWrapperHeight_padding;
-                            doc.style.height = menu_mainWrapperHeight;
-                            break;
-                        case ".startMenu":
-                            setHeight(doc, menu_menuHeight);
-                            break;
-                        case ".slider":
-                            doc = document.getElementsByClassName("slider")[0];
-                            doc.style = "";
-                            break;
-                        case ".sliderHolder":
-                            doc.style = "";
-                            doc.classList.remove("slided2");
-                            if (global.optionsMenuToggle) {
-                                doc.classList.add("slided");
-                            }
-                            break;
-                        case ".serverSelector":
-                            doc.style = "";
-                            if (global.fixedServerSelectorHeight) doc.style.height = global.fixedServerSelectorHeight;
-                            break;
-                        case "#patchNotes":
-                            doc.style = "";
-                            break;
-                    }
-                }
-            }
-            util.submitToLocalStorage("unlimitedMenuHeight");
-            global.uncappedMenu = menu_uncapbutton.checked;
-        }
-
-        menu_uncapbutton.onclick = () => menu_uncapClick();
-
-        if (menu_uncapbutton.checked) menu_uncapClick();
-        setInterval(() => {
-            if (menu_uncapbutton.checked) {
-                if (window.innerHeight < menu_uncap_lessHeightReach && !menu_uncap_lessHeight) {
-                    menu_uncap_lessHeight = true;
-                    menu_uncapClick();
-                } else if (window.innerHeight > menu_uncap_lessHeightReach && menu_uncap_lessHeight) {
-                    menu_uncap_lessHeight = false;
-                    menu_uncapClick();
-                }
-            }
-        }, 25);
     }
     // Custom theme display handler
     function customThemeDisplayHandler() {
@@ -627,7 +478,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 snowCanvas.width !== window.innerWidth && (snowCanvas.width = window.innerWidth);
                 snowCanvas.height !== window.innerHeight && (snowCanvas.height = window.innerHeight);
                 b.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
-                b.fillStyle = "#FFFFFF";
+                b.fillStyle = "#ffffff";
                 for (let snow of snows) {
                 snow.x += 5 / snow.speed + Math.random();
                 snow.y += 12.5 / snow.speed + Math.random();
@@ -637,7 +488,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                     b.beginPath(),
                     b.arc(snow.x, snow.y, snow.speed, 0, 2 * Math.PI),
                     b.fill())
-                    : (snow.vanished = true);
+                    : (snow.vanished = !0);
                 }
                 0.001 * snowCanvas.width * snowAmount > Math.random() &&
                 snows.push({
@@ -720,13 +571,13 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                                     M: Math.cos(v) * P,
                                     H: -0.8 + Math.sin(v) * P,
                                     time: f + 2 * Math.random(),
-                                    Oa: false,
-                                    vanished: false,
+                                    Oa: !1,
+                                    vanished: !1,
                                 });
                                 }
                             }
                         }
-                        firework.vanished = true;
+                        firework.vanished = !0;
                     }
                 }
                 3e-5 * fireworkCanvas.width > Math.random() &&
@@ -742,8 +593,8 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                     M: t,
                     H: f,
                     time: h,
-                    Oa: true,
-                    vanished: false,
+                    Oa: !0,
+                    vanished: !1,
                 }));
                 if (global.gameStart) a.remove();
                 else requestAnimationFrame(updateFireworks);
@@ -758,11 +609,8 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
     // Important functions
     toggleOptionsMenu();
     tabOptionsMenuSwitcher();
-    tabControlsMenuSwitcher();
-    tabSandboxControlsMenuSwitcher();
     customThemeDisplayHandler();
     snowAndFireworkEffects();
-    menuSettingsHandler();
 
     // Prepare canvas
     function resizeEvent() {
@@ -856,7 +704,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             let indexes = instance.index.split("-"),
             m = global.mockups[parseInt(indexes[0])] ?? global.missingno[0];
             switch (fade) {
-                case true:
+                case true: 
                     GetScreenDistance(instance.render.x - global.player.loc.x, instance.render.y - global.player.loc.y, instance.size) ||
                     (alpha *= GetScreenDistanceF(instance.render.x - global.player.loc.x, instance.size));
                     (alpha *= GetScreenDistanceV(instance.render.y - global.player.loc.y, instance.size));
@@ -897,56 +745,19 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             );
         };
 
-    function parseThemeV1(string) {
-        const data = atob(string.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/"));
-        if (!data.startsWith(THEME_V1_MAGIC)) return null;
-        let off = 5;
-        if (data.charCodeAt(off++) !== 1) return null;
-        const nameLen = data.charCodeAt(off++);
-        const name = data.slice(off, off + nameLen) || "Unknown Theme";
-        off += nameLen;
-        const authorLen = data.charCodeAt(off++);
-        const author = data.slice(off, off + authorLen);
-        off += authorLen;
-        const tableLen = data.charCodeAt(off++);
-        const table = [];
-        for (let i = 0; i < tableLen; i++) {
-            table.push((data.charCodeAt(off) << 16) | (data.charCodeAt(off + 1) << 8) | data.charCodeAt(off + 2));
-            off += 3;
-        }
-        const specialLen = data.charCodeAt(off++);
-        const special = [];
-        for (let i = 0; i < specialLen; i++) {
-            special.push((data.charCodeAt(off) << 16) | (data.charCodeAt(off + 1) << 8) | data.charCodeAt(off + 2));
-            off += 3;
-        }
-        const border = data.charCodeAt(off++) / 0xff;
-        const neon = data.charCodeAt(off) === 1;
-        if (!table.length) return null;
-        const content = { paletteSize: table.length, border, neon };
-        THEME_PALETTE_KEYS.forEach((key, i) => {
-            if (i < table.length) content[key] = "#" + (table[i] & 0xffffff).toString(16).padStart(6, "0");
-        });
-        return { name, author, content };
-    }
-
     function parseTheme(string, logError = true) {
-        try {
-            const v1 = parseThemeV1(string);
-            if (v1) return v1;
-        } catch { }
         // Decode from base64
         try {
             var stripped = string.replace(/\s+/g, "");
             2 == stripped.length % 4 ? (stripped += "==") : 3 == stripped.length % 4 && (stripped += "=");
             let data = atob(stripped);
-            let name = "Unknown Theme",
-                author = "";
-            let index = data.indexOf("\x00");
+            let name = 'Unknown Theme',
+                author = '';
+            let index = data.indexOf('\x00');
             if (index === -1) return null;
             name = data.slice(0, index) || name;
             data = data.slice(index + 1);
-            index = data.indexOf("\x00");
+            index = data.indexOf('\x00');
             if (index === -1) return null;
             author = data.slice(0, index) || author;
             data = data.slice(index + 1);
@@ -960,7 +771,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 let green = data.charCodeAt(i * 3 + 1)
                 let blue = data.charCodeAt(i * 3 + 2)
                 let color = (red << 16) | (green << 8) | blue
-                colorArray.push("#" + color.toString(16).padStart(6, "0"))
+                colorArray.push('#' + color.toString(16).padStart(6, '0'))
             }
             let content = {
                 teal: colorArray[0],
@@ -993,9 +804,9 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         // Decode from JSON
         try {
             let output = JSON.parse(string);
-            if (typeof output !== "object")
+            if (typeof output !== 'object')
                 return null;
-            let { name = "Unknown Theme", author = "", content } = output;
+            let { name = 'Unknown Theme', author = '', content } = output;
             for (let colorHex of [
                 content.teal,
                 content.lgreen,
@@ -1028,26 +839,26 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                         alert("Your theme does not an entry for \"lavender\" (the color used by the nest). A fallback has been provided.");
                         content.lavender = "#b58efd";
                     } else {
-                        if (logError) {
-                            throw new Error("Unable to read the theme");
+                        if (logError) { 
+                            throw new Error("Unable to read the theme"); 
                         } else return {
-                            name: "Unknown Theme",
-                            author: "?",
+                            name: 'Unknown Theme',
+                            author: '?',
                             content: null,
                         }
                     }
                 };
             }
             return {
-                name: (typeof name === "string" && name) || "Unnamed Theme",
-                author: (typeof author === "string" && author) || "",
+                name: (typeof name === 'string' && name) || 'Unnamed Theme',
+                author: (typeof author === 'string' && author) || '',
                 content,
             }
         } catch (e) { logError && alert("An error has accoured while reading your theme, it may be corrupted or outdated."); }
 
         return {
-            name: "Unknown Theme",
-            author: "?",
+            name: 'Unknown Theme',
+            author: '?',
             content: null,
         };
     }
@@ -1067,7 +878,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             author: null,
         }
     }
-    function addChangelog(b, a = null) { // From CX Client (Modified) + decoded;
+    function initalizeChangelog(b, a) { // From CX Client (Modified) + decoded;
         let triggerChangelog = ( () => {
             let a = document.getElementById("changelogTabs")
             , b = a.firstElementChild
@@ -1093,14 +904,9 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         }
         )()
         var sa = document.getElementById("patchNotes");
-        var c = b[0];
+        var c = b.shift();
         if (c) {
-            let s = 0;
-            c = c.match(/^([A-Za-z ]+[A-Za-z])\s*\[([0-9\-]+)\]\s*(.+)?$/) || [
-                c,
-                c,
-                null,
-            ];
+            c = c.match(/^([A-Za-z ]+[A-Za-z])\s*\[([0-9\-]+)\]\s*(.+)?$/) || [c, c, null];
             var h = c[1] ? {
                     "Announcement": "announcement",
                     "Balance": "balance",
@@ -1119,22 +925,21 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             var y = document.createElement("b"),
                 f = [c[1]];
             if (c[2]) {
-                var e = +new Date(c[2] + "T00:00:00Z") + 252e5;
-                if (null != a && e + a < Date.now()) return !1;
-                f.push(new Date(e).toLocaleDateString("default", {
+                var e = new Date(c[2] + "T00:00:00Z");
+                if (e > Date.now()) return;
+                f.push(e.toLocaleDateString("default", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
                     timeZone: "UTC"
                 }))
             }
-            if (c[1]) s = 1;
             c[3] && f.push(c[3]);
             y.innerHTML = f.join(" - ");
             d.appendChild(y);
             let g = document.createElement("ul");
             let l;
-            for (let n of b.slice(s)) l = document.createElement("li"), l.innerHTML = n, g.appendChild(l);
+            for (let n of b) l = document.createElement("li"), l.innerHTML = n, g.appendChild(l);
             l = g.getElementsByTagName("a");
             for (a = 0; a < l.length; a++) {
                 let u = l[a];
@@ -1154,9 +959,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             d.appendChild(g)
             a && d.appendChild(document.createElement("hr"));
             sa.appendChild(d)
-
-            return d;
-        } else return true
+        }
     }
 
     function loadSettings() {
@@ -1174,7 +977,6 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         config.graphical.separatedHealthbars = document.getElementById("separatedHealthbars").checked;
         config.graphical.lowResolution = document.getElementById("optLowResolution").checked;
         config.graphical.showGrid = !document.getElementById("optNoGrid").checked;
-        config.graphical.hexaGrid = document.getElementById("optHexaGrid").checked;
         config.graphical.coloredNest = document.getElementById("optColoredNest").checked;
         config.graphical.slowerFOV = document.getElementById("optSlowerFOV").checked;
         config.graphical.optimizeMode = document.getElementById("optOptimizeMode").checked;
@@ -1190,13 +992,10 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         global.GUIStatus.renderhealth = document.getElementById("optRenderHealth").checked;
         global.GUIStatus.minimapReducedInfo = document.getElementById("optReducedInfo").checked;
         global.GUIStatus.fullHDMode = document.getElementById("optFullHD").checked;
-        global.GUIStatus.renderIngameOptions = document.getElementById("optAllowIngameOptions").checked;
         global.mobileStatus.enableCrosshair = document.getElementById("showCrosshair").checked;
         global.mobileStatus.showJoysticks = document.getElementById("showJoystick").checked;
-        config.graphical.oldUIStyle = document.getElementById("optOldUiStyle").checked;
         // Game
         config.game.incognitoMode = document.getElementById("optIncognitoMode").checked;
-        config.game.deltaEntities = document.getElementById("optDeltaEntities").checked;
         switch (document.getElementById("optBorders").value) {
             case "normal":
                 config.graphical.darkBorders = config.graphical.neon = false;
@@ -1285,7 +1084,6 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         util.submitToLocalStorage("separatedHealthbars");
         util.submitToLocalStorage("optColoredNest");
         util.submitToLocalStorage("optNoGrid");
-        util.submitToLocalStorage("optHexaGrid");
         // GUI
         util.submitToLocalStorage("optRenderGui");
         util.submitToLocalStorage("optRenderLeaderboard");
@@ -1300,22 +1098,19 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         util.submitToLocalStorage("showJoystick");
         util.submitToLocalStorage("optFullHD");
         util.submitToLocalStorage("optUiScale");
-        util.submitToLocalStorage("optAllowIngameOptions");
-        util.submitToLocalStorage("optOldUiStyle");
         // Game
         util.submitToLocalStorage("optIncognitoMode");
-        util.submitToLocalStorage("optDeltaEntities");
         loadSettings();
         global.optionsCheckboxes = undefined;
         // Other more important stuff
-        let optName = document.getElementById("optName");
+        let playerNameInput = document.getElementById("playerNameInput");
         let playerKeyInput = document.getElementById("playerKeyInput");
         let autolevelUpInput = document.getElementById("autoLevelUp").checked;
         global.autolvlUp = autolevelUpInput;
         // Name and keys
-        util.submitToLocalStorage("optName");
+        util.submitToLocalStorage("playerNameInput");
         util.submitToLocalStorage("playerKeyInput");
-        global.playerName = global.player.name = optName.value;
+        global.playerName = global.player.name = playerNameInput.value;
         global.playerKey = playerKeyInput.value.replace(/(<([^>]+)>)/gi, "").substring(0, 64);
         // Change the screen
         global.screenWidth = window.innerWidth;
@@ -1335,7 +1130,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         if (!global.canvas.initalized) global.canvas.init();
         document.getElementById("gameAreaWrapper").style.display = "block";
         document.getElementById("gameCanvas").focus();
-        window.onbeforeunload = () => (global.gameStart && !global.died && !global.disconnected ? true : null);
+        window.onbeforeunload = () => (global.gameStart && !global.died && !global.disconnected ? !0 : null);
         // Start client if it didnt start yet
         !global.clientStarted && startClient();
     }
@@ -1454,68 +1249,23 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         skas.push((i - 2) * 0.01 + Math.log(4 * (i / 9) + 1) / 1.513);
     }
     const ska = (x) => skas[x];
-
-    function truncateKeybind(key) {
-        if (key.startsWith("Alt")) return "⎇";
-        if (key.startsWith("Control")) return "⎈";
-        if (key.startsWith("Meta")) return "⌘";
-        if (key.startsWith("Shift")) return "⇧";
-        if (key.endsWith("Backslash")) return "\\";
-        if (key.endsWith("Equal")) return "=";
-
-        const map = {
-            ArrowDown: "↓",
-            ArrowLeft: "←",
-            ArrowRight: "→",
-            ArrowUp: "↑",
-            Backquote: "`",
-            Backspace: "⌫",
-            BracketLeft: "[",
-            BracketRight: "]",
-            CapsLock: "⇪",
-            Comma: ",",
-            Delete: "⌦",
-            End: "⇲",
-            Enter: "↵",
-            Escape: "⎋",
-            Home: "⇱",
-            Insert: "⎀",
-            Minus: "-",
-            NumLock: "⇭",
-            NumpadAdd: "+",
-            NumpadDecimal: ".",
-            NumpadDivide: "/",
-            NumpadEnter: "⌅",
-            NumpadMultiply: "*",
-            NumpadSubtract: "-",
-            PageDown: "⇟",
-            PageUp: "⇞",
-            Pause: "⎊",
-            Period: ".",
-            PrintScreen: "⎙",
-            Quote: "'",
-            ScrollLock: "⤓",
-            Semicolon: ";",
-            Slash: "/",
-            Space: "␣",
-            Tab: "↹",
-        };
-        return map[key];
-    };
-    function getKeybind(keybind) {
-        const key = global[keybind];
-
-        // Remove undefined keys
-        if (key == -1 || key == undefined || key.toLowerCase() === "undefined" || key.toLowerCase() === "unidentified") return null;
-
-        // Truncate common keycodes
-        if (key.startsWith("F") && key.length <= 3) return key;
-        if (key.startsWith("Key") && key.length === 4) return config.graphical.oldUIStyle ? key[3].toLowerCase() : key[3]
-        if (key.startsWith("Digit") && key.length === 6) return key[5];
-        if (key.startsWith("Numpad") && key.length === 7) return key[6];
-
-        // Return the raw keycode if it doesn't need to be truncated
-        return truncateKeybind(key);
+    var getClassUpgradeKey = function (number) {
+        switch (number) {
+            case 0:
+                return "Y";
+            case 1:
+                return "U";
+            case 2:
+                return "I";
+            case 3:
+                return "H";
+            case 4:
+                return "J";
+            case 5:
+                return "K";
+            default:
+                return null;
+        }
     };
 
     let tiles,
@@ -1595,7 +1345,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
     function measureText(text, fontSize, withHeight = false) {
         fontSize += config.graphical.fontSizeBoost;
         ctx[2].font = fontWidth + " " + fontSize + "px Ubuntu";
-        let measurement = ctx[2].measureText(arrayifyText(text).reduce((a, b, i) => (i & 1) ? a : a + b, ""));
+        let measurement = ctx[2].measureText(arrayifyText(text).reduce((a, b, i) => (i & 1) ? a : a + b, ''));
         return withHeight ? { width: measurement.width, height: fontSize } : measurement.width;
     }
 
@@ -1605,10 +1355,10 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         // string with double §           txt   col   txt                      txt
         // "...§text§§text§..." => [..., "text", "", "text", ...] => [..., "text§text", ...]
         // this code is balanced on tight threads, holy shit
-        let textArrayRaw = rawText.split("§"),
+        let textArrayRaw = rawText.split('§'),
             textArray = [];
         if (!(textArrayRaw.length & 1)) {
-            textArrayRaw.unshift("");
+            textArrayRaw.unshift('');
         }
         while (textArrayRaw.length) {
             let first = textArrayRaw.shift();
@@ -1618,28 +1368,19 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 textArray.push(first, textArrayRaw.shift());
             } else {
                 textArrayRaw.shift();
-                textArray.push(first + "§" + textArrayRaw.shift(), textArrayRaw.shift());
+                textArray.push(first + '§' + textArrayRaw.shift(), textArrayRaw.shift());
             }
         }
         return textArray;
     }
 
     function drawText(rawText, x, y, size, defaultFillStyle, align = "left", center = false, fade = 1, stroke = true, context = ctx[2]) {
-        let lines = ("" + rawText).split(/\r?\n/);
-        if (lines.length > 1) {
-            let s = size + config.graphical.fontSizeBoost,
-                lineHeight = s + 2 * (s / 5);
-            for (let l = 0; l < lines.length; l++) {
-                drawText(lines[l], x, y + l * lineHeight, size, defaultFillStyle, align, center, fade, stroke, context);
-            }
-            return;
-        }
         size += config.graphical.fontSizeBoost;
         // Get text dimensions and resize/reset the canvas
         let offset = size / 5,
             ratio = 1,
             textArray = arrayifyText(rawText),
-            renderedFullText = textArray.reduce((a, b, i) => (i & 1) ? a : a + b, "");
+            renderedFullText = textArray.reduce((a, b, i) => (i & 1) ? a : a + b, '');
 
         if (ratio !== 1) {
             size *= ratio;
@@ -1747,11 +1488,11 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
 
     function drawBar(x1, x2, y, width, color, context = ctx[2]) {
         context.beginPath();
-        context.lineCap = "round";
+        context.lineTo(x1, y);
+        context.lineTo(x2, y);
         context.lineWidth = width;
         if (color) context.strokeStyle = color;
-        context.moveTo(x1, y);
-        context.lineTo(x2, y);
+        context.closePath();
         context.stroke();
     }
 
@@ -1775,9 +1516,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         ctx[2].fill();
     }
 
-    function drawButton(x, y, width, height, alpha, type = "rect", text, textSize, color1, color2, color3, clickable = false, clickType, clickableRatio, options = {}) {
-        let index = options.index;        
-
+    function drawButton(x, y, width, height, alpha, type = "rect", text, textSize, color1, color2, color3, clickable = false, clickType, clickableRatio, index) {
         // If width is set to true, that means we want to calculate it on the text's length.
         if (width == true) width = measureText(text, height);
         // Set the clickable's position
@@ -1794,11 +1533,11 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         let hover = false;
         if (clickable) hover = global.clickables[clickType].check({ x: global.mouse.x, y: global.mouse.y });
         // Draw boxes
-        ctx[2].globalAlpha = /*0.5 * */alpha;
+        ctx[2].globalAlpha = 0.5 * alpha;
         ctx[2].fillStyle = color1 ? color1 : color.grey;
         if (type == "rect") drawGuiRect(x - width / 2, y, width, height);
         else if (type == "bar") drawBar(x - width / 2, x + width / 2, y + height / 2, height, color1 ? color1 : color.grey);
-        ctx[2].globalAlpha = 0.2 * alpha;
+        ctx[2].globalAlpha = 0.1 * alpha;
         // Shaders
         if (clickable && (index !== false && hover == index) || hover === true) {
             if (global.clickables.clicked) {
@@ -1810,7 +1549,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             }
             if (type == "rect") drawGuiRect(x - width / 2, y, width, height);
             else if (type == "bar") drawBar(x - width / 2, x + width / 2, y + height / 2, height, false)
-
+            
         }
         ctx[2].fillStyle = color2 ? color2 : color.black;
         if (type == "rect") drawGuiRect(x - width / 2, y + height * 0.6, width, height * 0.4);
@@ -1820,7 +1559,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         ctx[2].strokeStyle = color.black;
 
         // Draw text
-        if (text) drawText(text, x, y + height * 0.5, textSize ? textSize : height * 0.6, color.guiwhite, "center", true, 1, options.textOutline ??= true);
+        if (text) drawText(text, x, y + height * 0.5, textSize ? textSize : height * 0.6, color.guiwhite, "center", true);
 
         // Draw the borders
         ctx[2].strokeStyle = color3 ? color3 : color.black;
@@ -1960,7 +1699,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                     return true;
                 }
             }
-            return false;
+            return false;   
         },
         // Draw body function, (AKA: drawPoly)
         drawBody = (context, centerX, centerY, radius, sides, angle = 0, borderless, fill, imageInterpolation, hasGlow = false) => {
@@ -1977,38 +1716,43 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                         );
                 } else {
                     if ("string" === typeof sides) {
-                        if (sides.startsWith("image=")) {
+                        if (sides.startsWith('image=')) {
                             const defaultDirectory = sides.startsWith("image=/");
                             const clientRootDirectory = sides.startsWith("image=./");
                             const onlineDirectory = sides.startsWith("image=https");
                             drawPolyImgs[sides] = new Image();
-                            drawPolyImgs[sides].src =
-                            defaultDirectory ?
-                            `img${sides.slice(6)}` :
+                            drawPolyImgs[sides].src = 
+                            defaultDirectory ? 
+                            `img${sides.slice(6)}` : 
                             clientRootDirectory || onlineDirectory ?
-                            `${onlineDirectory ? sides.slice(6) : sides.slice(7)}` :
+                            `${onlineDirectory ? sides.slice(6) : sides.slice(7)}` : 
                             "img/missingno.png";
                             drawPolyImgs[sides].onerror = function() {
                                 drawPolyImgs[sides].src = "img/missingno.png";
                             }
-
+        
                             let img = drawPolyImgs[sides];
                             context.translate(centerX, centerY);
                             context.rotate(angle);
                             context.imageSmoothingEnabled = imageInterpolation;
-                            const imageSize = radius / 0.9;
+                            const imageSize = radius / 1.09;
                             context.drawImage(img, -imageSize, -imageSize, imageSize * 2, imageSize * 2);
                             context.imageSmoothingEnabled = true;
                             context.rotate(-angle);
                             context.translate(-centerX, -centerY);
                             return;
                         }
-                        if (sides.startsWith("3d=")) {
+                        if (sides.startsWith('3d=')) {
                             let polygon3d = drawPoly3D.get(sides);
                             if (!polygon3d) {
-                                let dividedParts = sides.slice(3).split("/");
-                                let vertexesRaw = dividedParts[0].split(",").map(Number);
-                                if (vertexesRaw.length % 3 != 0) throw new Error(`3D Shape cannot be rendered. Vertexes count: ${vertexesRaw.length / 3}`);
+                                let dividedParts = sides.slice(3).split('/');
+                                let vertexesRaw = dividedParts[0].split(',').map(Number);
+                                if (vertexesRaw.length % 3 != 0) {
+                                    throw new Error(
+                                        '3D Shape cannot be rendered. Vertexes count: ' +
+                                            vertexesRaw.length / 3
+                                    );
+                                }
                                 let vertexes = Array(vertexesRaw.length / 3);
                                 for (let i = 0; i < vertexesRaw.length; i += 3) {
                                     vertexes[i / 3] = {
@@ -2017,27 +1761,15 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                                         z: vertexesRaw[i + 2]
                                     };
                                 }
-                                let indicesRaw = dividedParts[1].split(";");
+                                let indicesRaw = dividedParts[1].split(';');
                                 let indices = [];
                                 for (let i = 0; i < indicesRaw.length; ++i) {
-                                    indices.push(indicesRaw[i].split(",").map(Number));
-                                }
-                                // Optional 4th "/" segment: one colour per face (e.g. "pureWhite,pureBlack,...").
-                                let faceColors = null;
-                                if (dividedParts[3]) {
-                                    faceColors = dividedParts[3].split(",").map(tok => {
-                                        tok = (tok || "").trim();
-                                        if (!tok) return null;
-                                        try {
-                                            return gameDraw.modifyColor(tok.includes(" ") ? tok : tok + " 0 1 0 false");
-                                        } catch (e) { return null; }
-                                    });
+                                    indices.push(indicesRaw[i].split(',').map(Number));
                                 }
                                 polygon3d = {
                                     vertexes,
                                     indices,
-                                    multiplier: Number(dividedParts[2]),
-                                    faceColors
+                                    multiplier: Number(dividedParts[2])
                                 };
                                 drawPoly3D.set(sides, polygon3d);
                             }
@@ -2049,13 +1781,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                                 .sort((a, b) => sortSides3d(rotated, a, b));
                             context.lineWidth /= 2;
                             const size = radius * polygon3d.multiplier;
-                            const defaultFill = context.fillStyle;
                             for (const sides of sortedSides) {
-                                if (polygon3d.faceColors) {
-                                    const fi = polygon3d.indices.indexOf(sides);
-                                    const fc = fi >= 0 ? polygon3d.faceColors[fi] : null;
-                                    context.fillStyle = fc || defaultFill;
-                                }
                                 context.beginPath();
                                 for (let i = 0; i < sides.length; ++i) {
                                     const a = projectPoint3d(rotated[sides[i]]);
@@ -2073,15 +1799,19 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                                 context.fill();
                                 context.stroke();
                             }
-                            if (polygon3d.faceColors) context.fillStyle = defaultFill;
                             return;
                         }
-                        if (sides.startsWith("4d=")) {
+                        if (sides.startsWith('4d=')) {
                             let polygon4d = drawPoly4D.get(sides);
                             if (!polygon4d) {
-                                let dividedParts = sides.slice(3).split("/");
-                                let vertexesRaw = dividedParts[0].split(",").map(Number);
-                                if (vertexesRaw.length % 4 != 0) throw new Error(`4D Shape cannot be rendered. Vertexes count: ${vertexesRaw.length / 4}`);
+                                let dividedParts = sides.slice(3).split('/');
+                                let vertexesRaw = dividedParts[0].split(',').map(Number);
+                                if (vertexesRaw.length % 4 != 0) {
+                                    throw new Error(
+                                        '4D Shape cannot be rendered. Vertexes count: ' +
+                                            vertexesRaw.length / 4
+                                    );
+                                }
                                 let vertexes = Array(vertexesRaw.length / 4);
                                 for (let i = 0; i < vertexesRaw.length; i += 4) {
                                     vertexes[i / 4] = {
@@ -2091,26 +1821,15 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                                         w: vertexesRaw[i + 3]
                                     };
                                 }
-                                let indicesRaw = dividedParts[1].split(";");
+                                let indicesRaw = dividedParts[1].split(';');
                                 let indices = [];
                                 for (let i = 0; i < indicesRaw.length; ++i) {
-                                    indices.push(indicesRaw[i].split(",").map(Number));
-                                }
-                                let faceColors = null;
-                                if (dividedParts[3]) {
-                                    faceColors = dividedParts[3].split(",").map(tok => {
-                                        tok = (tok || "").trim();
-                                        if (!tok) return null;
-                                        try {
-                                            return gameDraw.modifyColor(tok.includes(" ") ? tok : tok + " 0 1 0 false");
-                                        } catch (e) { return null; }
-                                    });
+                                    indices.push(indicesRaw[i].split(',').map(Number));
                                 }
                                 polygon4d = {
                                     vertexes,
                                     indices,
-                                    multiplier: Number(dividedParts[2]),
-                                    faceColors
+                                    multiplier: Number(dividedParts[2])
                                 };
                                 drawPoly4D.set(sides, polygon4d);
                             }
@@ -2122,13 +1841,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                                 .sort((a, b) => sortSides4d(rotated, a, b));
                             context.lineWidth /= 2;
                             const size = radius * polygon4d.multiplier;
-                            const defaultFill = context.fillStyle;
                             for (const sides of sortedSides) {
-                                if (polygon4d.faceColors) {
-                                    const fi = polygon4d.indices.indexOf(sides);
-                                    const fc = fi >= 0 ? polygon4d.faceColors[fi] : null;
-                                    context.fillStyle = fc || defaultFill;
-                                }
                                 context.beginPath();
                                 for (let i = 0; i < sides.length; ++i) {
                                     const a = projectPoint4d(rotated[sides[i]]);
@@ -2146,7 +1859,6 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                                 context.fill();
                                 context.stroke();
                             }
-                            if (polygon4d.faceColors) context.fillStyle = defaultFill;
                             return;
                         }
                         let path = new Path2D(sides);
@@ -2237,14 +1949,14 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 context.lineJoin = "round";
             } catch (e) { // this actually prevents to panic the client. so we will just call "resizeEvent()".
                 resizeEvent();
-                console.error(`CanvasRenderingContext2D error: ${e}`);
+                console.error("Uh oh, 'CanvasRenderingContext2D' has gotton an error! Error: " + e);
             }
         },
         // Draw gun function, (AKA: drawTrapezoid)
         drawGun = (context, x, y, length, height, aspect, angle, borderless, fill, alpha, strokeWidth, position) => {
             let h = [];
             h = aspect > 0 ? [height * aspect, height] : [height, -height * aspect];
-
+    
             // Construct a trapezoid at angle 0
             let points = [],
                 sinT = Math.sin(angle),
@@ -2254,7 +1966,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             points.push([length * 2 - position, -h[0]]);
             points.push([-position, -h[1]]);
             context.globalAlpha = alpha;
-
+    
             // Rotate it to the new angle via vector rotation
             context.beginPath();
             for (let point of points) {
@@ -2275,10 +1987,10 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             // --- Fast early exit for invisible objects ---
             const fade = turretInfo ? 1 : render.status.getFade();
             if (fade === 0 || alpha === 0) return;
-
+            
             const alphaFade = fade * alpha;
             if (!global.gameUpdate && alphaFade < 0.5) return;
-
+        
             // --- Context setup with minimal state changes ---
             let context = assignedContext || ctx[1];
             const indexStr = instance.index;
@@ -2286,19 +1998,19 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             const mockupIndex = +indexes[0];
             const m = global.mockups[mockupIndex] || global.missingno[0];
             const source = turretInfo === false ? instance : turretInfo;
-
+            
             // --- Size calculations with cached values ---
             const instSize = instance.size;
             let drawSize = smoothsize ? scale * ratio * smoothsize : scale * ratio * instSize;
-
+            
             if (global.gameUpdate && fade !== 1) {
-                drawSize *= config.graphical.fancyAnimations ?
-                    (1 + 0.5 * (1 - fade)) :
+                drawSize *= config.graphical.fancyAnimations ? 
+                    (1 + 0.5 * (1 - fade)) : 
                     (1 - 2 * (1 - fade));
-
+                    
                 if (drawSize < 0) drawSize = scale * ratio * instSize;
             }
-
+            
             // --- Early optimization for small or distant objects ---
             if (drawSize < 0.1) return;
 
@@ -2308,11 +2020,11 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
 
             // --- Gun positions with single update ---
             source.guns.update();
-
+        
             // --- Fancy canvas with reduced state setup ---
             let xx = x, yy = y;
             const useFancyCanvas = DEAIC(assignedContext, alphaFade, m.shape, m.glow, source.guns.length, turrets.length);
-
+        
             if (useFancyCanvas) {
                 context = ctx2;
                 context.canvas.width = context.canvas.height = drawSize * m.position.axis + ratio * 20 * m.position.axis;
@@ -2322,20 +2034,20 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             } else if (alphaFade < 0.5 && !config.graphical.fancyAnimations) {
                 return;
             }
-
+        
             // --- Batch context property settings ---
             const sharp = config.graphical.sharpEdges;
             const minBorder = config.graphical.mininumBorderChunk;
             const borderChunk = config.graphical.borderChunk;
             const initStrokeWidth = lineWidthMult * Math.max(minBorder, ratio * borderChunk);
-
+            
             context.lineCap = sharp ? "miter" : "round";
             context.lineJoin = sharp ? "miter" : "round";
             context.lineWidth = initStrokeWidth;
-
+        
             // --- Size ratio cached for body drawing ---
             const sizeRatio = (drawSize / m.size) * m.realSize;
-
+        
             // --- Draw turrets beneath with cached values ---
             for (let i = 0; i < turrets.length; i++) {
                 let t = turrets[i];
@@ -2353,9 +2065,9 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                     const facing = t.forceAngle === null || t.forceAngle === undefined ? (t.mirrorMasterAngle || turretsObeyRot) ? rot + t.angle : t.lerpedFacing : t.angle;
                     const cosAng = Math.cos(ang);
                     const sinAng = Math.sin(ang);
-
+                    
                     context.lineWidth = initStrokeWidth * t.strokeWidth;
-
+                    
                     drawEntity(
                         baseColor,
                         xx + len * cosAng,
@@ -2373,44 +2085,44 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                     );
                 }
             }
-
+        
             // --- Gun positions/config with minimal property access ---
             const positions = source.guns.getPositions();
             const gunConfig = source.guns.getConfig();
             const statusColor = render.status.getColor();
             const blend = render.status.getBlend();
-
+            
             const sourceGuns = source.guns;
             const gunLength = sourceGuns.length;
-
+            
             for (let drawAbove = 0; drawAbove < 2; ++drawAbove) {
                 // Draw guns for current layer
                 for (let i = 0; i < gunLength; ++i) {
                     const g = gunConfig[i];
-
+                    
                     // Skip guns not in current drawing pass
                     if ((drawAbove === 0 && g.drawAbove) || (drawAbove === 1 && !g.drawAbove)) {
                         continue;
                     }
-
+                    
                     context.lineWidth = initStrokeWidth;
-
+                    
                     // Cache angle calculations
                     const gAngle = g.angle + rot;
                     const gunAngle = g.direction + gAngle;
                     const cosGunAngle = Math.cos(gunAngle);
                     const sinGunAngle = Math.sin(gunAngle);
-
+                    
                     const gx = g.offset * cosGunAngle;
                     const gy = g.offset * sinGunAngle;
-
+                    
                     // Minimize color calculations
                     let gunColor = g.color == null ? color.grey : gameDraw.modifyColor(g.color, baseColor);
                     const gunAlpha = g.alpha === undefined ? 1 : g.alpha;
                     let mixedColor = gameDraw.mixColors(gunColor, statusColor, blend);
                     global.gameUpdate && instance.invuln !== 0 && 100 > (Date.now() - instance.invuln) % 200 && ((mixedColor = gameDraw.mixColors(gunColor, gameDraw.getColor(6), 0.3)));
                     gameDraw.setColor(context, mixedColor);
-
+                    
                     // Draw gun with precalculated values
                     drawGun(
                         context,
@@ -2427,12 +2139,12 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                         drawSize * positions[i]
                     );
                 }
-
+        
                 // Draw body between gun layers
                 if (drawAbove === 0) {
                     context.globalAlpha = !useFancyCanvas && alphaFade < 1 && config.graphical.fancyAnimations ? alphaFade : 1;
                     context.lineWidth = initStrokeWidth * m.strokeWidth;
-
+                    
                     // Precalculate body color
                     let bodyColor = gameDraw.mixColors(
                         gameDraw.modifyColor(instance.color, baseColor),
@@ -2441,11 +2153,11 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                     );
                     global.gameUpdate && instance.invuln !== 0 && 100 > (Date.now() - instance.invuln) % 200 && ((bodyColor = gameDraw.mixColors(gameDraw.modifyColor(instance.color, baseColor), gameDraw.getColor(6), 0.3)));
                     gameDraw.setColor(context, bodyColor);
-
+        
                     // Optimized glow effect
                     const glow = m.glow;
                     const glowRadius = glow.radius;
-
+                    
                     if (glowRadius > 0) {
                         // Calculate glow color once
                         context.shadowColor = glow.color != null
@@ -2455,36 +2167,36 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                                 statusColor,
                                 0
                             );
-
+                            
                         const glowSize = glowRadius * sizeRatio;
                         context.shadowBlur = glowSize;
                         context.shadowOffsetX = 0;
                         context.shadowOffsetY = 0;
                         context.globalAlpha = glow.alpha;
-
+                        
                         const recursion = glow.recursion;
                         const shape = m.shape;
-
+                        
                         // Draw glow with minimal state changes
                         for (let i = 0; i < recursion; ++i) {
                             drawBody(context, xx, yy, sizeRatio, shape, rot, true, m.drawFill, false, true);
                         }
-
+                        
                         context.globalAlpha = 1;
                     }
-
+        
                     // Reset shadow properties in bulk
                     if (glowRadius > 0) {
                         context.shadowBlur = 0;
                         context.shadowOffsetX = 0;
                         context.shadowOffsetY = 0;
                     }
-
+                    
                     // Draw body once
-                    drawBody(context, xx, yy, sizeRatio, m.shape, rot, instance.isProp ? instance.borderless : m.borderless, instance.isProp ? instance.drawFill : m.drawFill, m.imageInterpolation);
+                    drawBody(context, xx, yy, sizeRatio, m.shape, rot, m.borderless, m.drawFill, m.imageInterpolation);
                 }
             }
-
+        
             // --- Draw turrets above with cached trig values ---
             for (let i = 0; i < turrets.length; i++) {
                 let t = turrets[i];
@@ -2502,9 +2214,9 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                     const facing = t.forceAngle === null || t.forceAngle === undefined ? (t.mirrorMasterAngle || turretsObeyRot) ? rot + t.angle : t.lerpedFacing : t.angle;
                     const cosAng = Math.cos(ang);
                     const sinAng = Math.sin(ang);
-
+                    
                     context.lineWidth = initStrokeWidth * t.strokeWidth;
-
+                    
                     drawEntity(
                         baseColor,
                         xx + len * cosAng,
@@ -2522,20 +2234,20 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                     );
                 }
             }
-
+        
             // --- Optimized fancy canvas drawing ---
             if (!assignedContext && context !== ctx[1] && context.canvas.width > 0 && context.canvas.height > 0) {
                 ctx[1].save();
-
+                
                 // Apply alpha in one operation
                 ctx[1].globalAlpha = alphaFade;
                 ctx[1].imageSmoothingEnabled = false;
-
+                
                 // Draw in one operation
                 ctx[1].drawImage(context.canvas, x - xx, y - yy);
                 ctx[1].restore();
             }
-
+        
             // --- Minimal context reset ---
             if (sharp) {
                 context.lineCap = "round";
@@ -2544,31 +2256,9 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         }
     })();
 
-    function getIconColor(index) {
-        const colors = [10, 11, 12, 15, 13, 2, 14, 4, 5, 1, 0, 3];
-        return colors[index % colors.length].toString();
-    }
-    function colorBlend(color1, color2, d = 0.5) {
-      if (0 >= d) return color1;
-      if (1 <= d) return color2;
-      let e = 1 - d;
-      color1 = parseInt(color1.slice(1, 7), 16);
-      color2 = parseInt(color2.slice(1, 7), 16);
-      return (
-        "#" +
-        (
-          (((color1 & 16711680) * e + (color2 & 16711680) * d) & 16711680) |
-          (((color1 & 65280) * e + (color2 & 65280) * d) & 65280) |
-          (((color1 & 255) * e + (color2 & 255) * d) & 255)
-        )
-          .toString(16)
-          .padStart(6, "0")
-      );
-    }
-    function getOldIconColor(index) {
-        let color = gameDraw.getColor((index % 9) + 10);
-        9 <= index && (color = colorBlend(color, gameDraw.getColor(((index + Math.floor(index / 9)) % 9) + 10)));
-        return color;
+    const iconColorOrder = [10, 11, 12, 15, 13, 2, 14, 4, 5, 1, 0, 3];
+    function getIconColor(colorIndex) {
+        return iconColorOrder[colorIndex % 12].toString();
     }
 
     function drawEntityIcon(model, x, y, len, height, lineWidthMult, angle, alpha, colorIndex, upgradeKey, hover = false, extraScale = 1) {
@@ -2589,20 +2279,20 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         ctx[2].globalAlpha = alpha;
         ctx[2].fillStyle = picture.upgradeColor != null
             ? gameDraw.modifyColor(picture.upgradeColor)
-            : gameDraw.getColor(config.graphical.oldUIStyle ? getOldIconColor(colorIndex) : getIconColor(colorIndex));
+            : gameDraw.getColor(getIconColor(colorIndex));
         drawGuiRect(x, y, len, height);
         // Shading for hover
         if (hover) {
             if (global.clickables.clicked) {
-                ctx[2].globalAlpha = 0.3;
+                ctx[2].globalAlpha = 0.2;
                 ctx[2].fillStyle = color.black;
             } else {
                 ctx[2].globalAlpha = 0.15;
                 ctx[2].fillStyle = color.guiwhite;
             }
-            drawGuiRect(x, y, len, global.clickables.clicked ? height * 0.6 : height);
+            drawGuiRect(x, y, len, height);
         }
-        ctx[2].globalAlpha = (config.graphical.oldUIStyle ? 0.25 : 0.2) * alpha;
+        ctx[2].globalAlpha = 0.25 * alpha;
         ctx[2].fillStyle = color.black;
         drawGuiRect(x, y + height * 0.6, len, height * 0.4);
         ctx[2].globalAlpha = 1;
@@ -2611,36 +2301,18 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         drawEntity(baseColor, entityX, entityY, picture, 1, 1, scale / picture.size, lineWidthMult, angle, true, ctx[2]);
 
         // Tank name
-        drawText(picture.upgradeName ?? picture.name, x + (upgradeKey ? 0.925 * len : len) / 2, y + height * 0.94, height / 10.25, color.guiwhite, "center");
+        drawText(picture.upgradeName ?? picture.name, x + (upgradeKey ? 0.9 * len : len) / 2, y + height * 0.94, height / 10, color.guiwhite, "center");
 
         // Upgrade key
         if (upgradeKey) {
-            drawText(`[${upgradeKey}]`, x + len - 4, y + height - 6, height / 8 - (config.graphical.oldUIStyle ? 3 : 5), color.guiwhite, "right");
+            drawText("[" + upgradeKey + "]", x + len - 4, y + height - 6, height / 8 - 5, color.guiwhite, "right");
         }
         ctx[2].strokeStyle = color.black;
         ctx[2].lineWidth = 3 * lineWidthMult;
         drawGuiRect(x, y, len, height, true); // Border
     }
 
-    const HEXAGON = (function() {
-        const SQRT3 = Math.sqrt(3);
-        let output = []
-        for (let i = 0; i < Math.PI * 2; i += Math.PI / 3) {
-            // rotated by 90deg
-            output.push([Math.sin(i) / SQRT3, Math.cos(i) / SQRT3]);
-        }
-        return output;
-    })();
     // Draw Game functions
-    function drawHexagon(x, y, size) {
-        ctx[0].moveTo(x + size * HEXAGON[0][0], y + size * HEXAGON[0][1]);
-        ctx[0].lineTo(x + size * HEXAGON[0][0], y + size * HEXAGON[0][1]);
-        ctx[0].lineTo(x + size * HEXAGON[1][0], y + size * HEXAGON[1][1]);
-        ctx[0].lineTo(x + size * HEXAGON[2][0], y + size * HEXAGON[2][1]);
-        ctx[0].lineTo(x + size * HEXAGON[3][0], y + size * HEXAGON[3][1]);
-        ctx[0].lineTo(x + size * HEXAGON[4][0], y + size * HEXAGON[4][1]);
-        ctx[0].lineTo(x + size * HEXAGON[5][0], y + size * HEXAGON[5][1]);
-    }
     function drawFloor(px, py, ratio, tick) {
         // Clear the background + draw grid
         clearScreen(color.white, 1, ctx[0]);
@@ -2657,7 +2329,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             roomY = -py + global.screenHeight / 2 - ratio * gameHeight / 2,
             roomWidth = ratio * gameWidth,
             roomHeight = ratio * gameHeight;
-        if (global.advanced.roundArena) {
+        if (global.advanced.roundMap) {
             ctx[0].save();
             ctx[0].beginPath();
             ctx[0].arc(
@@ -2688,15 +2360,15 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                             tile.renderImage = new Image();
                             tile.renderImage.src = `img/${tile.image}`;
                             tile.renderImage.onerror = () => {
-                                console.warn(`Failed to get ${tile.image}, using fallback texture.`)
-                                tile.renderImage.src = "img/missingno.png";
+                                console.warn(`Failed to get ${tile.image}! If you are the developer of this game, make sure that you typed the path correctly. Using unknown image.`)
+                                tile.renderImage.src = `img/missingno.png`;
                             }
                         };
                         ctx[0].drawImage(tile.renderImage, top, bottom, left - top, right - bottom);
                     }
 
                     ctx[0].globalAlpha = 0.3;
-                    if (tile.color == "none") tile.color = "border";
+                    if (tile.color == 'none') tile.color = 'border';
                     let tileColor = gameDraw.getColor(tile.color, true);
                     // If not default tile color, draw that tile!
                     if (tileColor !== color.white) {
@@ -2706,44 +2378,25 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 }
             }
         }
-        if (global.advanced.roundArena || config.graphical.hexaGrid) {
-            ctx[0].restore();
-        }
+        global.advanced.roundMap && ctx[0].restore();
         let gridsize = 30 * ratio;
         if (config.graphical.showGrid && 2.5 < gridsize) { // Draw grid if the user wants to.
             ctx[0].save();
-            ctx[0].lineWidth = config.graphical.gridDrawSize * ratio;
+            ctx[0].lineWidth = ratio;
             ctx[0].strokeStyle = color.guiblack;
             ctx[0].globalAlpha = 0.04;
             ctx[0].beginPath();
-            gridsize *= config.graphical.gridDrawSize;
-            if (config.graphical.hexaGrid) {
-                let ygridsize = 2 * gridsize / 1.1525;
-                for (let x = (global.screenWidth / 2 - px) % gridsize - gridsize / 2; x < global.screenWidth; x += gridsize) {
-                    for (let y = (global.screenHeight / 2 - py) % ygridsize - ygridsize; y < global.screenHeight + ygridsize; y += ygridsize) {
-                        drawHexagon(x, y, gridsize);
-                    }
-                    for (let y = (global.screenHeight / 2 - py) % ygridsize - ygridsize / 2; y < global.screenHeight + ygridsize; y += ygridsize) {
-                        drawHexagon(x + gridsize / 2, y, gridsize);
-                    }
-                }
-                ctx[0].stroke();
-                gridsize /= 2;
-                ctx[0].globalAlpha = 1;
-                ctx[0].restore();
-            } else {
-                for (let x = (global.screenWidth / 2 - px) % gridsize; x < global.screenWidth; x += gridsize) {
-                    ctx[0].moveTo(x, 0);
-                    ctx[0].lineTo(x, global.screenHeight);
-                }
-                for (let y = (global.screenHeight / 2 - py) % gridsize; y < global.screenHeight; y += gridsize) {
-                    ctx[0].moveTo(0, y);
-                    ctx[0].lineTo(global.screenWidth, y);
-                }
-                ctx[0].stroke();
-                ctx[0].globalAlpha = 1;
-                ctx[0].restore();
+            for (let x = (global.screenWidth / 2 - px) % gridsize; x < global.screenWidth; x += gridsize) {
+                ctx[0].moveTo(x, 0);
+                ctx[0].lineTo(x, global.screenHeight);
             }
+            for (let y = (global.screenHeight / 2 - py) % gridsize; y < global.screenHeight; y += gridsize) {
+                ctx[0].moveTo(0, y);
+                ctx[0].lineTo(global.screenWidth, y);
+            }
+            ctx[0].stroke();
+            ctx[0].globalAlpha = 1;
+            ctx[0].restore();
         }
     }
 
@@ -2817,6 +2470,12 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 y = instance.id === gui.playerid ? global.player.screeny : ratio * instance.render.y - py;
             drawHealth(x, y, instance, ratio, gui.visibleEntities ? 1 : alpha, instance.size);
             drawName(x, y, instance, ratio, gui.visibleEntities ? alpha * 0.75 + 0.25 : alpha, instance.size);
+        }
+        for (let instance of global.entities) {
+            let alpha = instance.id === gui.playerid ? 1 : instance.alpha;
+            alpha = handleScreenDistance(alpha, instance);
+            let x = instance.id === gui.playerid ? global.player.screenx : ratio * instance.render.x - px,
+                y = instance.id === gui.playerid ? global.player.screeny : ratio * instance.render.y - py;
             drawChatMessages(x, false, py, instance, ratio, gui.visibleEntities ? 1 : alpha, instance.size, px, py);
             drawChatInput(x, y, instance, ratio, instance.size);
         }
@@ -2906,19 +2565,19 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
     const CULL_MARGIN = 200;
 
     let tankNameCache = new Map();
-    global.searchQuery = "";
+    global.searchQuery = '';
     function searchTankByName(query) {
-        if (!query || query.trim() === "") {
+        if (!query || query.trim() === '') {
             searchResults = [];
             filteredTiles = null;
             tankNameCache.clear();
-            global.searchQuery = ""; // Update global
+            global.searchQuery = ''; // Update global
             return;
         }
 
         const lowerQuery = query.toLowerCase().trim();
         global.searchQuery = query; // Update global
-
+        
         // Check cache first
         if (searchCache.has(lowerQuery)) {
             const cached = searchCache.get(lowerQuery);
@@ -2940,7 +2599,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         // Search using cache
         searchResults = [];
         const matchingIndexes = new Set();
-
+        
         for (let [index, name] of tankNameCache) {
             if (name.includes(lowerQuery)) {
                 searchResults.push(global.mockups[index]);
@@ -2951,15 +2610,15 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         if (searchResults.length > 0) {
             // FIXED: Find all tiles in the upgrade path to matching tanks
             filteredTiles = [];
-
+            
             // Helper function to check if a tank leads to any search result
             const leadsToSearchResult = (tankIndex, visited = new Set()) => {
                 if (visited.has(tankIndex)) return false;
                 visited.add(tankIndex);
-
+                
                 // Check if this tank is in search results
                 if (matchingIndexes.has(parseInt(tankIndex))) return true;
-
+                
                 // Check if any of its upgrades lead to search results
                 const mockup = global.mockups[parseInt(tankIndex)];
                 if (mockup && mockup.upgrades) {
@@ -2971,7 +2630,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 }
                 return false;
             };
-
+            
             // Include all tiles that either match or lead to matching tanks
             for (let tile of tiles) {
                 const tileIndex = parseInt(tile.index);
@@ -2983,10 +2642,10 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             // Show only basic if no results found
             filteredTiles = tiles.filter(tile => {
                 const mockup = global.mockups[parseInt(tile.index)];
-                return mockup && mockup.className === "basic";
+                return mockup && mockup.className === 'basic';
             });
         }
-
+        
         // Cache the results
         searchCache.set(lowerQuery, {
             results: searchResults,
@@ -2996,6 +2655,12 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
     global.searchTankByName = searchTankByName;
 
     function drawUpgradeTree(spacing, alcoveSize) {
+        if (global.died) {
+            // Hide the tree on death
+            global.tankTree("exit");
+            return;
+        }
+
         if (lastGuiType != gui.type || global.generateTankTree) {
             try {
                 let m = util.requestEntityImage(gui.type),
@@ -3012,7 +2677,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 lastGuiType = gui.type;
                 global.generateTankTree = false;
                 // Clear search when tree regenerates
-                global.searchQuery = ""; // Use global
+                global.searchQuery = ''; // Use global
                 searchResults = [];
                 filteredTiles = null;
                 searchCache.clear();
@@ -3020,7 +2685,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         }
 
         if (!tankTree) {
-            console.log("No class tree rendered yet.");
+            console.log('No class tree rendered yet.');
             return;
         }
         // Draw semi-transparent overlay
@@ -3045,7 +2710,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 const friction = 0.92;
                 classTreeDrag.momentum.x *= friction;
                 classTreeDrag.momentum.y *= friction;
-
+                
                 // Stop momentum if very small
                 if (Math.abs(classTreeDrag.momentum.x) < 0.1) classTreeDrag.momentum.x = 0;
                 if (Math.abs(classTreeDrag.momentum.y) < 0.1) classTreeDrag.momentum.y = 0;
@@ -3093,17 +2758,17 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             ctx[2].strokeStyle = color.black;
             ctx[2].lineWidth = 2 * global.treeScale;
             ctx[2].beginPath();
-
+            
             for (let [start, end] of branches) {
                 let sx = ((start.x - global.scrollX) * tileSpacing + 1 + halfSize) * global.treeScale + halfWidth,
                     sy = ((start.y - global.scrollY) * tileSpacing + 1 + halfSize) * global.treeScale + halfHeight,
                     ex = ((end.x - global.scrollX) * tileSpacing + 1 + halfSize) * global.treeScale + halfWidth,
                     ey = ((end.y - global.scrollY) * tileSpacing + 1 + halfSize) * global.treeScale + halfHeight;
-
+                
                 // Culling check with margin
-                if (ex < -CULL_MARGIN || sx > global.screenWidth + CULL_MARGIN ||
+                if (ex < -CULL_MARGIN || sx > global.screenWidth + CULL_MARGIN || 
                     ey < -CULL_MARGIN || sy > global.screenHeight + CULL_MARGIN) continue;
-
+                
                 ctx[2].moveTo(sx, sy);
                 ctx[2].lineTo(ex, ey);
             }
@@ -3112,15 +2777,15 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             // Draw tank icons (optimized with culling)
             let angle = -Math.PI / 4;
             const scaledTileSize = tileSize * global.treeScale;
-
+            
             for (let { x, y, colorIndex, index } of tilesToRender) {
                 let ax = (x - global.scrollX) * scaledSpacing + halfWidth,
                     ay = (y - global.scrollY) * scaledSpacing + halfHeight;
-
+                
                 // Culling check with margin
-                if (ax < -scaledTileSize - CULL_MARGIN || ax > global.screenWidth + CULL_MARGIN ||
+                if (ax < -scaledTileSize - CULL_MARGIN || ax > global.screenWidth + CULL_MARGIN || 
                     ay < -scaledTileSize - CULL_MARGIN || ay > global.screenHeight + CULL_MARGIN) continue;
-
+                
                 drawEntityIcon(index.toString(), ax, ay, scaledTileSize, scaledTileSize, global.treeScale, angle, 1, colorIndex, false, false, 1);
             }
         }
@@ -3144,13 +2809,13 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
 
         // Draw text for a tip
         drawText("Arrow keys or mouse to navigate the class tree. Shift to navigate faster. Scroll wheel, (+/- keys) or zoom buttons to zoom in/out.", global.screenWidth / 2, spacing + 10, 17, color.guiwhite, "center");
-
+        
         // Draw search bar (centered)
         const searchBarWidth = 300;
         const searchBarHeight = 35;
         const searchBarX = global.screenWidth / 2 - searchBarWidth / 2;
         const searchBarY = uiY;
-
+        
         // Highlight if active
         ctx[2].globalAlpha = global.searchBarActive ? 0.95 : 0.8;
         ctx[2].fillStyle = global.searchBarActive ? color.vlgrey : color.white;
@@ -3159,13 +2824,13 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         ctx[2].lineWidth = global.searchBarActive ? 3 : 2;
         ctx[2].strokeRect(searchBarX, searchBarY, searchBarWidth, searchBarHeight);
         ctx[2].globalAlpha = 1;
-
-        const displayText = global.searchBarActive && !global.searchQuery
-            ? "Type to search..."
-            : global.searchQuery || "Search";
+        
+        const displayText = global.searchBarActive && !global.searchQuery 
+            ? "Type to search..." 
+            : global.searchQuery || "Click to search tanks...";
         const textColor = color.white;
         const showCursor = global.searchBarActive && Date.now() % 1000 < 500;
-
+        
         drawText(
             displayText + (showCursor ? "|" : ""),
             searchBarX + 10,
@@ -3175,11 +2840,11 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             "left",
             true
         );
-
+        
         // Draw zoom buttons (moved to accommodate search bar position)
         const zoomInX = searchBarX + searchBarWidth + buttonSpacing + 20;
         const zoomOutX = zoomInX + buttonSize + buttonSpacing;
-
+        
         // Zoom In button
         drawButton(
             zoomInX,
@@ -3196,11 +2861,9 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             true,
             "classTreeZoomIn",
             global.canvas.height / global.screenHeight / global.ratio,
-            {
-                index: 0
-            }
+            0
         );
-
+        
         // Zoom Out button
         drawButton(
             zoomOutX,
@@ -3217,9 +2880,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             true,
             "classTreeZoomOut",
             global.canvas.height / global.screenHeight / global.ratio,
-            {
-                index: 1
-            }
+            1
         );
 
         // Draw close button (X) on the left
@@ -3235,24 +2896,21 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             1,
             "rect",
             "✕",
-            32,
+            24,
             color.red,
             color.black,
             color.black,
             true,
             "classTreeClose",
             global.canvas.height / global.screenHeight / global.ratio,
-            {
-                index: 0,
-                textOutline: false
-            }
+            0
         );
-
+        
         // Draw search results info
         const instructionY = searchBarY + searchBarHeight + 5;
         if (global.searchQuery) {
-            const resultsText = searchResults.length > 0
-                ? `Found ${searchResults.length} tank${searchResults.length !== 1 ? "s" : ""} (showing upgrade paths)`
+            const resultsText = searchResults.length > 0 
+                ? `Found ${searchResults.length} tank${searchResults.length !== 1 ? 's' : ''} (showing upgrade paths)`
                 : "No tanks found - showing Basic";
             drawText(
                 resultsText,
@@ -3330,7 +2988,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         if (!(instance.id === gui.playerid) && instance.alpha < 0.25) return;
         let size = isize * ratio,
             g = Math.max(20, size);
-
+    
         if (!y) y = instance.id === gui.playerid
             ? global.player.screeny - 1 * global.showChatGlide * g
             : ratio * instance.render.y - py;
@@ -3338,15 +2996,15 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         let fade = instance.render.status.getFade();
         fade *= fade;
         ctx[1].globalAlpha = fade;
-
+    
         x += global.screenWidth / 2;
         y += global.screenHeight / 2;
         if (instance.id !== gui.playerid && instance.nameplate) y -= 8 * ratio;
         let messages = global.chats[instance.id];
         if (!messages) return;
-
+        
         const messageSpacing = 25 * 0.04 * g;
-
+        
         // Draw all the messages
         for (let i = 0; i < messages.length; i++) {
             let chatIndex = messages.length - 1 - i;
@@ -3356,7 +3014,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 barScale = global.GUIStatus.renderPlayerScores ? 2.66 : 2.26,
                 textScale = global.GUIStatus.renderPlayerScores ? 2.45 : 2.05,
                 valpha = chat.alpha.get();
-
+            
             if (chat.erased && valpha === 0) {
                 util.remove(global.chats[instance.id], chatIndex); // Remove the chat object
                 messages.sort((a, b) => a.id - b.id); // Sort the messages or else the order will get messed up
@@ -3369,10 +3027,10 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             const animationSpeed = 10;
             chat.currentY += (chat.targetY - chat.currentY) * animationSpeed / global.metrics.rendertime;
             let slideOffset = chat.currentY;
-
+            
             // Skip rendering if completely faded out
             if (valpha <= 0) continue;
-
+            
             ctx[1].globalAlpha = 0.5 * valpha * alpha * alpha * fade;
             drawBar(x - msgLengthHalf, x + msgLengthHalf, y - g * (instance.id === gui.playerid ? 2.26 : barScale) - slideOffset, 0.75 * g, gameDraw.getColorDark(gameDraw.getColor(instance.color.split(" ")[0])), ctx[1]);
             ctx[1].globalAlpha = valpha * alpha * fade;
@@ -3381,7 +3039,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             config.graphical.fontStrokeRatio /= 1.2;
         }
     }
-
+    
 
     function drawHealth(x, y, instance, ratio, alpha, isize) {
         if (!(0.02 > alpha)) {
@@ -3444,8 +3102,8 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 var namecolor = instance.name.substring(0, 7);
                 ctx[1].globalAlpha = alpha * alpha * fade;
                 let g = Math.max(20, size);
-                if (global.GUIStatus.renderPlayerNames) drawText(name, x, y - g * (global.GUIStatus.renderPlayerScores ? 1.9 : 1.45), 0.55 * g, namecolor == "#FFFFFF" ? color.guiwhite : namecolor, "center", false, 1, true, ctx[1]);
-                if (global.GUIStatus.renderPlayerScores || typeof instance.score === "string") drawText(typeof instance.score === "string" ? instance.score : util.handleLargeNumber(instance.score, 1), x, y - 1.45 * g, 0.3 * g, namecolor == "#FFFFFF" ? color.guiwhite : namecolor, "center", false, 1, true, ctx[1]);
+                if (global.GUIStatus.renderPlayerNames) drawText(name, x, y - g * (global.GUIStatus.renderPlayerScores ? 1.9 : 1.45), 0.55 * g, namecolor == "#ffffff" ? color.guiwhite : namecolor, "center", false, 1, true, ctx[1]);
+                if (global.GUIStatus.renderPlayerScores || typeof instance.score === "string") drawText(typeof instance.score === "string" ? instance.score : util.handleLargeNumber(instance.score, 1), x, y - 1.45 * g, 0.3 * g, namecolor == "#ffffff" ? color.guiwhite : namecolor, "center", false, 1, true, ctx[1]);
                 ctx[1].globalAlpha = 1;
             }
         }
@@ -3521,7 +3179,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             drawText(name, Math.round(x + len / 2) - 5.5, y + height / 2, height - 4.1, textcolor, "center", true);
 
             // Skill key
-            drawText(`[${getKeybind(`KEY_SKILL_${ticker}`)}]`, Math.round(x + len - height * 0.25) - 14.5, y + height / 2, height - 6, textcolor, "right", true);
+            drawText("[" + (ticker % 10) + "]", Math.round(x + len - height * 0.25) - 14.5, y + height / 2, height - 6, textcolor, "right", true);
             if (textcolor === color.guiwhite) {
                 // If it's active
                 global.clickables.stat.place(ticker - 1, x * clickableRatio, y * clickableRatio, len * clickableRatio, height * clickableRatio);
@@ -3544,7 +3202,6 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
     }
 
     function drawSelfInfo(max) {
-        if (global.died) return;
         //rendering information
         let width = 440,
             scorewidth = 70,
@@ -3552,53 +3209,30 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             height = 25.5,
             x = (global.screenWidth - width) / 2,
             y = global.screenHeight - 22 - height;
-        if (config.graphical.oldUIStyle) {
-            y += 2.5;
-            width -= 90;
-            scorewidth -= 37;
-            height = 25;
-            x = (global.screenWidth - width) / 2;
-        }
         ctx[2].lineWidth = 10;
-        let extraHeight = config.graphical.oldUIStyle ? 5 : 3;
         drawBar(x, x + width, y + height / 2, height - 3 + config.graphical.barChunk, color.black);
         drawBar(x, x + width, y + height / 2, height - 3, color.grey);
         drawBar(x, x + width * gui.__s.getProgress(), y + height / 2, height - 3.5, color.gold);
-        drawText("Level " + gui.__s.getLevel() + " " + gui.class, x + width / 2, config.graphical.oldUIStyle ? y + height / 2 + 8 : y + height / 2 + 9, config.graphical.oldUIStyle ? 20.5 : 21, color.guiwhite, "center", false, 6);
+        drawText("Level " + gui.__s.getLevel() + " " + gui.class, x + width / 2 + 1, y + height / 2 + 9, 21, color.guiwhite, "center", false, 6);
         height = 17;
         y -= height + 5;
-        if (config.graphical.oldUIStyle) {
-            y += 2;
-            scorewidth = 35;
-        }
         if (global.GUIStatus.renderPlayerKillbar) {
             scorelength = -112.2;
             scorewidth = 160;
-            if (config.graphical.oldUIStyle) {
-                scorelength = -90.2;
-                scorewidth = 120;
-            }
-            drawBar(x + scorewidth - scorelength, x + width - scorewidth - scorelength, y + height / 2, height - extraHeight + config.graphical.barChunk, color.black);
-            drawBar(x + scorewidth - scorelength, x + width - scorewidth - scorelength, y + height / 2, height - extraHeight, color.grey);
-            drawBar(x + scorewidth - scorelength, x - scorelength + width * ((scorewidth / width) + ((width - scorewidth * 2) / width) * (1 ? Math.min(1, gui.__s.getKills()[0] / 1) : 1)), y + height / 2, height - extraHeight - 0.5, color.teal);
-            extraHeight = config.graphical.oldUIStyle ? 5 : 6;
-            drawText("Kills: " + util.formatKills(...gui.__s.getKills()), x + width / 2 - scorelength, y + height / 2 + extraHeight, config.graphical.oldUIStyle ? 12 : 13, color.guiwhite, "center");
-            extraHeight = config.graphical.oldUIStyle ? 5 : 3;
+            drawBar(x + scorewidth - scorelength, x + width - scorewidth - scorelength, y + height / 2, height - 3 + config.graphical.barChunk, color.black);
+            drawBar(x + scorewidth - scorelength, x + width - scorewidth - scorelength, y + height / 2, height - 3, color.grey);
+            drawBar(x + scorewidth - scorelength, x - scorelength + width * ((scorewidth / width) + ((width - scorewidth * 2) / width) * (1 ? Math.min(1, gui.__s.getKills()[0] / 1) : 1)), y + height / 2, height - 3.5, color.teal);
+            drawText("Kills: " + util.formatKills(...gui.__s.getKills()), x + width / 2 + 0.5 - scorelength, y + height / 2 + 6, 13, color.guiwhite, "center");
             scorelength = 72.5;
             scorewidth = 120;
-            if (config.graphical.oldUIStyle) {
-                scorelength = 65.5;
-                scorewidth = 95;
-            }
         }
-        drawBar(x + scorewidth - scorelength, x + width - scorewidth - scorelength, y + height / 2, height - extraHeight + config.graphical.barChunk, color.black);
-        drawBar(x + scorewidth - scorelength, x + width - scorewidth - scorelength, y + height / 2, height - extraHeight, color.grey);
-        drawBar(x + scorewidth - scorelength, x - scorelength + width * ((scorewidth / width) + ((width - scorewidth * 2) / width) * (max ? Math.min(1, gui.__s.getScore() / max) : 1)), y + height / 2, height - extraHeight - 0.5, color.green);
-        extraHeight = config.graphical.oldUIStyle ? 6 : 6;
-        drawText("Score: " + util.formatLargeNumber(Math.round(gui.__s.getScore())), x + width / 2 - scorelength, y + height / 2 + extraHeight, config.graphical.oldUIStyle ? 12.5 : 13, color.guiwhite, "center");
+        drawBar(x + scorewidth - scorelength, x + width - scorewidth - scorelength, y + height / 2, height - 3 + config.graphical.barChunk, color.black);
+        drawBar(x + scorewidth - scorelength, x + width - scorewidth - scorelength, y + height / 2, height - 3, color.grey);
+        drawBar(x + scorewidth - scorelength, x - scorelength + width * ((scorewidth / width) + ((width - scorewidth * 2) / width) * (max ? Math.min(1, gui.__s.getScore() / max) : 1)), y + height / 2, height - 3.5, color.green);
+        drawText("Score: " + util.formatLargeNumber(Math.round(gui.__s.getScore())), x + width / 2 + 0.5 - scorelength, y + height / 2 + 6, 13, color.guiwhite, "center");
         ctx[2].lineWidth = 4;
         var name = global.player.name.substring(7, global.player.name.length + 1);
-        drawText(name, Math.round(x + width / 2) + 1.5, Math.round(y - 10 - 4) - 1, 31, global.nameColor == "#FFFFFF" ? color.guiwhite : global.nameColor, "center");
+        drawText(name, Math.round(x + width / 2) + 1.5, Math.round(y - 10 - 4) - 1, 31, global.nameColor == "#ffffff" ? color.guiwhite : global.nameColor, "center");
     }
 
     function handleSpeedMonitor() {
@@ -3619,26 +3253,22 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         let upgradeColumns = Math.ceil(gui.upgrades.length / 9);
         let x = global.mobile ? spacing : global.screenWidth - spacing - len - 5;
         let y = global.mobile ? spacing : global.screenHeight - height - spacing - 5;
-        if (config.graphical.oldUIStyle) {
-            x += 5;
-            y += 5;
-        }
         if (global.GUIStatus.renderMinimap) {
             if (global.mobile) {
-                y += global.canUpgrade ? (alcoveSize / 1.5) * mobileUpgradeGlide.get() * upgradeColumns / 1.5 + spacing * + 1.55 + 9 : 0;
+                y += global.canUpgrade ? (alcoveSize / 1.5) * mobileUpgradeGlide.get() * upgradeColumns / 1.5 + spacing * (upgradeColumns + 1.55) + 9 : 0;
                 y += global.canSkill || global.showSkill ? statMenu.get() * alcoveSize / 2.6 + spacing / 0.75 : 0;
             }
 
             // Calculate minimap center if needed
             let centerX = x + len / 2;
             let centerY = y + height / 2;
-
+        
             ctx[2].globalAlpha = 0.4;
             ctx[2].save();
             ctx[2].fillStyle = color.white;
-            global.advanced.roundArena == true ? drawGuiCircle(x + len / 2, y + height / 2, len / 2) : drawGuiRect(x, y, len, height);
+            global.advanced.roundMap ? drawGuiCircle(x + len / 2, y + height / 2, len / 2) : drawGuiRect(x, y, len, height);
             ctx[2].beginPath(); // We will not allow to draw outside of the minimap so we are only allowing minimap entities to draw INSIDE the minimap only
-            global.advanced.roundArena == true ? ctx[2].arc(x + len / 2, y + height / 2, len / 2, 0, 2 * Math.PI) : ctx[2].rect(x, y, len, height); // Draw everything inside the minimap
+            global.advanced.roundMap ? ctx[2].arc(x + len / 2, y + height / 2, len / 2, 0, 2 * Math.PI) : ctx[2].rect(x, y, len, height); // Draw everything inside the minimap
             ctx[2].clip();
 
             if (global.roomSetup.length) {
@@ -3657,11 +3287,11 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                         // Calculate cell world position
                         let cellWorldX = (xcell / W - 0.5) * global.gameWidth;
                         let cellWorldY = (ycell / H - 0.5) * global.gameHeight;
-
+                        
                         // Calculate relative position to player
                         let relX = cellWorldX - playerWorldX;
                         let relY = cellWorldY - playerWorldY;
-
+                        
                         // Convert to minimap coordinates
                         let minimapX = config.game.centeredMinimap ? centerX + (relX / global.gameWidth) * len : x + (j * len) / W;
                         let minimapY = config.game.centeredMinimap ? centerY + (relY / global.gameHeight) * height : y + (i * height) / H;
@@ -3672,7 +3302,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                             drawGuiRect(minimapX, minimapY, cellWidth, cellHeight);
                         } else {
                             let color = cell.color;
-                            if (color == "none") cell.color = "pureBlack";
+                            if (color == 'none') cell.color = 'pureBlack';
                             if (cell.renderImage) {
                                 ctx[2].globalAlpha = 1;
                                 ctx[2].drawImage(cell.renderImage, minimapX, minimapY, cellWidth, cellHeight);
@@ -3692,15 +3322,15 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             for (let entity of minimap.get()) {
                 ctx[2].fillStyle = gameDraw.mixColors(gameDraw.modifyColor(entity.color), color.black, 0.3);
                 ctx[2].globalAlpha = entity.alpha;
-
+                
                 // Calculate entity position relative to player
                 let relX = entity.x - global.player.cx.animX;
                 let relY = entity.y - global.player.cy.animY;
-
+                
                 // Convert to minimap coordinates
                 let minimapX = config.game.centeredMinimap ? centerX + (relX / global.gameWidth) * len : x + (entity.x / global.gameWidth + 0.5) * len;
                 let minimapY = config.game.centeredMinimap ? centerY + (relY / global.gameHeight) * height : y + (entity.y / global.gameHeight + 0.5) * height;
-
+                
                 switch (entity.type) {
                     case 2:
                         // Draw wall entities
@@ -3733,7 +3363,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             ctx[2].fillStyle = color.black;
             // Draw border of the minimap
             ctx[2].lineWidth = 3;
-            global.advanced.roundArena == true ? drawGuiCircle(x + len / 2, y + height / 2, len / 2, true) : drawGuiRect(x, y, len, height, true); // Border
+            global.advanced.roundMap ? drawGuiCircle(x + len / 2, y + height / 2, len / 2, true) : drawGuiRect(x, y, len, height, true); // Border
         }
         if (global.mobile || !global.GUIStatus.renderMinimap) {
             x = global.screenWidth - spacing - len;
@@ -3755,16 +3385,16 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         let ping = global.metrics.latency.reduce((b, a) => b + a, 1) / global.metrics.latency.length - 1;
         let xloc = global.player.renderx / 30;
         let yloc = global.player.rendery / 30;
-        let watermarkText = "Open Source Arras";
+        let watermarkText = "InfiniArras.io";
         let versionLength = (measureText(global.version ?? "v?", 32)) / 2;
         let length = Math.max(measureText(watermarkText, 32)) / 16;
         let gradientTransition = global.showDebug ? 4.1 : 2;
         let watermarkTextPos1 = Math.round(x + len / gradientTransition) + 0.5;
-        let watermarkColor = gameDraw.getColor({gradient: true, asset: [{color: `${color.blue}`}, {color: `${color.green}`}]}, ctx[2], watermarkTextPos1 - length, length * 0.085, watermarkTextPos1 + length, 0);
+        let watermarkColor = gameDraw.getColor({gradient: true, asset: [{color: `${color.red}`}, {color: `${color.orange}`}]}, ctx[2], watermarkTextPos1 - length, length * 0.085, watermarkTextPos1 + length, 0);
         if (global.showDebug) {
             let getRenderingInfo = (data, isTurret) => {
                 isTurret ? global.renderingInfo.turretEntities += data.length : global.renderingInfo.entities += data.length;
-                for (let instance of data) {
+                for (let instance of data) { 
                     if (instance.name && instance.id !== gui.playerid) global.renderingInfo.entitiesWithName++;
                     if (instance.turrets.length) getRenderingInfo(instance.turrets, true);
                 };
@@ -3777,27 +3407,23 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             global.tankSpeedHistory.push(rawSpeed);
             if (global.tankSpeedHistory.length > HISTORY_LENGTH) global.tankSpeedHistory.shift();
             let tankSpeed = global.tankSpeedHistory.reduce((sum, val) => sum + val, 0) / global.tankSpeedHistory.length;
-            let fmtData = n => n >= 1073741824 ? (n / 1073741824).toFixed(2) + " GB" : n >= 1048576 ? (n / 1048576).toFixed(2) + " MB" : n >= 1024 ? (n / 1024).toFixed(1) + " KB" : n + " B";
-            let lastPacketMs = global.metrics.lastPacketTime ? Math.max(0, Date.now() - global.metrics.lastPacketTime) : 0;
-            drawText(watermarkText, x + len - versionLength - 4, y - 50 - 12 * 14 - 2, 15, watermarkColor, "right");
-            drawText(global.version ?? "v?", x + len, y - 50 - 12 * 14 - 2, 15, color.guiwhite, "right");
-            drawText(`§${global.serverStats.lag_color}§ ${(100 * gui.fps).toFixed(2)}% §reset§/ ` + global.serverStats.players + ` player${global.serverStats.players == 1 ? "" : "s"}`, x + len, y - 50 - 11 * 14, 10, color.guiwhite, "right");
-            drawText(`Coordinates: (${xloc.toFixed(2)}, ${yloc.toFixed(2)})`, x + len, y - 50 - 10 * 14, 10, color.guiwhite, "right");
-            drawText("Speed: " + tankSpeed.toFixed(2) + " gu/s", x + len, y - 50 - 9 * 14, 10, color.guiwhite, "right");
-            drawText("Memory: " + global.metrics.rendergap.toFixed(1) + " MiB", x + len, y - 50 - 8 * 14, 10, color.guiwhite, "right");
-            drawText(`Rendering: e ${global.renderingInfo.entities} t: ${global.renderingInfo.turretEntities} n: ${global.renderingInfo.entitiesWithName}`, x + len, y - 50 - 7 * 14, 10, color.guiwhite, "right");
-            drawText(`WS sent: ${fmtData(global.bandwidth.totalHa)}`, x + len, y - 50 - 6 * 14, 10, color.guiwhite, "right");
-            drawText(`WS received: ${fmtData(global.bandwidth.totalFa)}`, x + len, y - 50 - 5 * 14, 10, color.guiwhite, "right");
-            drawText("Update Rate: " + global.metrics.updatetime + "Hz", x + len, y - 50 - 4 * 14, 10, color.guiwhite, "right");
-            drawText("Prediction: " + Math.round(GRAPHDATA) + "ms", x + len, y - 50 - 3 * 14, 10, color.guiwhite, "right");
-            drawText("Last packet: " + lastPacketMs + "ms ago", x + len, y - 50 - 2 * 14, 10, color.guiwhite, "right");
+            drawText(watermarkText, x + len - versionLength - 4, y - 50 - 10 * 14 - 2, 15, watermarkColor, "right");
+            drawText(global.version ?? "v?", x + len, y - 50 - 10 * 14 - 2, 15, color.guiwhite, "right");
+            drawText(`§${global.serverStats.lag_color}§ ${(100 * gui.fps).toFixed(2)}% §reset§/ ` + global.serverStats.players + ` player${global.serverStats.players == 1 ? "" : "s"}`, x + len, y - 50 - 9 * 14, 10, color.guiwhite, "right");
+            drawText(`Coordinates: (${xloc.toFixed(2)}, ${yloc.toFixed(2)})`, x + len, y - 50 - 8 * 14, 10, color.guiwhite, "right");
+            drawText("Speed: " + tankSpeed.toFixed(2) + " gu/s", x + len, y - 50 - 7 * 14, 10, color.guiwhite, "right");
+            drawText("Memory: " + global.metrics.rendergap.toFixed(1) + " Mib", x + len, y - 50 - 6 * 14, 10, color.guiwhite, "right");
+            drawText(`Rendering: e ${global.renderingInfo.entities} t: ${global.renderingInfo.turretEntities} n: ${global.renderingInfo.entitiesWithName}`, x + len, y - 50 - 5 * 14, 10, color.guiwhite, "right");
+            drawText(`Bandwidth: tx ${global.bandwidth.finalHa} rx ${global.bandwidth.finalFa}`, x + len, y - 50 - 4 * 14, 10, color.guiwhite, "right");
+            drawText("Update Rate: " + global.metrics.updatetime + "Hz", x + len, y - 50 - 3 * 14, 10, color.guiwhite, "right");
+            drawText("Prediction: " + Math.round(GRAPHDATA) + "ms", x + len, y - 50 - 2 * 14, 10, color.guiwhite, "right");
             drawText(`§${global.metrics.rendertime_color}§ ${global.metrics.rendertime} FPS §reset§/` + `§${global.serverStats.mspt_color}§ ${global.serverStats.mspt} mspt : ${global.metrics.mspt.toFixed(1)} gmspt`, x + len, y - 50 - 1 * 14, 10, color.guiwhite, "right");
-            drawText(ping.toFixed(1) + " ms  " + global.serverStats.serverGamemodeName + " " + global.locationHash, x + len, y - 50, 10, color.guiwhite, "right");
+            drawText(ping.toFixed(1) + " ms / " + global.serverStats.serverGamemodeName + " " + global.locationHash, x + len, y - 50, 10, color.guiwhite, "right");
         } else if (!global.GUIStatus.minimapReducedInfo) {
             drawText(watermarkText, x + len, y - 50 - 3 * 14 - 2, 15, watermarkColor, "right");
-            drawText(global.serverStats.players + ` player${global.serverStats.players == 1 ? "" : "s"}`, x + len, y - 50 - 2 * 14, 10, color.guiwhite, "right");
+            drawText(`§${global.serverStats.lag_color}§ ${(100 * gui.fps).toFixed(2)}% §reset§/ ` + global.serverStats.players + ` player${global.serverStats.players == 1 ? "" : "s"}`, x + len, y - 50 - 2 * 14, 10, color.guiwhite, "right");
             drawText(`§${global.metrics.rendertime_color}§ ${global.metrics.rendertime} FPS §reset§/` + `§${global.serverStats.mspt_color}§ ${global.serverStats.mspt} mspt`, x + len, y - 50 - 1 * 14, 10, color.guiwhite, "right");
-            drawText(ping.toFixed(1) + " ms  " + global.serverStats.serverGamemodeName + " " + global.locationHash, x + len, y - 50, 10, color.guiwhite, "right");
+            drawText(ping.toFixed(1) + " ms / " + global.serverStats.serverGamemodeName + " " + global.locationHash, x + len, y - 50, 10, color.guiwhite, "right");
         } else drawText(watermarkText, x + len, y - 22 - 2 * 14 - 2, 15, watermarkColor, "right");
     }
 
@@ -3809,10 +3435,6 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         let height = 14;
         let x = global.screenWidth - spacing - 10;
         let y = spacing + height + 13;
-        if (config.graphical.oldUIStyle) {
-            x += 10;
-            y -= 5;
-        }
         lbGlide.set(0 + lb.data.length > 0);
         let glide = lbGlide.get();
         x -= lb.data.length ? len * glide : len * glide;
@@ -3861,7 +3483,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             if (entry.animX.get() > 0.999) {
                 entry.animX.force(0);
                 entry.x = entry.targetX;
-                if (entry.x === 0) {
+                if (entry.x === 0) { 
                     entry.visible = false;
                     delete leaderboardEntries[id];
                 };
@@ -3892,7 +3514,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 let overwritelabel = entry.label.includes("#")
                     ? entry.label.replace("##", Math.round(entry.score).toString()).replace("#s", 1 === Math.round(entry.score) ? "" : "s")
                     : false;
-                drawText(overwritelabel ? overwritelabel : entry.label + (": " + util.handleLargeNumber(Math.round(entry.score))), entryX + len / 2, entryY + height / 2, height - 4.5, nameColor == "#FFFFFF" ? color.guiwhite : nameColor, "center", true);
+                drawText(overwritelabel ? overwritelabel : entry.label + (": " + util.handleLargeNumber(Math.round(entry.score))), entryX + len / 2, entryY + height / 2, height - 4.5, nameColor == "#ffffff" ? color.guiwhite : nameColor, "center", true);
 
                 // Mini-image
                 if (entry.renderEntity) {
@@ -3909,8 +3531,6 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
     function drawAvailableUpgrades(spacing, alcoveSize) {
         // Draw upgrade menu
         if (global.optionsMenu_Anim.isOpened) global.clickables.upgrade.hide();
-        global.clickables.dailyTankUpgrade.hide();
-        global.clickables.dailyTankAd.hide();
         if (gui.upgrades.length > 0) {
             let internalSpacing = 15;
             let len = alcoveSize / 2;
@@ -3931,7 +3551,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             upgradeSpin = upgradeSpin - (Math.floor(upgradeSpin / Math.PI / 2) * Math.PI * 2);
 
             let x = glide * 2 * spacing + spacing + 5;
-            let y = spacing - height - 2.8 * internalSpacing + 5;
+            let y = spacing - height - internalSpacing + 5;
             let xStart = x;
             let initialX = x;
             let rowWidth = 0;
@@ -3958,7 +3578,6 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                             drawText(" " + upgradeBranchLabel, xStart, y + internalSpacing * 2, internalSpacing * 2.3, color.guiwhite, "left", false);
                             y += 3 * internalSpacing;
                         }
-                        y += 1.8 * internalSpacing;
                         colorIndex = 0;
                     }
                     lastBranch = upgradeBranch;
@@ -3970,7 +3589,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 if (y > initialY) initialY = y;
                 rowWidth = x;
                 !global.optionsMenu_Anim.isOpened && global.clickables.upgrade.place(i, x * clickableRatio, y * clickableRatio, len * clickableRatio, height * clickableRatio);
-                let upgradeKey = getKeybind(`KEY_UPGRADE_${upgradeNum + 1}`);
+                let upgradeKey = getClassUpgradeKey(upgradeNum);
 
                 drawEntityIcon(model, x, y, len, height, 1, upgradeSpin, 0.6, colorIndex++, !global.mobile ? upgradeKey : false, !global.mobile ? upgradeNum == upgradeHoverIndex : false);
 
@@ -3979,16 +3598,14 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             }
 
             // Draw dont upgrade button
-            let h = 20,
-                textScale = (h - 0.9) - 6,
+            let h = 19.1,
+                textScale = h - 6,
                 msg = "Don't Upgrade",
                 m = measureText(msg, textScale),
                 buttonX = initialX + (rowWidth + len - initialX) / 2,
                 buttonY = initialY + height + internalSpacing - 5;
 
-            drawButton(buttonX, buttonY, m, h, 1, config.graphical.oldUIStyle ? "bar" : "rect", msg, textScale - 3.3, color.vlgrey, false, false, true, "skipUpgrades", clickableRatio, {
-                index: 0
-            });
+            drawButton(buttonX, buttonY, m, h, 1, "rect", msg, textScale - 3.3, false, false, false, true, "skipUpgrades", clickableRatio, 0);
 
             if (gui.dailyTank && gui.dailyTank.tank) {
                 let image = util.requestEntityImage(gui.dailyTank.tank, gui.color);
@@ -3997,9 +3614,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 drawEntityIcon(image, xStart, initialY + height + internalSpacing + 50, len, height, 1, upgradeSpin, 0.4, 10, false, hover);
                 drawText("Daily Tank!", xStart + 50, initialY + height + internalSpacing + 67, 12, gameDraw.getColor(36), "center");
                 global.clickables.dailyTankUpgrade.set(xStart * clickableRatio, (initialY + height + internalSpacing + 50) * clickableRatio, len * clickableRatio, height * clickableRatio);
-                gui.dailyTank.ads && drawButton(xStart + 50, initialY + height + internalSpacing + 160, m, h, 1, "rect", "Watch An Ad", textScale - 3.3, color.vlgrey, false, false, true, "dailyTankAd", clickableRatio, {
-                    index: false
-                });
+                gui.dailyTank.ads && drawButton(xStart + 50, initialY + height + internalSpacing + 160, m, h, 1, "rect", "Watch An Ad", textScale - 3.3, false, false, false, true, "dailyTankAd", clickableRatio, false);
             }
 
             // Upgrade tooltip
@@ -4047,7 +3662,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         );
 
         ctx[2].globalAlpha = 0.3;
-        ctx[2].fillStyle = "#FFFFFF";
+        ctx[2].fillStyle = "#ffffff";
         ctx[2].beginPath();
         ctx[2].arc(
             (global.screenWidth * 1) / 6,
@@ -4065,7 +3680,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         );
         ctx[2].fill();
         ctx[2].globalAlpha = 0.5;
-        ctx[2].fillStyle = "#FFFFFF";
+        ctx[2].fillStyle = "#ffffff";
         ctx[2].beginPath();
         if (global.mobileStatus.showJoysticks && global.canvas.movementTouchPos) {
             ctx[2].arc(
@@ -4107,67 +3722,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             ctx[2].stroke();
         }
     }
-    //this operator mobile keyboard took me hours like glitches, goofy buttons and settings cant click bug ;-; (Mehmet303j)
-    function drawOperatorKeyboard(spacing, alcoveSize) {
-    global.clickables.operatorKeys.hide();
-    if (!global.hasOperator) return;
 
-    let index = 1;
-    let clickableRatio = global.canvas.height / global.screenHeight / global.ratio;
-    let upgradeColumns = Math.ceil(gui.upgrades.length / 9);
-
-    let yOffset = 0;
-    yOffset += global.canUpgrade ? (alcoveSize / 1.5) * mobileUpgradeGlide.get() * upgradeColumns / 1.5 + spacing * (upgradeColumns + 1.55) + -17.5 : 0;
-    yOffset += global.canSkill || global.showSkill ? statMenu.get() * alcoveSize / 2.6 + spacing / 0.75 : 0;
-
-    let baseSize = (alcoveSize - spacing * 2) / 3;
-    const toggleSize = baseSize;
-    const toggleX = alcoveSize + spacing * 2 + baseSize + spacing;
-    const toggleY = yOffset + spacing;
-
-    // Toggle butonu, operatorKeys grubunda ama index 0 sabit (tuşlar 1'den başlıyor, çakışmıyor)
-    global.clickables.operatorKeys.place(0, toggleX * clickableRatio, toggleY * clickableRatio, toggleSize * clickableRatio, toggleSize * clickableRatio);
-
-    ctx[2].fillStyle = global.operatorKeyboard.open ? color.guiwhite : color.grey;
-    drawGuiRect(toggleX, toggleY, toggleSize, toggleSize);
-    ctx[2].globalAlpha = 1;
-    drawText("`", toggleX + toggleSize / 2, toggleY + toggleSize / 2, toggleSize * 0.6, color.guiwhite, "center", true);
-    ctx[2].strokeStyle = color.black;
-    ctx[2].lineWidth = 3;
-    drawGuiRect(toggleX, toggleY, toggleSize, toggleSize, true);
-
-    if (!global.operatorKeyboard.open) return;
-
-    const columns = 12;
-    const startX = toggleX + toggleSize + spacing;
-    const startY = toggleY;
-    const keySize = Math.min(38, (global.screenWidth - startX - spacing) / columns - spacing);
-    const rowHeight = keySize + spacing;
-
-    for (let row = 0; row < global.operatorKeyboardRows.length; row++) {
-        const keys = global.operatorKeyboardRows[row];
-        for (let col = 0; col < keys.length; col++) {
-            const key = keys[col];
-            const x = startX + col * (keySize + spacing);
-            const y = startY + row * rowHeight;
-
-            global.clickables.operatorKeys.place(index, x * clickableRatio, y * clickableRatio, keySize * clickableRatio, keySize * clickableRatio);
-
-            const armed = key.prefix && global.operatorKeyboard.prefix === key.prefix;
-            const usable = key.code || key.prefix || (global.operatorKeyboard.prefix && key[global.operatorKeyboard.prefix]);
-            ctx[2].globalAlpha = usable ? 0.5 : 0.2;
-            ctx[2].fillStyle = armed ? color.guiwhite : color.grey;
-            drawGuiRect(x, y, keySize, keySize);
-            ctx[2].globalAlpha = usable ? 1 : 0.4;
-            drawText(key.label, x + keySize / 2, y + keySize / 2, keySize * 0.55, armed ? color.black : color.guiwhite, "center", true);
-            ctx[2].strokeStyle = color.black;
-            ctx[2].lineWidth = 2;
-            drawGuiRect(x, y, keySize, keySize, true);
-            index++;
-        }
-    }
-    ctx[2].globalAlpha = 1;
-}
     function drawMobileButtons(spacing, alcoveSize) {
         let makeButton = (index, x, y, width, height, text, clickableRatio) => {
             // Set the clickable's position
@@ -4355,20 +3910,20 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             global.canvas.chatBox.style.color = color.black;
             global.canvas.chatBox.style.backgroundColor = color.guiwhite;
             global.canvas.chatBox.style.borderColor = color.black;
-            global.canvas.chatBox.style.borderWidth = 0.1 * g + "px";
+            global.canvas.chatBox.style.borderWidth = 0.1 * g + 'px';
             global.canvas.chatBox.style.opacity = global.showChatGlide;
             global.canvas.chatBox.style.width = (boxLengthHalf * 2 + 0.75 * g) / global.screenWidth * 100 + `%`;
-            global.canvas.chatBox.style.height = 0.95 * g + "px";
+            global.canvas.chatBox.style.height = 0.95 * g + `px`;
             global.canvas.chatBox.style.left = (x - boxLengthHalf - 0.75 * g / 2) / global.screenWidth * 100 + `%`;
-            global.canvas.chatBox.style.top =  (y - g * (2.26) - 0.55 * g) / global.screenWidth * window.innerWidth + "px";
-            // Input
+            global.canvas.chatBox.style.top =  (y - g * (2.26) - 0.55 * g) / global.screenWidth * window.innerWidth + `px`;
+            // Input 
             global.canvas.chatInput.style.opacity = global.showChatGlide;
-            global.canvas.chatInput.style["font-size"] = 0.5 * g + "px";
+            global.canvas.chatInput.style["font-size"] = 0.5 * g + 'px';
             global.canvas.chatInput.style.color = color.black;
             global.canvas.chatInput.style.width = (boxLengthHalf * 2 + 0.35 * g) / global.screenWidth * 100 + `%`;
-            global.canvas.chatInput.style.height = 0.95 * g + "px";
+            global.canvas.chatInput.style.height = 0.95 * g + `px`;
             global.canvas.chatInput.style.left = (x - boxLengthHalf - 0.35 * g / 2) / global.screenWidth * 100 + `%`;
-            global.canvas.chatInput.style.top =  (y - g * (2.26) - 0.55 * g) / global.screenWidth * window.innerWidth + "px";
+            global.canvas.chatInput.style.top =  (y - g * (2.26) - 0.55 * g) / global.screenWidth * window.innerWidth + `px`;
             if (global.canvas.chatBox && global.showChatGlide < 0.005 && !global.showChat) chatInput.force(0), global.canvas.chatInput.remove(), global.canvas.chatBox.remove(), global.canvas.chatBox = false;
         }
     }
@@ -4407,9 +3962,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                         global.dailyTankAd.closebtnAnim.set(1);
                     }, 1000)
                 }
-                drawButton(x + width - 25, y + 7, 35, 35, global.dailyTankAd.closebtnAnim.get(), "rect", "✕", 24, color.red, color.red, false, true, "dailyTankCloseAd", global.canvas.height / global.screenHeight / global.ratio, {
-                    index: false
-                });
+                drawButton(x + width - 25, y + 7, 35, 35, global.dailyTankAd.closebtnAnim.get(), "rect", "✕", 24, color.red, color.red, false, true, "dailyTankCloseAd", global.canvas.height / global.screenHeight / global.ratio, false);
             }
         } else {
             drawText("Loading...", global.screenWidth / 2, global.screenHeight / 2, 40, "#fff", "center", false, 1, false);
@@ -4460,10 +4013,8 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 txt += " " + util.addArticle(util.getEntityImageFromMockup(e).name) + " and";
             }
             txt = txt.slice(0, -4);
-        } /*else if () { //todo: check for self-destruct
-            txt += "💣 Self-destruct completed";
-        }*/ else {
-            txt += "⛈  Vanished into thin air";
+        } else {
+            txt += "🤷 Well that was kinda dumb huh";
         }
         return txt;
     };
@@ -4492,50 +4043,44 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             picture = util.getEntityImageFromMockup(gui.type, gui.color),
             baseColor = picture.color,
             name = global.player.name.substring(7, global.player.name.length + 1),
-            timestamp = Math.floor(global.deathTimestamp || Date.now());
+            timestamp = Math.floor(Date.now() / 1000);
 
         clearScreen(color.black, 0.1 + 0.15 * global.lerp(0, 0.5, glide), ctx[2]);
         let ratio = util.getScreenRatio();
         scaleScreenRatio(ratio, true);
-        drawEntity(baseColor, (xx - 191 - len / 2 + 0.5) | 0, (yy - -26 + 0.5) | 0, picture, 1.5, 1, (0.5 * scale) / picture.realSize, 1, -Math.PI / 4, true, ctx[2]);
-        drawText("Level " + gui.__s.getLevel(), x - 270, y + 100, 12, color.guiwhite, "center");
-        drawText(picture.name, x - 270, y + 125, 18, color.guiwhite, "center");
-        drawText(new Date(timestamp).toISOString() + "", x, y - 164, 8.125, color.guiwhite, "center");
-        drawText(name == "" ? "Your Score: " : name + "'s Score: ", x - 170, y - 50, 23.75, color.guiwhite);
-        drawText(util.formatLargeNumber(Math.round(global.finalScore.get())), x - 170, y + 11, 48, color.guiwhite);
+        drawEntity(baseColor, (xx - 190 - len / 2 + 0.5) | 0, (yy - -5 + 0.5) | 0, picture, 1.5, 1, (0.5 * scale) / picture.realSize, 1, -Math.PI / 4, true, ctx[2]);
+        drawText("Level " + gui.__s.getLevel(), x - 275, y - -80, 14, color.guiwhite, "center");
+        drawText(picture.name, x - 275, y - -110, 24, color.guiwhite, "center");
+        drawText(timestamp + '', x, y - 80, 10, color.guiwhite, "center");
+        drawText(name == "" ? "Your Score: " : name + "'s Score: ", x - 170, y - 30, 24, color.guiwhite);
+        drawText(util.formatLargeNumber(Math.round(global.finalScore.get())), x - 170, y + 25, 50, color.guiwhite);
         ctx[2].globalAlpha = global.lerp(1, 1.25, glide);
-        drawText("⌚ Survived for " + util.timeForHumans(Math.round(global.finalLifetime.get())), x - 170, y + 50, 14, color.guiwhite);
+        drawText("⌚ Survived for " + util.timeForHumans(Math.round(global.finalLifetime.get())), x - 170, y + 55, 16, color.guiwhite);
         ctx[2].globalAlpha = global.lerp(1.25, 1.5, glide);
-        drawText(getKills(), x - 170, y + 75, 14, color.guiwhite);
+        drawText(getKills(), x - 170, y + 77, 16, color.guiwhite);
         ctx[2].globalAlpha = global.lerp(1.5, 1.75, glide);
-        drawText(getTips(), x - 170, y + 100, 14, color.guiwhite);
+        drawText(getDeath(), x - 170, y + 99, 16, color.guiwhite);
         ctx[2].globalAlpha = global.lerp(1.75, 2, glide);
-        drawText(getDeath(), x - 170, y + 125, 14, color.guiwhite);
+        drawText(getTips(), x - 170, y + 122, 16, color.guiwhite);
         ctx[2].globalAlpha = global.lerp(2, 2.25, glide);
-        drawText("📋 The server was " + (100 * gui.fps).toFixed(0) + "%" + " active", x - 170, y + 150, 14, color.guiwhite);
+        drawText("🦆 The server was alive for " + (100 * gui.fps).toFixed(0) + "%" + " for the run", x - 170, y + 144, 16, color.guiwhite);
         ctx[2].globalAlpha = global.lerp(3, 3.25, glide);
         if (global.cannotRespawn || global.mobile || global.gamepadMode) drawText(global.cannotRespawn ?
             global.respawnTimeout ?
-            "(you may respawn in " + global.respawnTimeout + " second" + `${global.respawnTimeout <= 1 ? "" : "s"}` + ")"
+            "(you may respawn in " + global.respawnTimeout + " Secon" + `${global.respawnTimeout <= 1 ? 'd' : 'ds'}` + ")"
             : "(you cannot respawn)"
-            : global.mobile ?
+            : global.mobile ? 
             "(tap to respawn)"
-            : global.gamepadMode ?
+            : global.gamepadMode ? 
             "(Press RT or R2 button to respawn)"
-            : "",
+            : '',
             x, y + 189, 16, color.guiwhite, "center");
         if (!global.disconnected && !global.cannotRespawn) {
             if (!global.mobile && !global.gamepadMode) {
-                drawButton(x - 75, y + 198, 120, 30, global.lerp(3, 3.25, glide), "rect", "Back", 14, false, false, false, true, "exitGame", global.canvas.height / global.screenHeight / global.ratio, {
-                    index: 0
-                });
-                drawButton(x + 75, y + 198, 120, 30, global.lerp(3, 3.25, glide), "rect", "Respawn", 14, false, false, false, true, "deathRespawn", global.canvas.height / global.screenHeight / global.ratio, {
-                    index: 0
-                });
-            } else drawButton(x, y + 198, 120, 30, global.lerp(3, 3.25, glide), "rect", "Back", 18, false, false, false, true, "exitGame", global.canvas.height / global.screenHeight / global.ratio, {
-                index: 0
-            });
-        }
+                drawButton(x - 80, y + 195, 130, 30, global.lerp(3, 3.25, glide), "rect", "Back", 15, false, false, false, true, "exitGame", global.canvas.height / global.screenHeight / global.ratio, 0);
+                drawButton(x + 80, y + 195, 130, 30, global.lerp(3, 3.25, glide), "rect", "Respawn", 15, false, false, false, true, "deathRespawn", global.canvas.height / global.screenHeight / global.ratio, 0);
+            } else drawButton(x, y + 215, 150, 50, global.lerp(3, 3.25, glide), "rect", "Back", 25, false, false, false, true, "exitGame", global.canvas.height / global.screenHeight / global.ratio, 0);
+        } 
     };
 
     const applyScreenShake = (type = "camera", returnOption = false) => {
@@ -4618,10 +4163,9 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         let shake = false;
         if (config.graphical.shakeProperties.UIShake.shakeStartTime !== -1) shake = applyScreenShake("gui", true);
         if (shake) ctx[2].translate(shake.dx, shake.dy);
-       if (global.mobile) { // MOBILE UI
+        if (global.mobile) { // MOBILE UI
             drawMobileJoysticks();
             drawMobileButtons(spacing, alcoveSize);
-            drawOperatorKeyboard(spacing, alcoveSize); // ` button + sandbox keyboard for sandbox etc.
         }
         if (global.gamepadMode) drawCrosshair();
         if (global.GUIStatus.renderGUI) {
@@ -4690,7 +4234,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             const by = tipY;
             let textY = by;
             // background
-            ctx[2].fillStyle = "rgba(30, 30, 30, 0.40)";
+            ctx[2].fillStyle = "rgba(30, 30, 30, 0.45)";
             optionsMenu_drawRoundedRect(bx, by, boxW, splitTooltip.length === 1 ? boxH : boxH + 15, 8);
             ctx[2].fill();
             ctx[2].globalAlpha = anim;
@@ -4707,672 +4251,19 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         }
     }
 
-    function optionsMenu_getPointer(pointer = global.mouse) {
-        const canvasWidth = global.canvas.width || global.screenWidth;
-        const canvasHeight = global.canvas.height || global.screenHeight;
-        return {
-            x: pointer.x * (global.screenWidth || canvasWidth) / canvasWidth,
-            y: pointer.y * (global.screenHeight || canvasHeight) / canvasHeight,
-        };
-    }
-
-    function optionsMenu_getUserInterfaceOptions() {
-        let doc = document.getElementById("optUiScale");
-        if (!doc) return [];
-        return Array.from(doc.options).filter((option) => option.value).map((option) => ({
-            value: option.value,
-            label: option.textContent.replace("UI Scale", "").replace("(", "").replace(")", "").replace(" ", ""),
-        }))
-    }
-    function optionsMenu_getGraphicsOptions() {
-        let doc = document.getElementById("optGraphics");
-        if (!doc) return [];
-        console.log(Array.from(doc.options).filter((option) => option.value).map((option) => ({
-            value: option.value,
-            label: option.textContent,
-        })))
-        return Array.from(doc.options).filter((option) => option.value).map((option) => ({
-            value: option.value,
-            label: option.textContent,
-        }))
-    }
-
-    const THEME_SWATCHES = [
-        ["blue", "Blue"], ["vlgrey", "Eggs"], ["lgrey", "Walls"],
-        ["green", "Green"], ["gold", "Squares"], ["lgreen", "Health Bars"],
-        ["red", "Red"], ["orange", "Triangles"], ["teal", "Shield Bars"],
-        ["magenta", "Purple"], ["purple", "Pentagons"], ["grey", "Barrels"],
-        ["yellow", "Neutral"], ["aqua", "Hexagons"], ["white", "Background"],
-        ["dgrey", "Rogues"], ["pink", "Crashers"], ["guiblack", "Grid"],
-        ["guiwhite", "Text"], ["black", "Borders"],
-    ];
-
-    const OV_ROW1 = 41, OV_ROW2 = 81, OV_ROW3 = 121;
-    const OV_COLORS_HEAD = 183, OV_GRID_TOP = 201, OV_GRID_PITCH = 40;
-    const OV_BORDERS_HEAD = 503, OV_SLIDER_TOP = 524, OV_NEON_TOP = 561;
-    const OV_CTRL_H = 28, OV_SWATCH = 28, OV_GAP = 13, OV_COL_PITCH = 145, OV_BADGE = 26;
-    const OV_INSET_L = 24, OV_INSET_R = 18, OV_CODE_GAP = 11, OV_REMOVE_W = 98;
-    const OV_SLIDER_W = 152, OV_TITLE_TOP = 31;
-    const THEME_PANEL_H = 608;
-    const KB_ROW_TOP = 47, KB_ROW_PITCH = 39;
-    const SECRET_PANEL_H = 350;
-    const SECRET_SECTION_LAYOUT = {
-        secret: { title: "Secret Options", titleY: 30, rowTop: 45 },
-        beta:   { title: "Beta Options",   titleY: 220, rowTop: 235 },
-        legacy: { title: "Legacy Options", titleY: 290, rowTop: 305 },
-    };
-    const isSecretSection = (section) => section === "secret" || section === "beta" || section === "legacy";
-
-    let _themeList = null;
-    function loadThemes() {
-        if (!_themeList) {
-            _themeList = fetch("themes.json")
-                .then((r) => r.json())
-                .catch(() => []);
-        }
-        return _themeList;
-    }
-
-    const PERSONAL_THEMES_KEY = "personalThemes";
-    function loadPersonalThemes() {
-        let list = [];
-        try { list = JSON.parse(localStorage.getItem(PERSONAL_THEMES_KEY) || "[]"); } catch { }
-        return Array.isArray(list) ? list.filter((t) => t && t.content) : [];
-    }
-    function savePersonalThemes(list) {
-        try { localStorage.setItem(PERSONAL_THEMES_KEY, JSON.stringify(list)); } catch { }
-    }
-
-    let _keybindEntries = null;
-    function getKeybindEntries() {
-        if (_keybindEntries) return _keybindEntries;
-        const out = [];
-        document.querySelectorAll("#controlSettings tr").forEach((tr) => {
-            tr.querySelectorAll("td").forEach((td) => {
-                const b = td.querySelector("b");
-                if (!b) return;
-                const label = td.textContent.replace(b.textContent, "").replace(/^[\s-]+/, "").trim()
-                    .replace(/[a-z]+/g, (wd) => wd.charAt(0).toUpperCase() + wd.slice(1));
-                out.push({ el: b, label });
-            });
-        });
-        _keybindEntries = out;
-        return out;
-    }
-    function keybindsPanelHeight() {
-        const rows = Math.max(1, Math.ceil(getKeybindEntries().length / 2));
-        return KB_ROW_TOP + (rows - 1) * KB_ROW_PITCH + OV_BADGE + 13;
-    }
-
-    function themeCode(palette, name, author) {
-        const bytes = [0x6a, 0xba, 0xda, 0xb3, 0xf0, 1];
-        const push = (str) => { bytes.push(str.length); for (const c of str) bytes.push(c.charCodeAt(0)); };
-        push(name || "");
-        push(author || "");
-        bytes.push(THEME_PALETTE_KEYS.length);
-        for (const k of THEME_PALETTE_KEYS) {
-            const v = parseInt((palette[k] || "#000000").slice(1), 16);
-            bytes.push((v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff);
-        }
-        const special = [palette.black || "#484848"];
-        bytes.push(special.length);
-        for (const hex of special) {
-            const v = parseInt(hex.slice(1), 16);
-            bytes.push((v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff);
-        }
-        const blend = typeof palette.border === "number" ? palette.border : 0.65;
-        bytes.push(blend >= 1 ? 255 : blend <= 0 ? 0 : Math.floor(blend * 0x100));
-        bytes.push(palette.neon ? 1 : 0);
-        let bin = "";
-        for (const b of bytes) bin += String.fromCharCode(b);
-        return btoa(bin).replace(/=+$/, "");
-    }
-
-    const OV_BASE = "position:absolute;box-sizing:border-box;margin:0;border:3px solid #484848;border-radius:0;outline:none;pointer-events:auto";
-    const OV_STROKE = "color:#fff;-webkit-text-stroke:3px #484848;paint-order:stroke fill";
-    const OV_INPUT = OV_BASE + ";background:#fff;color:#000;text-align:left;font:14px Ubuntu,sans-serif;padding:0 7px";
-    const OV_ARROW = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M0 0l6 7 6-7z' fill='%23484848'/%3E%3C/svg%3E\")";
-    const OV_SELECT = OV_BASE + ";appearance:none;-webkit-appearance:none;background-color:#fff;background-image:" +
-        OV_ARROW + ";background-repeat:no-repeat;background-position:calc(100% - 9px) center;background-size:12px 7px;" +
-        OV_STROKE + ";text-align:left;font:bold 14px Ubuntu,sans-serif;padding:0 24px 0 7px;cursor:pointer";
-    const OV_BTN = OV_BASE + ";background:#8f8f8f;" + OV_STROKE + ";font:bold 14px Ubuntu,sans-serif;cursor:pointer";
-    const OV_COLOR = OV_BASE + ";width:27px;height:27px;padding:0;background:none;cursor:pointer";
-
-    function themeBlend() {
-        const c = gameDraw.color;
-        if (!c) return 0.65;
-        if (typeof c.border !== "number") c.border = 0.65;
-        return Math.max(0, Math.min(1, c.border));
-    }
-    global.ingameThemeSetBlend = (t) => {
-        if (!gameDraw.color) return;
-        gameDraw.color.border = Math.max(0, Math.min(1, t));
-        gameDraw.colorCache = {};
-        markThemeCustom();
-        refreshThemeCode();
-    };
-    global.ingameThemeToggleNeon = () => {
-        const wrap = global.themeOverlay;
-        if (!wrap) return;
-        const sel = wrap._ov.bordersSel;
-        sel.value = sel.value === "neon" ? "normal" : "neon";
-        sel.dispatchEvent(new Event("change"));
-    };
-
-    function ensureThemeOverlay() {
-        if (global.themeOverlay) return global.themeOverlay;
-        const wrap = document.createElement("div");
-        wrap.id = "ingameThemeOverlay";
-        wrap.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;display:none;z-index:20;pointer-events:none;font-family:Ubuntu,sans-serif";
-
-        const st = document.createElement("style");
-        st.textContent =
-            "#ingameThemeOverlay input[type=color]::-webkit-color-swatch-wrapper{padding:0}" +
-            "#ingameThemeOverlay input[type=color]::-webkit-color-swatch{border:none}" +
-            "#ingameThemeOverlay input[type=text]::placeholder{color:#8f8f8f}";
-        document.head.appendChild(st);
-
-        const mk = (tag, css, id) => {
-            const e = document.createElement(tag);
-            e.style.cssText = css;
-            if (id) e.id = id;
-            wrap.appendChild(e);
-            return e;
-        };
-
-        const name = mk("input", OV_INPUT, "ovName"); name.type = "text"; name.placeholder = "Theme Name";
-        const author = mk("input", OV_INPUT, "ovAuthor"); author.type = "text"; author.placeholder = "Author";
-        const code = mk("input", OV_INPUT, "ovCode"); code.type = "text"; code.spellcheck = false; code.autocomplete = "off";
-        const remove = mk("button", OV_BTN, "ovRemove"); remove.type = "button"; remove.textContent = "Remove";
-        const colorsSel = mk("select", OV_SELECT, "ovColors");
-        const bordersSel = mk("select", OV_SELECT, "ovBorders");
-        const borderColor = mk("input", OV_COLOR, "ovBorderColor"); borderColor.type = "color";
-        const swatches = THEME_SWATCHES.map(([key]) => {
-            const inp = mk("input", OV_COLOR);
-            inp.type = "color";
-            inp.dataset.key = key;
-            return inp;
-        });
-
-        wrap._ov = { name, author, code, remove, colorsSel, bordersSel, borderColor, swatches };
-        document.body.appendChild(wrap);
-        global.themeOverlay = wrap;
-
-        for (const [value, label] of [["normal", "Light"], ["dark", "Dark"], ["neon", "Neon"], ["glass", "Glass"]]) {
-            const o = document.createElement("option");
-            o.value = value;
-            o.textContent = label;
-            bordersSel.appendChild(o);
-        }
-        bordersSel.value = config.graphical.neon ? "neon" : config.graphical.darkBorders ? "dark" : "normal";
-
-        loadThemes().then((list) => {
-            wrap._themes = Array.isArray(list) ? list : [];
-            wrap._personal = loadPersonalThemes();
-            rebuildThemeSelect();
-            const srcColors = document.getElementById("optColors");
-            if (srcColors && srcColors.value === "custom") {
-                colorsSel.value = "custom";
-                applyCustomTheme();
-            } else {
-                if (list.length) colorsSel.value = "t0";
-                syncThemeOverlay();
-            }
-        });
-
-        colorsSel.addEventListener("change", () => {
-            updateThemeButton();
-            if (colorsSel.value === "custom") {
-                applyCustomTheme();
-                return;
-            }
-            const theme = selectedTheme();
-            if (theme) applyTheme(theme);
-        });
-        bordersSel.addEventListener("change", () => {
-            config.graphical.darkBorders = bordersSel.value === "dark" || bordersSel.value === "neon";
-            config.graphical.neon = bordersSel.value === "neon" || bordersSel.value === "glass";
-            if (gameDraw.color) { gameDraw.color.neon = config.graphical.neon; gameDraw.colorCache = {}; }
-            const src = document.getElementById("optBorders");
-            if (src) src.value = bordersSel.value;
-            refreshThemeCode();
-        });
-        borderColor.addEventListener("input", (e) => {
-            if (gameDraw.color) { gameDraw.color.black = e.target.value; gameDraw.colorCache = {}; }
-            markThemeCustom();
-            refreshThemeCode();
-        });
-        swatches.forEach((inp) => {
-            inp.addEventListener("input", () => {
-                if (gameDraw.color) { gameDraw.color[inp.dataset.key] = inp.value; gameDraw.colorCache = {}; }
-                if (inp.dataset.key === "black") wrap._ov.borderColor.value = inp.value;
-                markThemeCustom();
-                refreshThemeCode();
-            });
-        });
-        remove.addEventListener("click", () => {
-            if (colorsSel.value === "custom") {
-                addCustomTheme();
-                return;
-            }
-            const mine = /^p(\d+)$/.exec(colorsSel.value);
-            if (mine) {
-                wrap._personal.splice(parseInt(mine[1], 10), 1);
-                savePersonalThemes(wrap._personal);
-                rebuildThemeSelect();
-            }
-            const list = wrap._themes;
-            if (list && list.length) {
-                colorsSel.value = "t0";
-                applyTheme(list[0]);
-            } else {
-                const c = colors["normal"];
-                gameDraw.color = c; gameDraw.colorCache = {}; global.currentColors = c;
-                syncThemeOverlay();
-            }
-        });
-        name.addEventListener("input", () => { markThemeCustom(); refreshThemeCode(); });
-        author.addEventListener("input", () => { markThemeCustom(); refreshThemeCode(); });
-        code.addEventListener("change", () => {
-            const parsed = parseTheme(code.value);
-            if (parsed && parsed.content) {
-                const c = Object.assign({}, colors["normal"], parsed.content);
-                c.border = parsed.content.border;
-                c.neon = !!parsed.content.neon;
-                gameDraw.color = c;
-                gameDraw.colorCache = {};
-                global.currentColors = c;
-                markThemeCustom();
-                syncThemeOverlay(parsed.name, parsed.author);
-            }
-        });
-        return wrap;
-    }
-
-    function rebuildThemeSelect() {
-        const wrap = global.themeOverlay;
-        if (!wrap) return;
-        const o = wrap._ov;
-        const previous = o.colorsSel.value;
-        o.colorsSel.textContent = "";
-        const add = (value, label) => {
-            const opt = document.createElement("option");
-            opt.value = value;
-            opt.textContent = label;
-            o.colorsSel.appendChild(opt);
-        };
-        (wrap._themes || []).forEach((theme, i) => add("t" + i, theme.name));
-        (wrap._personal || []).forEach((theme, i) => add("p" + i, theme.name));
-        add("custom", "Custom");
-        if (previous && o.colorsSel.querySelector(`option[value="${previous}"]`)) o.colorsSel.value = previous;
-        updateThemeButton();
-    }
-
-    function selectedTheme() {
-        const wrap = global.themeOverlay;
-        if (!wrap) return null;
-        const match = /^([tp])(\d+)$/.exec(wrap._ov.colorsSel.value);
-        if (!match) return null;
-        const list = match[1] === "t" ? wrap._themes : wrap._personal;
-        return (list && list[parseInt(match[2], 10)]) || null;
-    }
-
-    function updateThemeButton() {
-        const wrap = global.themeOverlay;
-        if (!wrap) return;
-        wrap._ov.remove.textContent = wrap._ov.colorsSel.value === "custom" ? "Add" : "Remove";
-    }
-
-    function addCustomTheme() {
-        const wrap = global.themeOverlay;
-        if (!wrap || !gameDraw.color) return;
-        const o = wrap._ov;
-        const c = gameDraw.color;
-        const content = {};
-        THEME_PALETTE_KEYS.forEach((key) => {
-            const v = c[key];
-            content[key] = typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v) ? v : "#000000";
-        });
-        if (!wrap._personal) wrap._personal = [];
-        wrap._personal.push({
-            name: o.name.value.trim() || "Custom",
-            author: o.author.value.trim(),
-            content,
-            paletteSize: THEME_PALETTE_KEYS.length,
-            border: typeof c.border === "number" ? c.border : 0.6,
-            neon: !!c.neon,
-        });
-        savePersonalThemes(wrap._personal);
-        rebuildThemeSelect();
-        o.colorsSel.value = "p" + (wrap._personal.length - 1);
-        updateThemeButton();
-    }
-
-    function markThemeCustom() {
-        const wrap = global.themeOverlay;
-        if (wrap && wrap._ov.colorsSel.value !== "custom") {
-            wrap._ov.colorsSel.value = "custom";
-            updateThemeButton();
-        }
-    }
-
-    function applyCustomTheme() {
-        const src = document.getElementById("optCustom");
-        const code = (src && src.value) || localStorage.getItem("optCustomValue") || "";
-        const parsed = code ? parseTheme(code) : null;
-        if (parsed && parsed.content) {
-            const c = Object.assign({}, colors["normal"], parsed.content);
-            c.border = parsed.content.border;
-            c.neon = !!parsed.content.neon;
-            gameDraw.color = c;
-            gameDraw.colorCache = {};
-            global.currentColors = c;
-            config.graphical.darkBorders = !!parsed.content.neon;
-            config.graphical.neon = !!parsed.content.neon;
-            const wrap = global.themeOverlay;
-            if (wrap) wrap._ov.bordersSel.value = parsed.content.neon ? "neon" : "normal";
-            syncThemeOverlay(parsed.name, parsed.author);
-        } else {
-            syncThemeOverlay();
-        }
-    }
-
-    function applyTheme(theme) {
-        if (!theme || !theme.content) return;
-        const c = Object.assign({}, colors["normal"], theme.content);
-        c.paletteSize = theme.paletteSize || THEME_PALETTE_KEYS.length;
-        c.border = typeof theme.border === "number" ? theme.border : 0.6;
-        c.neon = !!theme.neon;
-        gameDraw.color = c;
-        gameDraw.colorCache = {};
-        global.currentColors = c;
-        config.graphical.darkBorders = !!theme.neon;
-        config.graphical.neon = !!theme.neon;
-        const wrap = global.themeOverlay;
-        if (wrap) wrap._ov.bordersSel.value = theme.neon ? "neon" : "normal";
-        const src = document.getElementById("optBorders");
-        if (src) src.value = theme.neon ? "neon" : "normal";
-        syncThemeOverlay(theme.name, theme.author);
-    }
-
-    function refreshThemeCode() {
-        const wrap = global.themeOverlay;
-        if (!wrap || !gameDraw.color) return;
-        const o = wrap._ov;
-        const name = o.name.value || "Custom";
-        const author = o.author.value || "";
-        if (document.activeElement !== o.code) o.code.value = themeCode(gameDraw.color, name, author);
-    }
-
-    function syncThemeOverlay(name, author) {
-        const wrap = global.themeOverlay;
-        if (!wrap || !gameDraw.color) return;
-        const o = wrap._ov;
-        const c = gameDraw.color;
-        o.swatches.forEach((inp) => {
-            const v = c[inp.dataset.key];
-            if (typeof v === "string" && /^#/.test(v) && inp.value.toLowerCase() !== v.toLowerCase()) inp.value = v;
-        });
-        if (typeof c.black === "string" && /^#/.test(c.black)) o.borderColor.value = c.black;
-        if (name === undefined) {
-            const theme = selectedTheme();
-            name = theme ? theme.name : o.name.value;
-            author = theme ? theme.author : o.author.value;
-        }
-        if (document.activeElement !== o.name) o.name.value = name || "";
-        if (document.activeElement !== o.author) o.author.value = author || "";
-        updateThemeButton();
-        refreshThemeCode();
-    }
-
-    function drawThemeTab(panelX, PANEL_Y, PANEL_WIDTH, clickableRatio) {
-        const wrap = global.themeOverlay || ensureThemeOverlay();
-        const o = wrap._ov;
-        if (wrap.style.display !== "block") syncThemeOverlay();
-        wrap.style.display = "block";
-        const r = clickableRatio;
-        const scrollY = global.optionsMenu_Anim.scrollOffsets && global.optionsMenu_Anim.scrollOffsets[1]
-            ? global.optionsMenu_Anim.scrollOffsets[1].get() : 0;
-        const L = panelX + OV_INSET_L, W = PANEL_WIDTH - OV_INSET_L - OV_INSET_R, T = PANEL_Y - scrollY;
-        const hw = (W - OV_GAP) / 2;
-        const put = (el, x, y, w, h) => {
-            el.style.left = (x * r) + "px";
-            el.style.top = (y * r) + "px";
-            el.style.width = (w * r) + "px";
-            el.style.height = (h * r) + "px";
-            el.style.borderWidth = (3 * r) + "px";
-        };
-        put(o.name, L, T + OV_ROW1, hw, OV_CTRL_H);
-        put(o.author, L + hw + OV_GAP, T + OV_ROW1, hw, OV_CTRL_H);
-        put(o.code, L, T + OV_ROW2, W - OV_REMOVE_W - OV_CODE_GAP, OV_CTRL_H);
-        put(o.remove, L + W - OV_REMOVE_W, T + OV_ROW2, OV_REMOVE_W, OV_CTRL_H);
-        put(o.colorsSel, L, T + OV_ROW3, hw, OV_CTRL_H);
-        put(o.bordersSel, L + hw + OV_GAP, T + OV_ROW3, hw, OV_CTRL_H);
-        put(o.borderColor, L + 2 * OV_COL_PITCH, T + OV_SLIDER_TOP - 2, OV_SWATCH, OV_SWATCH);
-        o.swatches.forEach((inp, i) => {
-            const col = i % 3, row = (i / 3) | 0;
-            put(inp, L + col * OV_COL_PITCH, T + OV_GRID_TOP + row * OV_GRID_PITCH, OV_SWATCH, OV_SWATCH);
-        });
-
-        const cx = panelX + PANEL_WIDTH / 2;
-        drawText("Colors", cx, T + OV_COLORS_HEAD, 15.5, color.guiwhite, "center", true);
-        drawText("Borders", cx, T + OV_BORDERS_HEAD, 15.5, color.guiwhite, "center", true);
-        o.swatches.forEach((inp, i) => {
-            const col = i % 3, row = (i / 3) | 0;
-            drawText(THEME_SWATCHES[i][1], L + col * OV_COL_PITCH + OV_SWATCH + 9,
-                T + OV_GRID_TOP + row * OV_GRID_PITCH + OV_SWATCH / 2 + 1, 13.5, color.guiwhite, "left", true);
-        });
-
-        const sx = L, sy = T + OV_SLIDER_TOP, SW = OV_SLIDER_W, SH = 20;
-        const sv = themeBlend();
-        ctx[2].fillStyle = color.guiwhite;
-        drawGuiRect(sx, sy + 2.5, SW, SH);
-        ctx[2].fillStyle = color.green;
-        ctx[2].globalAlpha *= 0.7;
-        drawGuiRect(sx, sy + 2.5, SW * sv, SH);
-        ctx[2].globalAlpha /= 0.7;
-        ctx[2].strokeStyle = color.black;
-        ctx[2].lineWidth = 3;
-        drawGuiRect(sx, sy + 2.5, SW, SH, true);
-        const knob = sx + (SW - 12.5) * sv;
-        ctx[2].fillStyle = color.green;
-        drawGuiRect(knob, sy, 12.5, SH + 5);
-        ctx[2].strokeStyle = color.black;
-        drawGuiRect(knob, sy, 12.5, SH + 5, true);
-        const midY = sy + SH / 2 + 2.5;
-        drawText("Blend Ratio", sx + SW + 8, midY, 13.5, color.guiwhite, "left", true);
-        drawText("Borders", sx + 2 * OV_COL_PITCH + OV_SWATCH + 9, midY, 13.5, color.guiwhite, "left", true);
-
-        const nx = L, ny = T + OV_NEON_TOP;
-        const on = !!config.graphical.neon;
-        ctx[2].lineWidth = 3;
-        gameDraw.setColor(ctx[2], on ? color.green : color.guiwhite);
-        drawGuiRect(nx, ny, OV_SWATCH, OV_SWATCH);
-        if (on) {
-            ctx[2].strokeStyle = "#FFFFFF";
-            ctx[2].lineWidth = 3;
-            ctx[2].beginPath();
-            ctx[2].moveTo(nx + 5.5, ny + OV_SWATCH / 1.8);
-            ctx[2].lineTo(nx + OV_SWATCH / 2 - 3, ny + OV_SWATCH - 7);
-            ctx[2].lineTo(nx + OV_SWATCH - 6, ny + 8);
-            ctx[2].stroke();
-        }
-        gameDraw.setColor(ctx[2], color.black);
-        drawGuiRect(nx, ny, OV_SWATCH, OV_SWATCH, true);
-        drawText("Neon Borders", nx + OV_SWATCH + 9, ny + OV_SWATCH / 2 + 1, 13.5, color.guiwhite, "left", true);
-
-        global.ingameKeybindRects = null;
-        const cr = r * global.ratio;
-        global.ingameThemeSlider = { x: sx * cr, y: sy * cr, w: SW * cr, h: (SH + 5) * cr, track: SW };
-        global.ingameThemeNeon = { x: nx * cr, y: ny * cr, w: OV_SWATCH * cr, h: OV_SWATCH * cr };
-    }
-
-    function drawKeybindsTab(panelX, PANEL_Y, PANEL_WIDTH, clickableRatio) {
-        if (global.themeOverlay) global.themeOverlay.style.display = "none";
-        global.ingameThemeSlider = null;
-        global.ingameThemeNeon = null;
-        const scrollY = global.optionsMenu_Anim.scrollOffsets && global.optionsMenu_Anim.scrollOffsets[2]
-            ? global.optionsMenu_Anim.scrollOffsets[2].get() : 0;
-        const L = panelX + 22, W = PANEL_WIDTH - 44;
-        const T = PANEL_Y - scrollY;
-        const cr = clickableRatio * global.ratio;
-        const colW = W / 2;
-        const entries = getKeybindEntries();
-        const rows = Math.max(1, Math.ceil(entries.length / 2));
-
-        drawText("Keybinds", panelX + PANEL_WIDTH / 2, PANEL_Y + 30, 16, color.guiwhite, "center");
-
-        const rects = [];
-        entries.forEach((e, i) => {
-            const col = i % 2, row = (i / 2) | 0;
-            const x = L + col * colW;
-            const y = T + KB_ROW_TOP + row * KB_ROW_PITCH;
-            const td = e.el.closest("td");
-            ctx[2].lineWidth = 3;
-            ctx[2].fillStyle = color.guiwhite;
-            drawGuiRect(x, y, OV_BADGE, OV_BADGE);
-            if (td && td.classList.contains("editing")) {
-                ctx[2].fillStyle = color.green;
-                drawGuiRect(x, y, OV_BADGE, OV_BADGE);
-            }
-            ctx[2].strokeStyle = color.black;
-            drawGuiRect(x, y, OV_BADGE, OV_BADGE, true);
-            drawText(e.el.textContent || "-", x + OV_BADGE / 2, y + OV_BADGE / 2, 12, color.black, "center", true, 1, false);
-            ctx[2].save();
-            ctx[2].beginPath();
-            ctx[2].rect(x + OV_BADGE + 10, y, colW - OV_BADGE - 18, OV_BADGE);
-            ctx[2].clip();
-            drawText(e.label, x + OV_BADGE + 13, y + OV_BADGE / 2, 13.5, color.guiwhite, "left", true);
-            ctx[2].restore();
-            rects.push({ el: e.el, x: x * cr, y: y * cr, w: colW * cr, h: OV_BADGE * cr });
-        });
-        global.ingameKeybindRects = rects;
-    }
-
-    global.refreshBrainrotOption = () => {
-        const select = document.getElementById("optNames");
-        if (!select) return;
-        const enabled = localStorage.getItem("optBrainrotFilterChecked") === "true";
-        const option = select.querySelector('option[value="brainrot"]');
-        if (enabled && !option) {
-            const created = document.createElement("option");
-            created.value = "brainrot";
-            created.textContent = 'Filter "Brainrot" Words';
-            select.appendChild(created);
-        } else if (!enabled && option) {
-            if (select.value === "brainrot") select.value = "none";
-            option.remove();
-        }
-    };
-    global.refreshBrainrotOption();
-    global.applyCrosshairCursor = () => {
-        const enabled = localStorage.getItem("optCrosshairCursorChecked") === "true";
-        document.body.classList.toggle("crosshair-cursor", enabled);
-    };
-    global.applyCrosshairCursor();
-
-    function drawSecretTab(panelX, PANEL_Y, PANEL_WIDTH, clickableRatio, fullUnlocked) {
-        if (global.themeOverlay) global.themeOverlay.style.display = "none";
-        global.ingameThemeSlider = null;
-        global.ingameThemeNeon = null;
-        global.ingameKeybindRects = null;
-        const BOX_SIZE = 25;
-        const LINE_HEIGHT = 40;
-        global.clickables.optionsMenu.toggleBoxes.hide();
-        global.clickables.optionsMenu.HoverBoxes.hide();
-        const secretTooltips = [];
-        const fullExtra = fullUnlocked ? 40 : 0;
-        for (const [section, layout] of Object.entries(SECRET_SECTION_LAYOUT)) {
-            drawText(layout.title, panelX + PANEL_WIDTH / 2, PANEL_Y + layout.titleY + (section === "secret" ? 0 : fullExtra), 16, color.guiwhite, "center");
-        }
-        for (let i = 0; i < global.optionsCheckboxes.length; i++) {
-            const cb = global.optionsCheckboxes[i];
-            if (!isSecretSection(cb.section)) continue;
-            if (cb.fullSecret && !fullUnlocked) {
-                if (cb.tooltipService) cb.tooltipService.targetAlpha = 0;
-                continue;
-            }
-            const layout = SECRET_SECTION_LAYOUT[cb.section];
-            const x = cb.column === 0 ? panelX + 20 : panelX + PANEL_WIDTH / 2 + 7.5;
-            const y = PANEL_Y + layout.rowTop + (cb.section === "secret" ? 0 : fullExtra) + cb.row * LINE_HEIGHT;
-            const hitSize = BOX_SIZE * clickableRatio;
-            if (!cb.tooltipService) cb.tooltipService = {
-                text: cb.tooltip,
-                targetAlpha: 0,
-                alpha: Smoothbar(0, 2, 3, 0.06, 0.025, true),
-                x: 0,
-                y: 0
-            };
-            cb.tooltipService.x = x * clickableRatio;
-            cb.tooltipService.y = (y + BOX_SIZE + 10) * clickableRatio;
-            global.clickables.optionsMenu.HoverBoxes.place(i, x * clickableRatio, y * clickableRatio, hitSize + measureText(cb.label, BOX_SIZE) * 0.65, hitSize);
-            cb.tooltipService.targetAlpha = global.clickables.optionsMenu.HoverBoxes.check({ x: global.mouse.x, y: global.mouse.y }) === i ? 1 : 0;
-            if (!cb.placeholder && cb.lastValue !== cb.value) {
-                cb.lastValue = cb.value;
-                localStorage.setItem(cb.id + "Checked", cb.value ? "true" : "false");
-                if (cb.id === "optBrainrotFilter") global.refreshBrainrotOption();
-                if (cb.id === "optCrosshairCursor") global.applyCrosshairCursor();
-                if (cb.id === "optRainbowTeamColors") config.game.rainbowTeamColors = !!cb.value;
-                if (cb.id === "optShowLocalhost") {
-                    if (cb.value) global.servers.unshift({
-                        id: "x",
-                        ip: "localhost:5000",
-                        players: 0,
-                        maxPlayers: 80,
-                        featured: false,
-                        hidden: false,
-                        private: false,
-                        region: "Local",
-                        location: "Localhost",
-                        gameMode: "Private"
-                    });
-                    else global.servers = global.servers.filter(s => s.id !== "localhost");
-                    global.loadServerSelector(global.servers);
-                }
-            }
-            const isOn = !cb.placeholder && !!cb.value;
-            if (!cb.placeholder) {
-                global.clickables.optionsMenu.toggleBoxes.place(i, x * clickableRatio, y * clickableRatio, hitSize, hitSize);
-            }
-            ctx[2].lineWidth = 3;
-            gameDraw.setColor(ctx[2], isOn ? color.green : color.guiwhite);
-            drawGuiRect(x, y, BOX_SIZE, BOX_SIZE);
-            gameDraw.setColor(ctx[2], color.black);
-            drawGuiRect(x, y, BOX_SIZE, BOX_SIZE, true);
-            if (isOn) {
-                ctx[2].strokeStyle = "#FFFFFF";
-                ctx[2].lineWidth = 3;
-                ctx[2].beginPath();
-                ctx[2].moveTo(x + 5.5, y + BOX_SIZE / 1.8);
-                ctx[2].lineTo(x + BOX_SIZE / 2 - 3, y + BOX_SIZE - 7);
-                ctx[2].lineTo(x + BOX_SIZE - 6, y + 8);
-                ctx[2].stroke();
-            }
-            drawText(cb.label, x + BOX_SIZE + 10.5, y + BOX_SIZE / 2 + 6, 13.5, color.guiwhite, "left", false, 1, 5.5);
-            secretTooltips.push(cb);
-        }
-        for (const cb of secretTooltips) drawToolip(cb);
-    }
 
     function drawOptionsMenu() {
         // Initialize tab offset for sliding animation and menu height animation
         if (!global.optionsMenu_Anim.tabOffset) {
             global.optionsMenu_Anim.tabOffset = Smoothbar(global.optionsMenu_Anim.activeTab || 0, 2, 3, 0.08, 0.025, true);
-            global.optionsMenu_Anim.scrollOffsets = [
-                Smoothbar(0, 2, 3, 0.05, 0.13, true),
-                Smoothbar(0, 2, 3, 0.05, 0.13, true),
-                Smoothbar(0, 2, 3, 0.05, 0.13, true),
-                Smoothbar(0, 2, 3, 0.05, 0.13, true),
-            ];
-            global.optionsMenu_Anim.scrollTargets = [0, 0, 0, 0]
         }
 
         const RENDERX = global.optionsMenu_Anim.switchMenu_button.get();
         const BTN_SIZE = 30;
         const BTN_WIDTH_COLLAPSED = BTN_SIZE / 1.57; // Half width when not hovering
         const BTN_WIDTH_EXPANDED = 119; // Increased from 100 to make it wider
-        const BTN_X = config.graphical.oldUIStyle ? -4 : 1;
-        const BTN_Y = config.graphical.oldUIStyle ? 19 : 25;
+        const BTN_X = 1;
+        const BTN_Y = 25;
         const clickableRatio = global.canvas ? global.canvas.height / global.screenHeight / global.ratio : 1;
         const animValue = global.optionsMenu_Anim.optionsButtonProgress.get();
         // Check hover state
@@ -5380,7 +4271,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             x: global.mouse.x,
             y: global.mouse.y
         };
-
+        
         // Update clickable area
         const currentWidth = BTN_WIDTH_COLLAPSED + (BTN_WIDTH_EXPANDED - BTN_WIDTH_COLLAPSED) * animValue;
         if (global.clickables && global.clickables.optionsMenu.switchButton) {
@@ -5388,20 +4279,20 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 global.clickables.optionsMenu.switchButton.hide();
             } else global.clickables.optionsMenu.switchButton.place(0, BTN_X * clickableRatio - 4, BTN_Y * clickableRatio, currentWidth * clickableRatio + 4, BTN_SIZE * clickableRatio);
         }
-
+        
         let hover = global.clickables && global.clickables.optionsMenu.switchButton ? global.clickables.optionsMenu.switchButton.check(mpos) === 0 : false;
-
+        
         // Change value to activate animation
         if (hover) {
             global.optionsMenu_Anim.optionsButtonProgress.set(1);
         } else {
             global.optionsMenu_Anim.optionsButtonProgress.set(0);
         }
-
+        
         const animatedWidth = BTN_WIDTH_COLLAPSED + (BTN_WIDTH_EXPANDED - BTN_WIDTH_COLLAPSED) * animValue;
         ctx[2].translate(RENDERX, 0);
         ctx[2].save();
-
+        
         // Draw button background
         ctx[2].lineWidth = 3;
         gameDraw.setColor(ctx[2], color.green);
@@ -5416,14 +4307,14 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         if (animValue > 0.1) {
             const textX = BTN_X + BTN_WIDTH_COLLAPSED / 2 + animatedWidth - 105;
             const textY = BTN_Y + BTN_SIZE / 2;
-            drawText("Options", textX, textY * 1.13, 12, color.guiwhite, "left");
+            drawText("Options", textX, textY * 1.13, 13, color.guiwhite, "left");
         }
         ctx[2].lineWidth = 3;
         gameDraw.setColor(ctx[2], color.black);
         drawGuiRect(BTN_X, BTN_Y, animatedWidth, BTN_SIZE, true); // Draw stroke(Outline) between the box
-
+        
         // Draw THICK border
-
+        
         // Draw separator line between options area and arrow area (when expanded)
         if (animValue > 0.001) {
             const separatorX = BTN_X + animatedWidth - BTN_WIDTH_COLLAPSED - 2;
@@ -5434,112 +4325,51 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             ctx[2].lineTo(separatorX, BTN_Y + BTN_SIZE - 2);
             ctx[2].stroke();
         }
-
+        
         // Draw arrow - slides to the right as button expands - KEEP YOUR ORIGINAL ARROW
-        const arrowW = BTN_WIDTH_COLLAPSED * 0.3; // Arrow width (horizontal)
-        const arrowH = BTN_SIZE * 0.3; // Arrow height (vertical)
-
+        const arrowW = BTN_WIDTH_COLLAPSED * 0.3;  // Arrow width (horizontal)
+        const arrowH = BTN_SIZE * 0.3;    // Arrow height (vertical)
+        
         // Arrow position moves from center of collapsed button to right edge of expanded button
         const arrowBaseX = BTN_X + BTN_WIDTH_COLLAPSED / 2;
         const arrowCenterX = arrowBaseX + animatedWidth - 19;
         const arrowCenterY = BTN_Y + BTN_SIZE / 2;
+        
 
-
-        const leftX = arrowCenterX - arrowW / 3;
-        const tipX = arrowCenterX + arrowW / 2;
+        const leftX = arrowCenterX - arrowW / 3; 
+        const tipX = arrowCenterX + arrowW / 2; 
         const topY = arrowCenterY - arrowH / 2;
         const botY = arrowCenterY + arrowH / 2;
 
-        ctx[2].fillStyle = "#FFFFFF";
+        ctx[2].fillStyle = "#ffffff";
         ctx[2].lineJoin = "round";
         ctx[2].lineCap = "round";
         ctx[2].lineWidth = 3;
-
+        
         ctx[2].beginPath();
         ctx[2].moveTo(leftX, topY);
         ctx[2].lineTo(tipX, arrowCenterY);
         ctx[2].lineTo(leftX, botY);
         ctx[2].closePath();
         ctx[2].fill();
-        ctx[2].strokeStyle = "#FFFFFF";
+        ctx[2].strokeStyle = "#ffffff";
         ctx[2].stroke();
-
+        
         ctx[2].restore();
         ctx[2].translate(-RENDERX, -0);
 
         const mainMenuAnim = global.optionsMenu_Anim.mainMenu.get();
-        if (mainMenuAnim < -470) { // fully hidden
-            if (global.themeOverlay && global.themeOverlay.style.display !== "none") global.themeOverlay.style.display = "none";
-            return;
-        }
-        const extraLeftX = config.graphical.oldUIStyle ? 5 : 0;
-        const extraTopY = config.graphical.oldUIStyle ? 6 : 0;
+        if (mainMenuAnim < -470) return; // fully hidden
         const PANEL_WIDTH = 460;
-        const PANEL_Y = 75 - extraTopY;
-        const MAX_PANEL_HEIGHT = global.screenHeight - PANEL_Y - 25; // 25px bottom margin
+        const PANEL_Y = 75;
+        const MAX_PANEL_HEIGHT = global.screenHeight - PANEL_Y - 25; // 10px bottom margin
         const PANEL_HEIGHT = Math.min(global.optionsMenu_Anim.mainMenuHeight.get(), MAX_PANEL_HEIGHT);
 
         // slide from off-screen left → visible
         const PANEL_VISIBLE_X = mainMenuAnim;
-        const PANEL_HIDDEN_X = PANEL_VISIBLE_X - PANEL_WIDTH - 20;
-        const panelX = PANEL_HIDDEN_X + (PANEL_VISIBLE_X - PANEL_HIDDEN_X) - extraLeftX;
-        const fullBox = (global.optionsCheckboxes || []).find(cb => cb.id === "optFullSecretOptions");
-        const fullUnlocked = fullBox ? !!fullBox.value : localStorage.getItem("optFullSecretOptionsChecked") === "true";
-        const secretPanelH = SECRET_PANEL_H + (fullUnlocked ? 40 : 0);
-        const TAB_CONTENT_HEIGHTS = [
-            (PANEL_Y + 685 + 1 * 40 + 45) - PANEL_Y,  // perf section: last row baseY + 1 row + padding
-            THEME_PANEL_H,
-            keybindsPanelHeight(),
-            secretPanelH
-        ];
-        const TAB_CONTENT_MAX_SCROLL = [
-            0,
-            THEME_PANEL_H,
-            keybindsPanelHeight(),
-            secretPanelH
-        ];
-        global.optionsMenu_Anim.tabs[1][1] = THEME_PANEL_H;
-        global.optionsMenu_Anim.tabs[2][1] = TAB_CONTENT_HEIGHTS[2];
-        global.optionsMenu_Anim.tabs[3][1] = secretPanelH;
-        const secretBox = (global.optionsCheckboxes || []).find(cb => cb.id === "optSecretOptions");
-        const secretUnlocked = secretBox ? !!secretBox.value : localStorage.getItem("optSecretOptionsChecked") === "true";
-        global.clickables.optionsMenu.mainMenuIdle.set(panelX * clickableRatio, PANEL_Y * clickableRatio, PANEL_WIDTH * clickableRatio, PANEL_HEIGHT * clickableRatio);
-        if (!secretUnlocked && (global.optionsMenu_Anim.activeTab || 0) === 3) {
-            global.optionsMenu_Anim.activeTab = 0;
-            global.optionsMenu_Anim.tabOffset.set(0);
-            global.optionsMenu_Anim.mainMenuHeight.set(global.optionsMenu_Anim.tabs[0][1]);
-        }
-        const activeTab = global.optionsMenu_Anim.activeTab || 0;
-        const scrollOffsetAnim = global.optionsMenu_Anim.scrollOffsets[activeTab];
-        const contentH = TAB_CONTENT_HEIGHTS[activeTab];
-        const contentM = TAB_CONTENT_MAX_SCROLL[activeTab];
-        const maxScroll = Math.max(0, contentH - PANEL_HEIGHT);
+        const PANEL_HIDDEN_X = PANEL_VISIBLE_X - PANEL_WIDTH - 30;
+        const panelX = PANEL_HIDDEN_X + (PANEL_VISIBLE_X - PANEL_HIDDEN_X);
 
-        if (global.optionsMenu_Anim.scrollTargets[activeTab] < 0)
-            global.optionsMenu_Anim.scrollTargets[activeTab] = 0;
-        if (global.optionsMenu_Anim.scrollTargets[activeTab] > maxScroll)
-            global.optionsMenu_Anim.scrollTargets[activeTab] = maxScroll;
-
-        scrollOffsetAnim.set(global.optionsMenu_Anim.scrollTargets[activeTab]);
-        const scrollY = scrollOffsetAnim.get();
-
-        // Store live panel bounds for the wheel handler to read each frame
-        global.optionsMenu_Anim._panelX = panelX;        // already defined above
-        global.optionsMenu_Anim._panelY = PANEL_Y;
-        global.optionsMenu_Anim._panelW = PANEL_WIDTH;
-        global.optionsMenu_Anim._panelH = PANEL_HEIGHT;
-        if (global.optionsMenu_Anim.isOpened && global.optionsMenu_Anim._wheelHandler === undefined) {
-            global.optionsMenu_Anim._wheelHandler = (e) => {
-                if (!global.clickables.optionsMenu.mainMenuIdle.check({x: global.mouse.x, y: global.mouse.y})) return;
-                const tab = global.optionsMenu_Anim.activeTab || 0;
-                global.optionsMenu_Anim.scrollTargets[tab] =
-                    (global.optionsMenu_Anim.scrollTargets[tab] || 0) + e.deltaY * 0.8;
-            };
-            window.addEventListener("wheel", global.optionsMenu_Anim._wheelHandler, { passive: true });
-        } else if (!global.optionsMenu_Anim.isOpened && global.optionsMenu_Anim._wheelHandler) {
-            window.removeEventListener("wheel", global.optionsMenu_Anim._wheelHandler);
-            global.optionsMenu_Anim._wheelHandler = undefined;
-        }
         ctx[2].save();
         ctx[2].globalAlpha = 1;
 
@@ -5551,15 +4381,14 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         drawGuiRect(panelX, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, true);
 
         // Top tabs with interactive functionality
-        const TAB_NAMES = secretUnlocked ? global.optionsMenu_Anim.tabs : global.optionsMenu_Anim.tabs.slice(0, 3);
-        const TAB_WIDTH = PANEL_WIDTH / (TAB_NAMES.length === 4 ? 5.03 : 3.73);
+        const TAB_WIDTH = PANEL_WIDTH / 3.73; // 5.035
         const TAB_HEIGHT = 50;
         const TAB_Y = PANEL_Y - TAB_HEIGHT;
+        const TAB_NAMES = global.optionsMenu_Anim.tabs;
 
         drawText("ingame options is not finished, expect missing features and bugs lol", panelX + PANEL_WIDTH / 2, PANEL_Y - 57, 13.5, color.guiwhite, "center");
 
         // Initialize tab clickables
-        global.optionsMenu_Anim.tabClickables.hide();
 
         // Draw tabs backgrounds and place clickables
         for (let tabIndex = 0; tabIndex < TAB_NAMES.length; tabIndex++) {
@@ -5573,7 +4402,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
             global.optionsMenu_Anim.tabClickables.place(tabIndex, tabClickableX, tabClickableY, tabClickableW, tabClickableH);
 
             const tabHover = global.optionsMenu_Anim.tabClickables.check(mpos) === tabIndex;
-
+            
             // Draw tab background
             ctx[2].lineWidth = 3;
             gameDraw.setColor(ctx[2], gameDraw.mixColors(color.grey, color.black, 0.3));
@@ -5590,7 +4419,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         for (let tabIndex = 0; tabIndex < TAB_NAMES.length; tabIndex++) {
             const x = panelX + tabIndex * TAB_WIDTH * 1.162;
             const tabX = x + 50;
-
+            
             // Draw tab border
             ctx[2].lineWidth = 3;
             gameDraw.setColor(ctx[2], color.black);
@@ -5617,10 +4446,9 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         // Draw tabs labels
         for (let tabIndex = 0; tabIndex < TAB_NAMES.length; tabIndex++) {
             const x = panelX + tabIndex * TAB_WIDTH * 1.162;
-            const tabX = x + 50;
-
-            // Tab label, centered on the tab
-            const cx = tabX + TAB_WIDTH / 2;
+            
+            // Tab label
+            const cx = x + TAB_WIDTH - 11;
             const cy = TAB_Y + TAB_HEIGHT - 18;
             drawText(TAB_NAMES[tabIndex][0], cx, cy, 16, color.guiwhite, "center");
         }
@@ -5629,122 +4457,61 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         const fadeOptions = Math.max(0, 1 - Math.abs(0 - currentTab));
         const fadeTheme = Math.max(0, 1 - Math.abs(1 - currentTab));
         const fadeKeybinds = Math.max(0, 1 - Math.abs(2 - currentTab));
-        const fadeSecret = Math.max(0, 1 - Math.abs(3 - currentTab));
 
         ctx[2].save();
         ctx[2].globalAlpha *= fadeOptions;
         ctx[2].beginPath();
-        ctx[2].rect(panelX, PANEL_Y + 15, PANEL_WIDTH, PANEL_HEIGHT - 30);
+        ctx[2].rect(panelX, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT - 15);
         ctx[2].clip();
-        ctx[2].translate(0, -scrollY);
         if (fadeOptions > 0.01) {
 
             // OPTIONS TAB
 
             drawText("Game Appearance", panelX + PANEL_WIDTH / 2, PANEL_Y + 30, 15.5, color.guiwhite, "center");
-            drawText("UI Elements",     panelX + PANEL_WIDTH / 2, PANEL_Y + 385, 15.5, color.guiwhite, "center");
-            drawText("Extra",           panelX + PANEL_WIDTH / 2, PANEL_Y + 575, 15.5, color.guiwhite, "center");
-            drawText("Performance",     panelX + PANEL_WIDTH / 2, PANEL_Y + 745, 15.5, color.guiwhite, "center");
+            drawText("UI Elements",     panelX + PANEL_WIDTH / 2, PANEL_Y + 310, 15.5, color.guiwhite, "center");
+            drawText("Extra",           panelX + PANEL_WIDTH / 2, PANEL_Y + 470, 15.5, color.guiwhite, "center");
+            drawText("Performance",     panelX + PANEL_WIDTH / 2, PANEL_Y + 670, 15.5, color.guiwhite, "center");
 
             if (!global.optionsCheckboxes) {
                 global.optionsCheckboxes = [
                     // Game Appearance
-                    { type: "checkbox",   id: "optRenderNames",         label: "Player Names",          column: 0, row: 0, section: "appearance", tooltip: "Show player names." },
-                    { type: "checkbox",   id: "optRenderScores",        label: "Player Scores",         column: 0, row: 1, section: "appearance", tooltip: "Show player scores." },
-                    { type: "checkbox",   id: "optNoGrid",              label: "Background Grid",       column: 0, row: 2, section: "appearance", tooltip: "Show the background grid.", reverseCheck: true },
-                    { type: "checkbox",   id: "optPointy",              label: "Sharp Traps",           column: 0, row: 3, section: "appearance", tooltip: "Sharpen the corners of traps." },
-                    { type: "checkbox",   id: "optSharpEdges",          label: "Sharp Polygons",        column: 0, row: 4, section: "appearance", tooltip: "Sharpen the corners of all polygons.\n" + "May slightly lower the frame rate." },
-                    { type: "checkbox",   id: "coloredHealthbars",      label: "Colored Health Bars",   column: 0, row: 5, section: "appearance", tooltip: "Make the health and shield bar(s) of entities match their body color." },
-                    { type: "checkbox",   id: "optSecretOptions",       label: "Secret Options",        column: 0, row: 6, section: "appearance", tooltip: "Unlock the secret options tab.\n" + "Note: Some of these options are hidden for a reason. They can cause glitches, and may get removed at any time." },
-                    { type: "slidingBar", id: "strokeThickness",        label: "Border Thickness",      column: 0, row: 7, section: "appearance", tooltip: "Choose the thickness of the border of entities.",
-                      maxValue: 6, maxLowestValue: 0.7, listTarget: "graphical", target: "borderChunk",
-                      trigger: (mouse, data) => {
-                        let pointer = optionsMenu_getPointer();
-                        if (data.bounds) {
-                            let listFolder = config[data.listTarget];
-                            const knobWidth = 12.2;
-                            const halfKnob = knobWidth / 2;
-                            const adjustedX = data.bounds.x + halfKnob;
-                            const adjustedWidth = data.bounds.width - knobWidth;
-                            const ratio = Math.max(0, Math.min(1, (pointer.x - adjustedX) / adjustedWidth));
-                            const range = data.maxValue - data.maxLowestValue;
-                            let value = (ratio * range) + data.maxLowestValue;
-                            listFolder[data.target] = value;
-                        }
-                      }
-                    },
+                    { id: "optRenderNames",         label: "Player Names",          column: 0, row: 0, section: "appearance", tooltip: "Show player names." },
+                    { id: "optRenderScores",        label: "Player Scores",         column: 0, row: 1, section: "appearance", tooltip: "Show player scores." },
+                    { id: "optNoGrid",              label: "Background Grid",       column: 0, row: 2, section: "appearance", tooltip: "Show the background grid.", reverseCheck: true },
+                    { id: "optPointy",              label: "Sharp Traps",           column: 0, row: 3, section: "appearance", tooltip: "Sharpen the corners of traps." },
+                    { id: "optSharpEdges",          label: "Sharp Polygons",        column: 0, row: 4, section: "appearance", tooltip: "Sharpen the corners of all polygons.\n" + "May slightly lower the frame rate." },
+                    { id: "optSecretOptions",       label: "Secret Options",        column: 0, row: 5, section: "appearance", tooltip: "Unlock the secret options tab.\n" + "Note: Some of these options are hidden for a reason. They can cause glitches, and may get removed at any time." },
 
-                    { type: "checkbox", id: "optChatMessages",        label: "Chat Messages",         column: 1, row: 0, section: "appearance", tooltip: "Show chat messages." },
-                    { type: "checkbox", id: "optRenderHealth",        label: "Health Bars",           column: 1, row: 1, section: "appearance", tooltip: "Show health bars." },
-                    { type: "checkbox", id: "separatedHealthbars",    label: "Separate Shield Bar",   column: 1, row: 2, section: "appearance", tooltip: "Separate the shield bar from the health bar." },
-                    { type: "checkbox", id: "optCurvyTraps",          label: "Curvy Traps",           column: 1, row: 3, section: "appearance", tooltip: "Add curvature to the sides of traps.\n" + "May slightly lower the frame rate." },
-                    { type: "checkbox", id: "optTankSkins",           label: "Tank Skins",            column: 1, row: 4, section: "appearance", tooltip: "Show tank skins.\n" + "Note: Skins will be in grayscale if the low WebGL driver is selected." },
-                    { type: "checkbox", id: "optHexaGrid",            label: "Hexagon Grid",          column: 1, row: 5, section: "appearance", tooltip: "Make the background grid hexagonal.\n" + "May slightly lower the frame rate." },
-                    { type: "checkbox", id: "optFullSecretOptions",   label: "Full Secret Options",   column: 1, row: 6, section: "appearance", tooltip: "Unlock more of the secret options tab.\n" + "Note: This is not supposed to be public..." },
+                    { id: "optChatMessages",        label: "Chat Messages",         column: 1, row: 0, section: "appearance", tooltip: "Show chat messages." },
+                    { id: "optRenderHealth",        label: "Health Bars",           column: 1, row: 1, section: "appearance", tooltip: "Show health bars." },
+                    { id: "separatedHealthbars",    label: "Separate Shield Bar",   column: 1, row: 2, section: "appearance", tooltip: "Separate the shield bar from the health bar." },
+                    { id: "optCurvyTraps",          label: "Curvy Traps",           column: 1, row: 3, section: "appearance", tooltip: "Add curvature to the sides of traps.\n" + "May slightly lower the frame rate." },
+                    { id: "optTankSkins",           label: "Tank Skins",            column: 1, row: 4, section: "appearance", tooltip: "Show tank skins.\n" + "May slightly lower the frame rate." },
+                    { id: "coloredHealthbars",      label: "Colored Health Bars",   column: 1, row: 5, section: "appearance", tooltip: "Make the health and shield bar(s) of entities match their body color." },
 
                     // UI Elements
-                    { type: "checkbox", id: "optRenderUpgrades",      label: "Upgrades",              column: 0, row: 0, section: "ui", tooltip: "Toggle the visibility of the class and skill upgrade menus." },
-                    { type: "checkbox", id: "optRenderPlayerBars",    label: "Player Bars",           column: 0, row: 1, section: "ui", tooltip: "Toggle the visibility of the score and level bars." },
-                    { type: "checkbox", id: "optRenderKillbar",       label: "Kill Bar",              column: 0, row: 2, section: "ui", tooltip: "Toggle the visibility of the kill bar, which shows the number of kills, assists, and boss kills." },
-                    { type: "checkbox", id: "optOldUiStyle",          label: "Classic UI",            column: 0, row: 3, section: "ui", tooltip: "Changes the UI to the classic layout." },
+                    { id: "optRenderUpgrades",      label: "Upgrades",              column: 0, row: 0, section: "ui", tooltip: "Toggle the visibility of the class and skill upgrade menus." },
+                    { id: "optRenderPlayerBars",    label: "Player Bars",           column: 0, row: 1, section: "ui", tooltip: "Toggle the visibility of the score and level bars." },
+                    { id: "optRenderKillbar",       label: "Kill Bar",              column: 0, row: 2, section: "ui", tooltip: "Toggle the visibility of the kill bar, which shows the number of kills, assists and boss kills." },
 
-                    { type: "checkbox", id: "optRenderLeaderboard",   label: "Leaderboard",           column: 1, row: 0, section: "ui", tooltip: "Toggle the visibility of the leaderboard." },
-                    { type: "checkbox", id: "optRenderMinimap",       label: "Minimap",               column: 1, row: 1, section: "ui", tooltip: "Toggle the visibility of the minimap." },
-                    { type: "checkbox", id: "optReducedInfo",         label: "Extra Info",            column: 1, row: 2, section: "ui", tooltip: "Show various extra information in the bottom right corner.", reverseCheck: true },
+                    { id: "optRenderLeaderboard",   label: "Leaderboard",           column: 1, row: 0, section: "ui", tooltip: "Toggle the visibility of the leaderboard." },
+                    { id: "optRenderMinimap",       label: "Minimap",               column: 1, row: 1, section: "ui", tooltip: "Toggle the visibility of the minimap." },
+                    { id: "optReducedInfo",         label: "Extra Info",            column: 1, row: 2, section: "ui", tooltip: "Show various extra information in the bottom right corner.", reverseCheck: true },
 
                     // Extra
-                    { type: "option",    id: "optUiScale",             label: "",                      column: 0, row: 0, section: "extra", tooltip: "Configure the size of the user interface.",
-                      optionData: optionsMenu_getUserInterfaceOptions(),
-                      width: 202.5,
-                      location: "auto",
-                      trigger: (data, theChosenOne) => {
-                        let doc = document.getElementById(data.id);
-                        doc.value = theChosenOne.value;
-                        util.submitToLocalStorage(data.id);
-                        data.optionService.opened = false;
-                        data.optionService.selected = data.label;
-                        loadSettings();
-                      }
-                    },
-                    { type: "checkbox",  id: "smoothCamera",           label: "Smooth Camera",         column: 0, row: 1, section: "extra", tooltip: "Make the camera follow your tank instead of being fixed at it." },
-                    { type: "checkbox",  id: "autoLevelUp",            label: "Auto-Level Up",         column: 0, row: 2, section: "extra", tooltip: "Automatically level you up to level 45 upon joining the game." },
+                    { id: "smoothCamera",           label: "Smooth Camera",         column: 0, row: 0, section: "extra", tooltip: "Make the camera follow your tank instead of being fixed at it." },
+                    { id: "autoLevelUp",            label: "Auto-Level Up",         column: 0, row: 1, section: "extra", tooltip: "Automatically level you up to level 45 upon joining the game." },
 
-                    { type: "checkbox",  id: "optFancy",               label: "Fading Animation",      column: 1, row: 1, section: "extra", tooltip: "Make dying entities fade out instead of shrinking until disappearing.\nMay slightly lower the frame rate." },
-                    { type: "checkbox",  id: "optIncognitoMode",       label: "Incognito Mode",        column: 1, row: 2, section: "extra", tooltip: "Hide you from the leaderboard and make your score appear low to other players." },
+                    { id: "optFancy",               label: "Fading Animation",      column: 1, row: 0, section: "extra", tooltip: "Make dying entities fade out instead of shrinking until disappearing.\n" + "May slightly lower the frame rate." },
+                    { id: "optIncognitoMode",       label: "Incognito Mode",        column: 1, row: 1, section: "extra", tooltip: "Hide you from the leaderboard and make your score appear low to other players." },
 
                     // Performance
-                    { type: "checkbox",  id: "optDeltaEntities",       label: "Delta Entities",        column: 0, row: 0, section: "perf", tooltip: "Support delta entity updates from the server.\nTakes effect on next connection." },
-                    { type: "checkbox",  id: "optLowResolution",       label: "Low Resolution",        column: 1, row: 0, section: "perf", tooltip: "Lower the game's resolution.\nMay help to improve the frame rate." },
-
-                    // Secrets
-                    { type: "checkbox", id: "optCrosshairCursor",     label: "Crosshair Cursor",        column: 0, row: 0, section: "secret", tooltip: "Use a crosshair for the cursor." },
-                    { type: "checkbox", id: "optRainbowTeamColors",   label: "Rainbow Team Colors",     column: 1, row: 0, section: "secret", tooltip: "Replace the colors of the teams with colors of the rainbow." },
-                    { type: "checkbox", id: "optUncappedFrameRate",   label: "Uncapped Frame Rate",     column: 0, row: 1, section: "secret", tooltip: "Attempt to render as many frames as possible, regardless of your monitor FPS.\nNote that this option is unlikely to actually improve game performance, and may cause crashes or significant lag on weaker devices." },
-                    { type: "checkbox", id: "optCopyScreenshots",     label: "Copy Screenshots",        column: 1, row: 1, section: "secret", tooltip: "Copy screenshots to the clipboard instead of downloading them." },
-                    { type: "checkbox", id: "optForce169AspectRatio", label: "Force 16:9 Aspect Ratio", column: 0, row: 2, section: "secret", placeholder: true, tooltip: "[WIP] Always use a 16:9 aspect ratio to render the game." },
-                    { type: "checkbox", id: "optSelfCenteredMinimap", label: "Self Centered Minimap",   column: 1, row: 2, section: "secret", placeholder: true, tooltip: "[WIP] Make yourself always centered on the minimap." },
-                    { type: "checkbox", id: "optBrainrotFilter",      label: '"Brainrot" Filter',       column: 0, row: 3, section: "secret", tooltip: "Add the option to filter \"brainrot\" words." },
-                    { type: "checkbox", id: "optShowLocalhost",       label: "Show Localhost",          column: 0, row: 4, section: "secret", fullSecret: true, tooltip: "Display wss://localhost:5000 as one of the servers." },
-                    { type: "checkbox", id: "optDmcaMode",            label: "DMCA Mode",               column: 1, row: 3, section: "secret", fullSecret: true, placeholder: true, tooltip: "[WIP] Censor the names and designs of all tanks which also appear in diep.io to comply with 3AM Experiences LLC's DMCA notices." },
-                    { type: "checkbox", id: "optDebugBoxes",          label: "Debug Boxes",             column: 1, row: 4, section: "secret", fullSecret: true, placeholder: true, tooltip: "[WIP] Show debug boxes.\nNote: This option only works when debug assertions are enabled." },
-
-                    // Beta
-                    { type: "checkbox", id: "optSaveSkillUpgrades",   label: "Save Skill Upgrades",     column: 0, row: 0, section: "beta", placeholder: true, tooltip: "[WIP] Add the ability save and load up to 10 sets of skill upgrades" }, // [sic], misspelling exists in arras.io too
-                    { type: "checkbox", id: "optPlayerListPreview",   label: "Player List (Preview)",   column: 1, row: 0, section: "beta", placeholder: true, tooltip: "[WIP] Display a list of players you have recently interacted with\nNote: Players reports are not yet fully implemented." }, // [sic], same reason as above
-
-                    // Legacy
-                    {
-                        type: "checkbox", id: "optLegacyThemes",    label: "3D Mode",       column: 0, row: 0, section: "legacy", placeholder: true, tooltip: "[WIP] [NOT IN ARRAS] Make arras.io 3D.\nMay lower the frame rate.\nNote: This is a legacy option and will be removed in a future update." },
-                    {
-                        type: "checkbox", id: "optLegacyThemes",    label: "Legacy Themes", column: 1, row: 0, section: "legacy", placeholder: true, tooltip: "[WIP] Display legacy themes in the options menu.\nNote: This is a legacy option and will be removed in a future update. " },
+                    { id: "optLowResolution",       label: "Low Resolution",        column: 1, row: 0, section: "perf", tooltip: "Lower the game's resolution.\n" + "May help to improve the frame rate." },
                 ];
 
                 for (const cb of global.optionsCheckboxes) {
-                    if (cb.type === "checkbox") {
-                        let doc = document.getElementById(cb.id);
-                        if (doc) cb.value = doc.checked, cb.lastValue = cb.value;
-                        else cb.value = localStorage.getItem(cb.id + "Checked") === "true", cb.lastValue = cb.value;
-                    }
+                    let doc = document.getElementById(cb.id);
+                    if (doc) cb.value = doc.checked, cb.lastValue = cb.value;
                 }
             }
 
@@ -5753,11 +4520,10 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
 
             for (let i = 0; i < global.optionsCheckboxes.length; i++) {
                 const cb = global.optionsCheckboxes[i];
-                if (isSecretSection(cb.section)) continue;
                 let baseY = PANEL_Y + 45;
-                if (cb.section === "ui")    baseY = PANEL_Y + 400;
-                if (cb.section === "extra") baseY = PANEL_Y + 590;
-                if (cb.section === "perf")  baseY = PANEL_Y + 760;
+                if (cb.section === "ui")    baseY = PANEL_Y + 325;
+                if (cb.section === "extra") baseY = PANEL_Y + 525;
+                if (cb.section === "perf")  baseY = PANEL_Y + 685;
 
                 const baseXLeft  = panelX + 20;
                 const baseXRight = panelX + PANEL_WIDTH / 2 + 7.5;
@@ -5766,7 +4532,8 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 const y = baseY + cb.row * LINE_HEIGHT;
                 const hitX = x * clickableRatio;
                 const hitY = y * clickableRatio;
-                let hitYCalc = hitY - scrollY * clickableRatio;
+                const hitSize = BOX_SIZE * clickableRatio;
+
                 if (!cb.tooltipService) {
                     global.optionsCheckboxes[i].tooltipService = {
                         text: cb.tooltip,
@@ -5776,262 +4543,93 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                         y: 0
                     }
                 }
-                if (cb.type === "option") {
-                    cb.tooltipService.x = hitX;
-                    cb.tooltipService.y = hitY + 33 - scrollY * clickableRatio;
-                    cb.tooltipService.targetAlpha = 0;
-                    if (!cb.optionService) cb.optionService = {
-                        opened: false,
-                        smoothbar: Smoothbar(0, 2, 3, 0.07, 0.025, true),
-                        selected: "",
-                        x: x,
-                        y: y,
-                        hitX: hitX,
-                        hitY: hitY,
-                        hitYCalc: hitYCalc
-                    };
-                    if (!cb.optionService.selected) {
-                        if (cb.order) {
-                            let sorted = [];
-                            for (let e of cb.order) {
-                                for (let o of cb.optionData) {
-                                    if (o.value === e) sorted.push(o);
-                                }
-                            }
-                            cb.optionData = sorted;
-                        }
-                        let doc = document.getElementById(cb.id);
-                        let fd = cb.optionData.find(o => o.value === doc.value);
-                        if (fd) {
-                            cb.optionService.selected = fd.label;
-                        }
-                    }
-                    cb.optionService.x = x;
-                    cb.optionService.y = y - scrollY;
-                    cb.optionService.hitX = hitX;
-                    cb.optionService.hitY = hitY;
-                    cb.optionService.hitYCalc = hitYCalc;
-                    ctx[2].fillStyle = color.guiwhite;
-                    drawGuiRect(x, y, cb.width, 25);
-                    ctx[2].strokeStyle = color.black;
-                    ctx[2].lineWidth = 3;
-                    drawGuiRect(x, y, cb.width, 25, true);
-                    drawText(cb.optionService.selected, x + 13, y + 17, 11.5, color.guiwhite, "left", false, 1, 6.5);
-                    ctx[2].fillStyle = color.black;
-                    const arrowW = 5; // Arrow width (horizontal)
-                    const arrowH = 30 * 0.3; // Arrow height (vertical)
-                    const arrowBaseX = x + cb.width + 17;
-                    const arrowCenterX = arrowBaseX - 19;
-                    const arrowCenterY = y + 18.4;
 
-
-                    const leftX = arrowCenterX - arrowW;
-                    const tipX = arrowCenterX + arrowW;
-                    const topY = arrowCenterY - arrowH;
-                    const botY = arrowCenterY - 2.9;
-                    ctx[2].beginPath();
-                    ctx[2].moveTo(leftX - 14, topY);
-                    ctx[2].lineTo(tipX - 12, arrowCenterY - 9);
-                    ctx[2].lineTo(leftX - 8, botY);
-                    ctx[2].closePath();
-                    ctx[2].fill();
-                    global.clickables.optionsMenu.toggleBoxes.place(i, hitX, hitYCalc, cb.width * clickableRatio, 25 * clickableRatio);
-                    global.clickables.optionsMenu.HoverBoxes.place(i, hitX, hitYCalc, cb.width * clickableRatio, 25 * clickableRatio);
-                } else if (cb.type === "slidingBar") {
-                    cb.tooltipService.x = hitX;
-                    cb.tooltipService.y = hitY + 35 - scrollY * clickableRatio;
-                    cb.tooltipService.targetAlpha = 0;
-                    cb.bounds = {x: x, width: 150};
-                    let listFolder = config[cb.listTarget];
-                    const rawStrokeValue = listFolder[cb.target] ?? 0;
-                    const strokeValue = Math.max(cb.maxLowestValue, Math.min(cb.maxValue, rawStrokeValue));
-                    const renderRange = cb.maxValue - cb.maxLowestValue;
-                    const strokeRatio = renderRange > 0 ? (strokeValue - cb.maxLowestValue) / renderRange : 0;
-                    ctx[2].fillStyle = color.guiwhite;
-                    drawGuiRect(x, y + 2.5, 150, 20);
-                    ctx[2].fillStyle = color.green;
-                    ctx[2].globalAlpha = 0.7 * fadeOptions;
-                    drawGuiRect(x, y + 2.5, 150 * strokeRatio, 20);
-                    ctx[2].globalAlpha = fadeOptions;
-                    ctx[2].strokeStyle = color.black;
-                    ctx[2].lineWidth = 3;
-                    drawGuiRect(x, y + 2.5, 150, 20, true);
-
-                    const knob = x + 137.5 * strokeRatio;
-                    ctx[2].fillStyle = color.green;
-                    drawGuiRect(knob, y, 12.5, 17 + 8);
-                    ctx[2].strokeStyle = color.black;
-                    drawGuiRect(knob, y, 12.5, 17 + 8, true);
-
-                    drawText(cb.label, x + 160, y + 18, 13.5, color.guiwhite, "left", false, 1, 5.5);
-
-                    global.clickables.optionsMenu.HoverBoxes.place(i, hitX, hitYCalc + 2.5, 150 + measureText(cb.label, 25 * clickableRatio) * 0.65, 22 * clickableRatio);
-                    global.clickables.optionsMenu.toggleBoxes.place(i, hitX, hitYCalc + 2.5, 150 * clickableRatio, 22 * clickableRatio);
-                } else if (cb.type === "checkbox") {
-                    const hitSize = BOX_SIZE * clickableRatio;
-
-                    cb.tooltipService.x = hitX;
-                    cb.tooltipService.y = hitY + hitSize + 10 - scrollY * clickableRatio;
-                    if (fadeOptions > 0.2 && global.clickables.optionsMenu.optionBoxes.check(mpos) === -1) {
-                        global.clickables.optionsMenu.toggleBoxes.place(i, hitX, hitYCalc, hitSize, hitSize);
-                        global.clickables.optionsMenu.HoverBoxes.place(i, hitX, hitYCalc, hitSize + measureText(cb.label, BOX_SIZE) * 0.65, hitSize);
-                    } else {
-                        global.clickables.optionsMenu.toggleBoxes.hide();
-                        global.clickables.optionsMenu.HoverBoxes.hide();
-                    }
-                    let clickHover = global.clickables.optionsMenu.toggleBoxes.check(mpos);
-                    let hovered = global.clickables.optionsMenu.HoverBoxes.check(mpos);
-
-                    if (hovered !== -1) {
-                        global.optionsCheckboxes[hovered].tooltipService.targetAlpha = 1;
-                    } else global.optionsCheckboxes[i].tooltipService.targetAlpha = 0;
-
-                    if (cb.lastValue !== cb.value) {
-                        cb.lastValue = cb.value;
-                        loadSettings();
-                        if (cb.id === "optLowResolution") resizeEvent();
-                    }
-
-                    const isOn = (cb.reverseCheck && !cb.value) || (!cb.reverseCheck && cb.value);
-                    ctx[2].lineWidth = 3;
-                    gameDraw.setColor(ctx[2], isOn ? color.green : color.guiwhite);
-                    drawGuiRect(x, y, BOX_SIZE, BOX_SIZE);
-                    if (clickHover !== -1 && clickHover === i) {
-                        gameDraw.setColor(ctx[2], !isOn ? global.clickables.clicked ? color.guiblack : color.black : global.clickables.clicked ? color.black : color.guiwhite);
-                        ctx[2].globalAlpha = global.clickables.clicked ? 0.25 : 0.2;
-                        drawGuiRect(x, y, BOX_SIZE, BOX_SIZE);
-                        ctx[2].globalAlpha = 1 * fadeOptions;
-                    }
-                    gameDraw.setColor(ctx[2], color.black);
-                    drawGuiRect(x, y, BOX_SIZE, BOX_SIZE, true);
-
-                    if (isOn) {
-                        ctx[2].strokeStyle = "#FFFFFF";
-                        ctx[2].lineWidth = 3;
-                        ctx[2].beginPath();
-                        ctx[2].moveTo(x + 5.5, y + BOX_SIZE / 1.8);
-                        ctx[2].lineTo(x + BOX_SIZE / 2 - 3, y + BOX_SIZE - 7);
-                        ctx[2].lineTo(x + BOX_SIZE - 6, y + 8);
-                        ctx[2].stroke();
-                    }
-
-                    drawText(cb.label, x + BOX_SIZE + 10.5, y + BOX_SIZE / 2 + 6, 13.5, color.guiwhite, "left", false, 1, 5.5);
+                cb.tooltipService.x = hitX;
+                cb.tooltipService.y = hitY + hitSize + 10;
+                if (fadeOptions > 0.2) {
+                    global.clickables.optionsMenu.toggleBoxes.place(i, hitX, hitY, hitSize, hitSize);
+                    global.clickables.optionsMenu.HoverBoxes.place(i, hitX, hitY, hitSize + measureText(cb.label, BOX_SIZE) * 0.65, hitSize);
+                } else {
+                    global.clickables.optionsMenu.toggleBoxes.hide();
+                    global.clickables.optionsMenu.HoverBoxes.hide();
                 }
+                let clickHover = global.clickables.optionsMenu.toggleBoxes.check(mpos);
+                let hovered = global.clickables.optionsMenu.HoverBoxes.check(mpos);
+
+                if (hovered !== -1) {
+                    global.optionsCheckboxes[hovered].tooltipService.targetAlpha = 1;
+                } else global.optionsCheckboxes[i].tooltipService.targetAlpha = 0;
+
+                if (cb.lastValue !== cb.value) {
+                    cb.lastValue = cb.value;
+                    loadSettings();
+                    if (cb.id === "optLowResolution") resizeEvent();
+                }
+
+                const isOn = (cb.reverseCheck && !cb.value) || (!cb.reverseCheck && cb.value);
+                ctx[2].lineWidth = 3;
+                gameDraw.setColor(ctx[2], isOn ? color.green : color.guiwhite);
+                drawGuiRect(x, y, BOX_SIZE, BOX_SIZE);
+                if (clickHover !== -1 && clickHover === i) {
+                    gameDraw.setColor(ctx[2], !isOn ? global.clickables.clicked ? color.guiblack : color.black : global.clickables.clicked ? color.black : color.guiwhite);
+                    ctx[2].globalAlpha = global.clickables.clicked ? 0.25 : 0.2;
+                    drawGuiRect(x, y, BOX_SIZE, BOX_SIZE);
+                    ctx[2].globalAlpha = 1 * fadeOptions;
+                }
+                gameDraw.setColor(ctx[2], color.black);
+                drawGuiRect(x, y, BOX_SIZE, BOX_SIZE, true);
+
+                if (isOn) {
+                    ctx[2].strokeStyle = "#ffffff";
+                    ctx[2].lineWidth = 3;
+                    ctx[2].beginPath();
+                    ctx[2].moveTo(x + 5.5, y + BOX_SIZE / 1.8);
+                    ctx[2].lineTo(x + BOX_SIZE / 2 - 3, y + BOX_SIZE - 7);
+                    ctx[2].lineTo(x + BOX_SIZE - 6, y + 8);
+                    ctx[2].stroke();
+                }
+
+                drawText(cb.label, x + BOX_SIZE + 10.5, y + BOX_SIZE / 2 + 6, 13.5, color.guiwhite, "left");
             }
+
         }
         ctx[2].restore();
 
-        for (const cb of global.optionsCheckboxes) {
-            if (isSecretSection(cb.section)) continue;
-            if (cb.type === "option" && cb.optionService) {
-                let above = cb.location === "top";
-                let height = 0;
-                for (let box of cb.optionData) {
-                    height += 25;
-                }
-                const bottomPos = cb.optionService.y + 25 + height;
-                if (bottomPos > global.screenHeight && cb.location === "auto") {
-                    above = true;
-                }
-                if (cb.optionService.opened) {
-                    cb.optionService.smoothbar.set(height);
-                    cb.optionService.visible = true;
-                } else if (cb.optionService.visible) {
-                    cb.optionService.smoothbar.set(0);
-                }
-                if (cb.optionService.visible) {
-                    const cbp = cb.optionService;
-                    const heightCalc = cbp.smoothbar.get();
-                    if (!cbp.opened && heightCalc < 0.5) {
-                        cbp.smoothbar.force(0);
-                        cbp.visible = false;
-                    }
-                    if (above) { // Above
-                        let yy = cbp.y - heightCalc;
-                        ctx[2].save();
-                        ctx[2].beginPath();
-                        ctx[2].rect(cbp.x - 3, cbp.y - cb.optionData.length * 25 - 3, cb.width + 6, cb.optionData.length * 25 + 3);
-                        ctx[2].clip();
-                        for (let i = 0; i < cb.optionData.length; i++) {
-                            let box = cb.optionData[i];
-                            let hover = global.clickables.optionsMenu.optionBoxes.check(mpos);
-                            ctx[2].fillStyle = color.guiwhite;
-                            drawGuiRect(cbp.x, yy, cb.width, 25);
-                            if (hover === i) {
-                                ctx[2].fillStyle = color.black;
-                                ctx[2].globalAlpha = global.clickables.clicked ? 0.9 : 0.7;
-                                drawGuiRect(cbp.x, yy, cb.width, 25);
-                                ctx[2].globalAlpha = 1;
-                            }
-                            ctx[2].strokeStyle = color.black;
-                            ctx[2].lineWidth = 3;
-                            drawGuiRect(cbp.x, yy, cb.width, 25, true);
-                            drawText(box.label, cbp.x + 13, yy + 17, 11.5, color.guiwhite, "left", false, 1, 6.5);
-                            if (cbp.opened && cbp.canClick) global.clickables.optionsMenu.optionBoxes.place(i, cbp.x * clickableRatio, yy * clickableRatio, cb.width * clickableRatio, 25 * clickableRatio); else global.clickables.optionsMenu.optionBoxes.hide();
-                            yy += 25;
-                        }
-                        ctx[2].restore();
-                        ctx[2].lineWidth = 3;
-                        drawGuiRect(cbp.x, cbp.y, cb.width, 0, true);
-                    } else { // Bottom
-                        let yy = cbp.y + 25;
-                        ctx[2].save();
-                        ctx[2].beginPath();
-                        ctx[2].rect(cbp.x, yy, cb.width, heightCalc);
-                        ctx[2].clip();
-                        for (let i = 0; i < cb.optionData.length; i++) {
-                            let box = cb.optionData[i];
-                            let hover = global.clickables.optionsMenu.optionBoxes.check(mpos);
-                            ctx[2].fillStyle = color.guiwhite;
-                            drawGuiRect(cbp.x, yy, cb.width, 25);
-                            if (hover === i) {
-                                ctx[2].fillStyle = color.black;
-                                ctx[2].globalAlpha = global.clickables.clicked ? 0.9 : 0.7;
-                                drawGuiRect(cbp.x, yy, cb.width, 25);
-                                ctx[2].globalAlpha = 1;
-                            }
-                            ctx[2].strokeStyle = color.black;
-                            ctx[2].lineWidth = 3;
-                            drawGuiRect(cbp.x, yy, cb.width, 25, true);
-                            drawText(box.label, cbp.x + 13, yy + 17, 11.5, color.guiwhite, "left", false, 1, 6.5);
-                            if (cbp.opened) global.clickables.optionsMenu.optionBoxes.place(i, cbp.x * clickableRatio, yy * clickableRatio, cb.width * clickableRatio, 25 * clickableRatio); else global.clickables.optionsMenu.optionBoxes.hide();
-                            yy += 25;
-                        }
-                        ctx[2].restore();
-                        ctx[2].lineWidth = 3;
-                        drawGuiRect(cbp.x, cbp.y + 25, cb.width, heightCalc, true);
-                    }
-                }
-            }
-            drawToolip(cb);
-        }
+        for (const cb of global.optionsCheckboxes) drawToolip(cb);
 
         ctx[2].save();
         ctx[2].globalAlpha *= fadeTheme;
-        ctx[2].translate(0, -scrollY);
-        if (fadeTheme > 0.01 && activeTab === 1) {
+        if (fadeTheme > 0.01) {
             // THEME TAB
-            drawText("Theme", panelX + PANEL_WIDTH / 2, PANEL_Y + OV_TITLE_TOP, 15.5, color.guiwhite, "center");
-            drawThemeTab(panelX, PANEL_Y, PANEL_WIDTH, clickableRatio);
-        } else if (global.themeOverlay) {
-            global.themeOverlay.style.display = "none";
+        
+            const CONTENT_Y = PANEL_Y + 50;
+            const CONTENT_X = panelX + 30;
+
+            ctx[2].fillStyle = color.guiwhite;
+            ctx[2].font = "bold 20px Ubuntu";
+            ctx[2].textAlign = "left";
+            ctx[2].textBaseline = "middle";
+
+            drawText("Theme", panelX + PANEL_WIDTH / 2, PANEL_Y + 30, 15.5, color.guiwhite, "center");
+            drawText("Coming soon™", CONTENT_X, CONTENT_Y, 20, color.guiwhite, "left");
         }
         ctx[2].restore();
 
         ctx[2].save();
         ctx[2].globalAlpha *= fadeKeybinds;
-        ctx[2].translate(0, -scrollY);
         if (fadeKeybinds > 0.01) {
             // KEYBINDS TAB
-            drawKeybindsTab(panelX, PANEL_Y, PANEL_WIDTH, clickableRatio);
-        }
-        ctx[2].restore();
+        
+            const CONTENT_Y = PANEL_Y + 50;
+            const CONTENT_X = panelX + 30;
 
-        ctx[2].save();
-        ctx[2].globalAlpha *= fadeSecret;
-        ctx[2].translate(0, -scrollY);
-        if (fadeSecret > 0.01 && activeTab === 3 && secretUnlocked) {
-            drawSecretTab(panelX, PANEL_Y, PANEL_WIDTH, clickableRatio, fullUnlocked);
+            ctx[2].fillStyle = color.guiwhite;
+            ctx[2].font = "bold 20px Ubuntu";
+            ctx[2].textAlign = "left";
+            ctx[2].textBaseline = "middle";
+
+            drawText("Keybinds", panelX + PANEL_WIDTH / 2, PANEL_Y + 30, 15.5, color.guiwhite, "center");
+            drawText("Coming soon™", CONTENT_X, CONTENT_Y, 20, color.guiwhite, "left");
         }
         ctx[2].restore();
 
@@ -6064,7 +4662,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         gameDraw.setColor(ctx[2], color.black);
         drawGuiRect(closeX, closeY, CLOSE_SIZE, CLOSE_SIZE, true);
 
-        ctx[2].strokeStyle = "#FFFFFF";
+        ctx[2].strokeStyle = "#ffffff";
         ctx[2].lineWidth = 4;
         ctx[2].beginPath();
         ctx[2].moveTo(closeX + 8, closeY + 8);
@@ -6102,16 +4700,11 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         scaleScreenRatio(ratio, true);
         clearScreen(gameDraw.mixColors(color.red, color.guiblack, 0.3), global.gameStart ? 0.25 : 1, ctx[2]);
         drawText("Disconnected", global.screenWidth / 2, global.screenHeight / 2, 30, color.guiwhite, "center");
-        if (global.message === "") global.message = "The connection closed due to an error.\nTry reloading and clearing your cache, or joining another server.";
-        drawText(new Date(global.disconnectTimestamp || Date.now()).toISOString() + "", global.screenWidth / 2, global.screenHeight / 2 - 224, 8.125, color.guiwhite, "center");
+        if (global.message === '') global.message = 'The connection has closed. you may attempt to regain score or reload the game.';
         drawText(global.message, global.screenWidth / 2, global.screenHeight / 2 + 30, 15, color.orange, "center");
         lastPing = 0;
-        drawButton(global.screenWidth / 2 - 75, global.screenHeight / 2 + 138, 120, 30, 1, "rect", "Back", 14, false, false, false, true, "exitGame", global.canvas.height / global.screenHeight / global.ratio, {
-            index: 0
-        });
-        drawButton(global.screenWidth / 2 + 75, global.screenHeight / 2 + 138, 120, 30, 1, "rect", "Reconnect", 14, false, false, false, true, "reconnect", global.canvas.height / global.screenHeight / global.ratio, {
-            index: 0
-        });
+        drawButton(global.screenWidth / 2 - 80, global.screenHeight / 2 + 135, 130, 30, 1, "rect", "Back", 15, false, false, false, true, "exitGame", global.canvas.height / global.screenHeight / global.ratio, 0);
+        drawButton(global.screenWidth / 2 + 80, global.screenHeight / 2 + 135, 130, 30, 1, "rect", "Reconnect", 15, false, false, false, true, "reconnect", global.canvas.height / global.screenHeight / global.ratio, 0);
     };
 
     const drawResyncScreen = () => {
@@ -6130,24 +4723,17 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         drawText("Client error detected!", global.screenWidth / 2, global.screenHeight / 2, 30, color.red, "center");
         drawText("If this is because of an entity, try to move away from it.", global.screenWidth / 2, global.screenHeight / 2 + 30, 15, color.guiwhite, "center");
         drawText("Check your browser's console logs and report whatever you see to the developers.", global.screenWidth / 2, global.screenHeight / 2 + 60, 15, color.guiwhite, "center");
-    };
-
+    }
     let animationFrame =
     (!/Chrome\/8[4-6]\.0\.41([4-7][0-9]|8[0-3])\./.test(navigator.userAgent) &&
       window.requestAnimationFrame) ||
     ((a) => setTimeout(() => a(Date.now()), 1e3 / 60));
-    function isUncappedFrameRateEnabled() {
-        const cb = global.optionsCheckboxes?.find(cb => cb.id === "optUncappedFrameRate");
-        if (cb) return !!cb.value;
-        return localStorage.getItem("optUncappedFrameRateChecked") === "true";
-    }
     function animloop(tick) {
         if (document.getElementById("gameAreaWrapper").style.display === "none") {
-            setTimeout(() => animloop(performance.now()), 200); // Slow down when tab is hidden
+            setTimeout(() => animloop(Date.now()), 200); // Slow down when tab is hidden
             return;
         }
-        if (isUncappedFrameRateEnabled()) setTimeout(() => animloop(performance.now()), 0);
-        else animationFrame(animloop);
+        animationFrame(animloop);
         if (global.gameStart) {
             // Update fov
             let fovtickMotion = fovlasttick ? tick - fovlasttick : null;
@@ -6167,7 +4753,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         for (let context of ctx) {
             context.lineCap = "round";
             context.lineJoin = "round";
-            context.clearRect(0, 0, global.screenWidth, global.screenHeight);
+            context.clearRect(0, 0, window.innerWidth + 1000, window.innerHeight + 1000);
         }
         // Figure out where we're rendering if we don't yet know
         if (isNaN(global.player.renderx) && isNaN(global.player.rendery)) {
@@ -6219,8 +4805,7 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
                 drawDisconnectedScreen();
             }
             if (global.dailyTankAd.renderUI) drawAdScreen();
-            if (global.GUIStatus.renderIngameOptions) drawOptionsMenu(tick, 20, util.getScreenRatio());
-            else if (global.themeOverlay && global.themeOverlay.style.display !== "none") global.themeOverlay.style.display = "none";
+            drawOptionsMenu(tick, 20, util.getScreenRatio());
             if (global.GUIStatus.fullHDMode) ctx[2].translate(-0.5, -0.5);
 
             //oh no we need to throw an error!
@@ -6236,4 +4821,4 @@ const THEME_V1_MAGIC = "\x6a\xba\xda\xb3\xf0";
         let t = performance.now();
         global.metrics.mspt = t - p;
     }
-})(util, global, config, Canvas, colors, gameDraw, socketStuff, keybinderHandler)
+})(util, global, config, Canvas, colors, gameDraw, socketStuff)

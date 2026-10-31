@@ -5,9 +5,9 @@ class MockupEntityGun {
             hueShift: 0,
             saturationShift: 1,
             brightnessShift: 0,
-            allowBrightnessInvert: false
+            allowBrightnessInvert: false,
         };
-        this.color = "16 0 1 0 false";
+        this.color = '16 0 1 0 false';
         this.alpha = 1;
         this.strokeWidth = 1;
         this.borderless = false;
@@ -16,18 +16,17 @@ class MockupEntityGun {
         if (info.PROPERTIES != null) {
             if (info.PROPERTIES.COLOR != null) {
                 if (typeof info.PROPERTIES.COLOR === "number" || typeof info.PROPERTIES.COLOR === "string") {
-                    if (!isNaN(info.PROPERTIES.COLOR) && !isNaN(parseFloat(info.PROPERTIES.COLOR)) || /^[a-zA-Z]*$/.test(info.PROPERTIES.COLOR)) {
+                    if (!isNaN(info.PROPERTIES.COLOR) && !isNaN(parseFloat(info.PROPERTIES.COLOR)) || /^[a-zA-Z]*$/.test(info.PROPERTIES.COLOR))
                         this.colorUnboxed.base = info.PROPERTIES.COLOR; 
-                    } 
-                } else if (typeof info.PROPERTIES.COLOR === "object") {
+                }
+                else if (typeof info.PROPERTIES.COLOR === "object")
                     this.colorUnboxed = {
                         base: info.PROPERTIES.COLOR.BASE ?? 16,
                         hueShift: info.PROPERTIES.COLOR.HUE_SHIFT ?? 0,
                         saturationShift: info.PROPERTIES.COLOR.SATURATION_SHIFT ?? 1,
                         brightnessShift: info.PROPERTIES.COLOR.BRIGHTNESS_SHIFT ?? 0,
-                        allowBrightnessInvert: info.PROPERTIES.COLOR.ALLOW_BRIGHTNESS_INVERT ?? false
-                    }; 
-                }
+                        allowBrightnessInvert: info.PROPERTIES.COLOR.ALLOW_BRIGHTNESS_INVERT ?? false,
+                    };
                 this.color = this.colorUnboxed.base + " " + this.colorUnboxed.hueShift + " " + this.colorUnboxed.saturationShift + " " + this.colorUnboxed.brightnessShift + " " + this.colorUnboxed.allowBrightnessInvert;
             }
             if (info.PROPERTIES.ALPHA != null) this.alpha = info.PROPERTIES.ALPHA;
@@ -46,8 +45,8 @@ class MockupEntityGun {
                 Y: position[4],
                 ANGLE: position[5],
                 DELAY: position[6],
-                DRAW_ABOVE: position[7]
-            };
+                DRAW_ABOVE: position[7],
+            }
         }
         position = {
             LENGTH: position.LENGTH ?? 18,
@@ -57,8 +56,7 @@ class MockupEntityGun {
             Y: position.Y ?? 0,
             ANGLE: position.ANGLE ?? 0,
             DELAY: position.DELAY ?? 0,
-            DRAW_ABOVE: position.DRAW_ABOVE ?? this.drawAbove,
-            LAYER: position.LAYER ?? 0
+            DRAW_ABOVE: position.DRAW_ABOVE ?? this.drawAbove
         };
         this.length = position.LENGTH / 10;
         this.width = position.WIDTH / 10;
@@ -68,7 +66,6 @@ class MockupEntityGun {
         this.direction = _off.direction;
         this.offset = _off.length / 10;
         this.drawAbove = position.DRAW_ABOVE;
-        this.layer = position.LAYER ?? 0;
     }
 }
 
@@ -80,9 +77,9 @@ class MockupEntityProp {
             hueShift: 0,
             saturationShift: 1,
             brightnessShift: 0,
-            allowBrightnessInvert: false
+            allowBrightnessInvert: false,
         };
-        this.color = "16 0 1 0 false";
+        this.color = '16 0 1 0 false';
         this.borderless = false;
         this.drawFill = true;
         this.strokeWidth = 1;
@@ -113,7 +110,7 @@ class MockupEntityProp {
             angle: position.ANGLE * Math.PI / 180,
             direction: _off.direction,
             offset: _off.length / 10,
-            layer: position.LAYER
+            layer: position.LAYER,
         };
         // Initalize.
         this.forceAngle = def.FORCE_ANGLE ?? null;
@@ -146,21 +143,20 @@ class MockupEntityProp {
             this.shape = typeof set.SHAPE === "number" ? set.SHAPE : (set.SHAPE_NUM ?? 0);
             this.shapeData = set.SHAPE;
         }
-        this.imageInterpolation = set.IMAGE_INTERPOLATION != null ? set.IMAGE_INTERPOLATION : "bilinear";
+        this.imageInterpolation = set.IMAGE_INTERPOLATION != null ? set.IMAGE_INTERPOLATION : 'bilinear'
         if (set.COLOR != null) {
             if (typeof set.COLOR === "number" || typeof set.COLOR === "string") {
-                if (!isNaN(set.COLOR) && !isNaN(parseFloat(set.COLOR)) || /^[a-zA-Z]*$/.test(set.COLOR)) {
+                if (!isNaN(set.COLOR) && !isNaN(parseFloat(set.COLOR)) || /^[a-zA-Z]*$/.test(set.COLOR))
                     this.colorUnboxed.base = set.COLOR; 
-                } 
-            } else if (typeof set.COLOR === "object") {
+            }
+            else if (typeof set.COLOR === "object")
                 this.colorUnboxed = {
                     base: set.COLOR.BASE ?? 16,
                     hueShift: set.COLOR.HUE_SHIFT ?? 0,
                     saturationShift: set.COLOR.SATURATION_SHIFT ?? 1,
                     brightnessShift: set.COLOR.BRIGHTNESS_SHIFT ?? 0,
-                    allowBrightnessInvert: set.COLOR.ALLOW_BRIGHTNESS_INVERT ?? false
-                }; 
-            }
+                    allowBrightnessInvert: set.COLOR.ALLOW_BRIGHTNESS_INVERT ?? false,
+                };
             this.color = this.colorUnboxed.base + " " + this.colorUnboxed.hueShift + " " + this.colorUnboxed.saturationShift + " " + this.colorUnboxed.brightnessShift + " " + this.colorUnboxed.allowBrightnessInvert;
         }
         if (set.BORDERLESS != null) this.borderless = set.BORDERLESS;
@@ -177,7 +173,7 @@ class MockupEntityProp {
 
 class MockupEntity {
     constructor() {
-    // General stuff
+        // General stuff
         this.settings = {};
         this.upgrades = [];
         this.colorUnboxed = {
@@ -185,10 +181,10 @@ class MockupEntity {
             hueShift: 0,
             saturationShift: 1,
             brightnessShift: 0,
-            allowBrightnessInvert: false
+            allowBrightnessInvert: false,
         };
-        this.color = "16 0 1 0 false";
-        this.glow = { radius: null, color: "16 0 1 0 false", alpha: 1, recursion: 1 };
+        this.color = '16 0 1 0 false';
+        this.glow = { radius: null, color: '16 0 1 0 false', alpha: 1, recursion: 1 };
         this.invisible = [0, 0];
         this.alphaRange = [0, 1];
         this.alpha = 1;
@@ -230,17 +226,16 @@ class MockupEntity {
         }
         this.imageInterpolation = set.IMAGE_INTERPOLATION ?? "bilinear";
         if (set.COLOR != null) {
-            if (typeof set.COLOR === "number" || typeof set.COLOR === "string") {
-                this.colorUnboxed.base = set.COLOR; 
-            } else if (typeof set.COLOR === "object") {
+            if (typeof set.COLOR === "number" || typeof set.COLOR === 'string')
+                this.colorUnboxed.base = set.COLOR;
+            else if (typeof set.COLOR === "object")
                 this.colorUnboxed = {
                     base: set.COLOR.BASE ?? 16,
                     hueShift: set.COLOR.HUE_SHIFT ?? 0,
                     saturationShift: set.COLOR.SATURATION_SHIFT ?? 1,
                     brightnessShift: set.COLOR.BRIGHTNESS_SHIFT ?? 0,
-                    allowBrightnessInvert: set.COLOR.ALLOW_BRIGHTNESS_INVERT ?? false
-                }; 
-            }
+                    allowBrightnessInvert: set.COLOR.ALLOW_BRIGHTNESS_INVERT ?? false,
+                };
             this.color = this.colorUnboxed.base + " " + this.colorUnboxed.hueShift + " " + this.colorUnboxed.saturationShift + " " + this.colorUnboxed.brightnessShift + " " + this.colorUnboxed.allowBrightnessInvert;
         }
         if (set.UPGRADE_COLOR) this.upgradeColor = set.UPGRADE_COLOR + " 0 1 0 false";
@@ -259,6 +254,7 @@ class MockupEntity {
         this.settings.ratioEffects = set.RATIO_EFFECTS ?? true;
         this.settings.motionEffects = set.MOTION_EFFECTS ?? true;
         this.sendAllMockups = set.SEND_ALL_MOCKUPS ?? false;
+        this.displayScore = set.DISPLAY_SCORE ?? true;
         if (set.VISIBLE_ON_BLACKOUT) this.visibleOnBlackout = set.VISIBLE_ON_BLACKOUT;
         if (set.REROOT_UPGRADE_TREE) this.rerootUpgradeTree = set.REROOT_UPGRADE_TREE;
         if (Array.isArray(this.rerootUpgradeTree)) {
@@ -266,20 +262,18 @@ class MockupEntity {
             for (let root of this.rerootUpgradeTree) finalRoot += root + "\\/";
             this.rerootUpgradeTree = finalRoot.substring(0, finalRoot.length - 2);
         }
-        if (set.STAT_NAMES != null) {
-            this.settings.skillNames = {
-                body_damage: set.STAT_NAMES?.BODY_DAMAGE ?? "Body Damage",
-                max_health: set.STAT_NAMES?.MAX_HEALTH ?? "Max Health",
-                bullet_speed: set.STAT_NAMES?.BULLET_SPEED ?? "Bullet Speed",
-                bullet_health: set.STAT_NAMES?.BULLET_HEALTH ?? "Bullet Health",
-                bullet_pen: set.STAT_NAMES?.BULLET_PEN ?? "Bullet Penetration",
-                bullet_damage: set.STAT_NAMES?.BULLET_DAMAGE ?? "Bullet Damage",
-                reload: set.STAT_NAMES?.RELOAD ?? "Reload",
-                move_speed: set.STAT_NAMES?.MOVE_SPEED ?? "Movement Speed",
-                shield_regen: set.STAT_NAMES?.SHIELD_REGEN ?? "Shield Regeneration",
-                shield_cap: set.STAT_NAMES?.SHIELD_CAP ?? "Shield Capacity"
-            }; 
-        }
+        if (set.STAT_NAMES != null) this.settings.skillNames = {
+            body_damage: set.STAT_NAMES?.BODY_DAMAGE ?? 'Body Damage',
+            max_health: set.STAT_NAMES?.MAX_HEALTH ?? 'Max Health',
+            bullet_speed: set.STAT_NAMES?.BULLET_SPEED ?? 'Bullet Speed',
+            bullet_health: set.STAT_NAMES?.BULLET_HEALTH ?? 'Bullet Health',
+            bullet_pen: set.STAT_NAMES?.BULLET_PEN ?? 'Bullet Penetration',
+            bullet_damage: set.STAT_NAMES?.BULLET_DAMAGE ?? 'Bullet Damage',
+            reload: set.STAT_NAMES?.RELOAD ?? 'Reload',
+            move_speed: set.STAT_NAMES?.MOVE_SPEED ?? 'Movement Speed',
+            shield_regen: set.STAT_NAMES?.SHIELD_REGEN ?? 'Shield Regeneration',
+            shield_cap: set.STAT_NAMES?.SHIELD_CAP ?? 'Shield Capacity',
+        };
         if (set.ALPHA != null) {
             this.alpha = ("number" === typeof set.ALPHA) ? set.ALPHA : set.ALPHA[1];
             this.alphaRange = [
@@ -291,41 +285,41 @@ class MockupEntity {
         if (set.VALUE != null) {
             let score = 0;
             let deduction = 0;
-            let levelScore = () => 1.74 * Math.pow(level + 1, 1.79503264) - 0.53 * level;
+            let levelScore = () => 1.74 * Math.pow(level + 1, 1.79503264) - 0.53 * level
             while (score - deduction >= levelScore()) {
                 deduction += levelScore();
                 level += 1;
             }
-        } else if (set.LEVEL != null) level = set.LEVEL;
+        }
+        else if (set.LEVEL != null) level = set.LEVEL;
         this.size = (set.SIZE ?? 1) * (set.VARIES_IN_SIZE ? ran.randomRange(0.8, 1.2) : 1) * (1 + Math.min(set.LEVEL_CAP ?? Config.level_cap, level) / 45);
         this.realSize = util.rounder(this.size * lazyRealSizes[Math.floor(Math.abs(this.shape))]);
         this.size = util.rounder(this.size);
         if (set.BRANCH_LABEL != null) this.branchLabel = set.BRANCH_LABEL;
         if (set.BATCH_UPGRADES != null) this.batchUpgrades = set.BATCH_UPGRADES;
-        for (const prop in set) {
-            if (!prop.startsWith("UPGRADES_TIER_")) {
-                continue;
-            }
-            for (let j = 0; j < set[prop].length; j++) {
-                let upgrades = set[prop][j];
-                let index = "";
-                if (!Array.isArray(upgrades)) upgrades = [upgrades];
-                let redefineAll = upgrades.includes(true);
-                let trueUpgrades = upgrades.slice(0, upgrades.length - redefineAll); // Ignore last element if it's true
-                for (let k of trueUpgrades) {
-                    let e = ensureIsClass(k);
-                    index += e.index + "-";
+        for (let i = 0; i < Config.tier_cap; i++) {
+            let tierProp = 'UPGRADES_TIER_' + i;
+            if (set[tierProp] != null) {
+                for (let j = 0; j < set[tierProp].length; j++) {
+                    let upgrades = set[tierProp][j];
+                    let index = "";
+                    if (!Array.isArray(upgrades)) upgrades = [upgrades];
+                    let redefineAll = upgrades.includes(true);
+                    let trueUpgrades = upgrades.slice(0, upgrades.length - redefineAll); // Ignore last element if it's true
+                    for (let k of trueUpgrades) {
+                        let e = ensureIsClass(k);
+                        index += e.index + "-";
+                    }
+                    this.upgrades.push({
+                        class: trueUpgrades,
+                        level: Config.tier_multiplier * i,
+                        index: index.substring(0, index.length - 1),
+                        tier: i,
+                        branch: 0,
+                        branchLabel: this.branchLabel,
+                        redefineAll,
+                    });
                 }
-                let i = parseInt(prop.split("_")[2]);
-                this.upgrades.push({
-                    class: trueUpgrades,
-                    level: Config.tier_multiplier * i,
-                    index: index.substring(0, index.length - 1),
-                    tier: i,
-                    branch: 0,
-                    branchLabel: this.branchLabel,
-                    redefineAll
-                });
             }
         }
         // Batch Upgrades
@@ -345,29 +339,29 @@ class MockupEntity {
                 }
             }
             if (set.BATCH_UPGRADES != null) this.batchUpgrades = set.BATCH_UPGRADES;
-            for (const prop in set) {
-                if (!prop.startsWith("UPGRADES_TIER_")) {
-                    continue;
-                }
-                for (let j = 0; j < set[prop].length; j++) {
-                    let upgrades = set[prop][j];
-                    let index = "";
-                    if (!Array.isArray(upgrades)) upgrades = [upgrades];
-                    let redefineAll = upgrades.includes(true);
-                    let trueUpgrades = upgrades.slice(0, upgrades.length - redefineAll); // Ignore last element if it's true
-                    for (let k of trueUpgrades) {
-                        let e = ensureIsClass(k);
-                        index += e.index + "-";
+            for (let i = 0; i < Config.tier_cap; i++) {
+                let tierProp = 'UPGRADES_TIER_' + i;
+                if (set[tierProp] != null) {
+                    for (let j = 0; j < set[tierProp].length; j++) {
+                        let upgrades = set[tierProp][j];
+                        let index = "";
+                        if (!Array.isArray(upgrades)) upgrades = [upgrades];
+                        let redefineAll = upgrades.includes(true);
+                        let trueUpgrades = upgrades.slice(0, upgrades.length - redefineAll); // Ignore last element if it's true
+                        for (let k of trueUpgrades) {
+                            let e = ensureIsClass(k);
+                            index += e.index + "-";
+                        }
+                        this.upgrades.push({
+                            class: trueUpgrades,
+                            level: Config.tier_multiplier * i,
+                            index: index.substring(0, index.length - 1),
+                            tier: i,
+                            branch: 0,
+                            branchLabel: this.branchLabel,
+                            redefineAll,
+                        });
                     }
-                    this.upgrades.push({
-                        class: trueUpgrades,
-                        level: Config.tier_multiplier * i,
-                        index: index.substring(0, index.length - 1),
-                        tier: i,
-                        branch,
-                        branchLabel: this.branchLabel,
-                        redefineAll
-                    });
                 }
             }
             if (set.REROOT_UPGRADE_TREE) this.rerootUpgradeTree = set.REROOT_UPGRADE_TREE;

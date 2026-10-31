@@ -2,60 +2,6 @@ import { global } from "./global.js";
 import { util } from "./util.js";
 import { config } from "./config.js";
 import { protocol } from "./protocol.js";
-// Common "u" colors sent as palette ids instead of full strings. Must match the server table.
-const U_COLOR_TABLE = [
-    "grey 0 1 0 false", "16 0 1 0 false", "black 0 1 0 false", "blue 0 1 0 false",
-    "red 0 1 0 false", "green 0 1 0 false", "gold 0 1 0 false", "orange 0 1 0 false",
-    "purple 0 1 0 false", "aqua 0 1 0 false", "pink 0 1 0 false", "white 0 1 0 false",
-    "lightGray 0 1 0 false", "veryLightGrey 0 1 0 false", "lightGrey 0 1 0 false", "darkGrey 0 1 0 false",
-    "lavender 0 1 0 false", "yellow 0 1 0 false", "teal 0 1 0 false", "pureBlack 0 1 0 false",
-    "magenta 0 1 0 false", "mirror 0 1 0 false", "-1 0 1 0 false", "10 0 1 0 false",
-    "11 0 1 0 false", "12 0 1 0 false", "0 0 1 0 false", "13 0 1 0 false",
-    "36 0 1 0 false", "mustard 0 1 0 false", "tangerine 0 1 0 false", "brown 0 1 0 false",
-    "cyan 0 1 0 false", "dgrey 0 1 0 false", "gray 0 1 0 false", "darkGray 0 1 0 false",
-    "veryLightGray 0 1 0 false", "vlgrey 0 1 0 false", "lgrey 0 1 0 false", "lgreen 0 1 0 false",
-    "egg 0 1 0 false", "crasher 0 1 0 false", "triangle 0 1 0 false", "square 0 1 0 false",
-    "hexagon 0 1 0 false", "pentagon 0 1 0 false", "lime 0 1 0 false", "pureWhite 0 1 0 false",
-    "trans 0 1 0 false", "1 0 1 0 false", "2 0 1 0 false", "3 0 1 0 false",
-    "4 0 1 0 false", "5 0 1 0 false", "6 0 1 0 false", "7 0 1 0 false",
-    "8 0 1 0 false", "9 0 1 0 false", "14 0 1 0 false", "15 0 1 0 false",
-    "17 0 1 0 false", "18 0 1 0 false", "19 0 1 0 false", "#000000 0 1 0 false",
-    "#96794E 0 1 0 false", "#226ef6 0 1 0 false", "#1c3766 0 1 0 false", "#ff1000 0 1 0 false",
-    "#FFFFFF 0 1 0 false", "#5C533F 0 1 0 false", "#ff9000 0 1 0 false", "#f6c6a2 0 1 0 false",
-    "#F49EFF 0 1 0 false", "#fff 0 1 0 false", "#FF0000 0 1 0 false",
-];
-const FALLBACK_COLOR = U_COLOR_TABLE[1];
-const decodeColor = value => typeof value === "number" ? (U_COLOR_TABLE[value] ?? FALLBACK_COLOR) : value;
-// Key table; must match the server.
-const MOCKUP_KEYS = ["index","name","x","y","color","strokeWidth","glow","radius","alpha","recursion","borderless","drawFill","shape","imageInterpolation","size","realSize","mirrorMasterAngle","sendAllMockups","position","axis","middle","rerootUpgradeTree","className","upgrades","tier","guns","offset","direction","length","width","aspect","angle","drawAbove","layer","turrets","props","statnames","body_damage","max_health","bullet_speed","bullet_health","bullet_pen","bullet_damage","reload","move_speed","shield_regen","shield_cap","sizeFactor","isProp","forceAngle","visibleOnBlackout"];
-const decodeMockupVal = v => {
-    if (!Array.isArray(v)) return v;
-    if (v[0] === "o") {
-        const o = {};
-        for (let i = 1; i < v.length;) {
-            let k = v[i++];
-            k = k === -1 ? v[i++] : MOCKUP_KEYS[k];
-            const val = decodeMockupVal(v[i++]);
-            o[k] = k === "color" && typeof val === "number" ? (U_COLOR_TABLE[val] ?? val) : val;
-        }
-        return o;
-    }
-    return v.slice(1).map(decodeMockupVal);
-};
-// Room grids arrive as [cols, forms, runs].
-const expandRoom = ([cols, forms, runs], blackout) => {
-    const grid = [];
-    let row = [];
-    for (let r = 0; r < runs.length; r += 2) {
-        const f = forms[runs[r]];
-        for (let k = 0; k < runs[r + 1]; k++) {
-            row.push(blackout ? { color: f[0], visibleOnBlackout: f[1], image: f[2] } : { color: f[0], image: f[1] });
-            if (row.length === cols) { grid.push(row); row = []; }
-        }
-    }
-    if (row.length) grid.push(row);
-    return grid;
-};
 window.fakeLagMS = 0;
 var sync = [];
 var clockDiff = 0;
@@ -75,29 +21,29 @@ startSettings = {
 gui = {
     getStatNames: data => {
         return [
-            data?.body_damage ?? "Body Damage",
-            data?.max_health ?? "Max Health",
-            data?.bullet_speed ?? "Bullet Speed",
-            data?.bullet_health ?? "Bullet Health",
-            data?.bullet_pen ?? "Bullet Penetration",
-            data?.bullet_damage ?? "Bullet Damage",
-            data?.reload ?? "Reload",
-            data?.move_speed ?? "Movement Speed",
-            data?.shield_regen ?? "Shield Regeneration",
-            data?.shield_cap ?? "Shield Capacity",
+            data?.body_damage ?? 'Body Damage',
+            data?.max_health ?? 'Max Health',
+            data?.bullet_speed ?? 'Bullet Speed',
+            data?.bullet_health ?? 'Bullet Health',
+            data?.bullet_pen ?? 'Bullet Penetration',
+            data?.bullet_damage ?? 'Bullet Damage',
+            data?.reload ?? 'Reload',
+            data?.move_speed ?? 'Movement Speed',
+            data?.shield_regen ?? 'Shield Regeneration',
+            data?.shield_cap ?? 'Shield Capacity',
         ]
     },
     skills: [
-        { amount: 0, color: "purple", cap: 1, softcap: 1 },
-        { amount: 0, color: "pink"  , cap: 1, softcap: 1 },
-        { amount: 0, color: "blue"  , cap: 1, softcap: 1 },
-        { amount: 0, color: "lgreen", cap: 1, softcap: 1 },
-        { amount: 0, color: "red"   , cap: 1, softcap: 1 },
-        { amount: 0, color: "yellow", cap: 1, softcap: 1 },
-        { amount: 0, color: "green" , cap: 1, softcap: 1 },
-        { amount: 0, color: "teal"  , cap: 1, softcap: 1 },
-        { amount: 0, color: "gold"  , cap: 1, softcap: 1 },
-        { amount: 0, color: "orange", cap: 1, softcap: 1 }
+        { amount: 0, color: 'purple', cap: 1, softcap: 1 },
+        { amount: 0, color: 'pink'  , cap: 1, softcap: 1 },
+        { amount: 0, color: 'blue'  , cap: 1, softcap: 1 },
+        { amount: 0, color: 'lgreen', cap: 1, softcap: 1 },
+        { amount: 0, color: 'red'   , cap: 1, softcap: 1 },
+        { amount: 0, color: 'yellow', cap: 1, softcap: 1 },
+        { amount: 0, color: 'green' , cap: 1, softcap: 1 },
+        { amount: 0, color: 'teal'  , cap: 1, softcap: 1 },
+        { amount: 0, color: 'gold'  , cap: 1, softcap: 1 },
+        { amount: 0, color: 'orange', cap: 1, softcap: 1 }
     ],
     points: 0,
     upgrades: [],
@@ -119,7 +65,7 @@ gui = {
                 deduction -= levelscore - deduction * d;
                 level--
             }
-        },
+        },  
         getProgress: () => levelscore ? Math.min(1, Math.max(0, (sscore.get() - deduction) / levelscore)) : 0,
         getScore: () => sscore.get(),
         getLevel: () => level,
@@ -359,7 +305,7 @@ const get = {
     next: () => {
         if (crawlIndex >= crawlData.length) {
             console.log(crawlData);
-            throw new Error("Trying to crawl past the end of the provided data!");
+            throw new Error('Trying to crawl past the end of the provided data!');
         } else {
             return crawlData[crawlIndex++];
         }
@@ -405,8 +351,8 @@ const GunContainer = n => {
             isUpdated: true,
             configLoaded: false,
             color: "",
-            borderless: false,
-            drawFill: true,
+            borderless: false, 
+            drawFill: true, 
             drawAbove: false,
             length: 0,
             width: 0,
@@ -414,7 +360,6 @@ const GunContainer = n => {
             angle: 0,
             direction: 0,
             offset: 0,
-            layer: 0,
         });
     }
     return {
@@ -442,7 +387,7 @@ const GunContainer = n => {
             if (!g.configLoaded) {
                 g.configLoaded = true;
                 g.color = c.color;
-                g.borderless = c.borderless;
+                g.borderless = c.borderless; 
                 g.alpha = c.alpha;
                 g.strokeWidth = c.strokeWidth;
                 g.drawFill = c.drawFill;
@@ -453,10 +398,6 @@ const GunContainer = n => {
                 g.angle = c.angle;
                 g.direction = c.direction;
                 g.offset = c.offset;
-                g.layer = c.layer;
-
-                // Sort the gun layers by changing the array itself
-                a.sort((a, b) => a.layer - b.layer);
             }
         },
         update: () => {
@@ -472,26 +413,26 @@ const GunContainer = n => {
     };
 };
 function Status() {
-    let statState = "normal",
+    let statState = 'normal',
         statTime = getNow();
     return {
         set: val => {
-            if (val !== statState || statState === "injured") {
-                if (statState !== "dying") statTime = getNow();
+            if (val !== statState || statState === 'injured') {
+                if (statState !== 'dying') statTime = getNow();
                 statState = val;
             }
         },
         getState: () => statState,
         getFade: () => {
-            return (statState === "dying" || statState === "killed") ? 1 - Math.min(1, (getNow() - statTime) / 300) : 1;
+            return (statState === 'dying' || statState === 'killed') ? 1 - Math.min(1, (getNow() - statTime) / 300) : 1;
         },
         getColor: () => {
-            return "#FFFFFF";
+            return '#FFFFFF';
         },
         getBlend: () => {
-            let o = (statState === "normal" || statState === "dying") ? 0 : 1 - Math.min(1, (getNow() - statTime) / 80);
-            if (getNow() - statTime > 500 && statState === "injured") {
-                statState = "normal";
+            let o = (statState === 'normal' || statState === 'dying') ? 0 : 1 - Math.min(1, (getNow() - statTime) / 80);
+            if (getNow() - statTime > 500 && statState === 'injured') {
+                statState = 'normal';
             }
             return o;
         }
@@ -506,8 +447,8 @@ const process = (z = {}) => {
     if (type & 0x01) { // issa turret
         z.facing = get.next();
         z.layer = get.next();
-        z.index = String(get.next());
-        z.color = decodeColor(get.next());
+        z.index = get.next();
+        z.color = get.next();
         z.size = get.next();
         z.realSize = get.next();
         z.sizeFactor = get.next();
@@ -538,7 +479,7 @@ const process = (z = {}) => {
         // Either way, keep pulling information
         // For limited entities only by only pulling their limited information.
         if (type & 0x10) {
-            z.index = String(get.next());
+            z.index = get.next();
             z.x = get.next();
             z.y = get.next();
             z.vx = get.next();
@@ -549,9 +490,9 @@ const process = (z = {}) => {
             z.vfacing = isNew ? z.facing : z.facing - oldFacing;
             z.vfacing = get.next();
             z.layer = get.next();
-            z.color = decodeColor(get.next());
+            z.color = get.next();
         } else { // Else pull all information.
-            z.index = String(get.next());
+            z.index = get.next();
             z.x = get.next();
             z.y = get.next();
             z.vx = get.next();
@@ -563,7 +504,7 @@ const process = (z = {}) => {
             z.vfacing = get.next();
             z.twiggle = get.next();
             z.layer = get.next();
-            z.color = decodeColor(get.next());
+            z.color = get.next();
             z.borderless = get.next();
             z.drawFill = get.next();
         }
@@ -580,14 +521,13 @@ const process = (z = {}) => {
             z.shield = get.next() / 65535;
             // Update stuff
             if (z.health < hh || z.shield < ss) {
-                z.render.status.set("injured");
+                z.render.status.set('injured');
             } else if (z.render.status.getFade() !== 1) {
                 // If it turns out that we thought it was dead and it wasn't
-                z.render.status.set("normal");
+                z.render.status.set('normal');
             }
         }
         z.alpha = get.next() / 255;
-        let hit = get.next();
         z.drawsHealth = !!(type & 0x02); // force to boolean
         // Nameplates
         if (type & 0x04) { // has a nameplate
@@ -619,13 +559,13 @@ const process = (z = {}) => {
                 shield: util.AdvancedSmoothBar(z.shield, 0.06, 1),
                 xAnim: new util.animBar(),
                 yAnim: new util.animBar(),
-                faceAnim: new util.animBar(true),
+                faceAnim: new util.animBar(!0),
             };
         }
         if (invuln) {
-            z.render.status.set("invuln");
-        } else if (z.render.status.getState() === "invuln") {
-            z.render.status.set("normal");
+            z.render.status.set('invuln');
+        } else if (z.render.status.getState() === 'invuln') {
+            z.render.status.set('normal');
         }
         // Update the rendering healthbars and size
         z.render.health.set(z.health);
@@ -634,21 +574,22 @@ const process = (z = {}) => {
         z.render.xAnim.add(z.x);
         z.render.yAnim.add(z.y);
         z.render.faceAnim.add(z.facing);
-        if (hit) z.render.status.set("injured");
         // Figure out if the class changed (and if so, refresh the guns and turrets)
         if (!isNew && z.oldIndex !== z.index) isNew = true;
         z.oldIndex = z.index;
     }
     // If it needs to have a gun container made, make one
     let gunnumb = get.next();
-    if (isNew || gunnumb !== z.guns.length) {
+    if (isNew) {
         z.guns = GunContainer(gunnumb);
+    } else if (gunnumb !== z.guns.length) {
+        throw new Error('Mismatch between data gun number and remembered gun number!');
     }
     // Decide if guns need to be fired one by one
     for (let i = 0; i < gunnumb; i++) {
         let time = get.next(),
             power = get.next(),
-            color = decodeColor(get.next()),
+            color = get.next(),
             alpha = get.next(),
             strokeWidth = get.next(),
             borderless = get.next(),
@@ -659,9 +600,8 @@ const process = (z = {}) => {
             aspect = get.next(),
             angle = get.next(),
             direction = get.next(),
-            offset = get.next(),
-            layer = get.next();
-        z.guns.setConfig(i, {color, alpha, strokeWidth, borderless, drawFill, drawAbove, length, width, aspect, angle, direction, offset, layer}); // Load gun config into container
+            offset = get.next();
+        z.guns.setConfig(i, {color, alpha, strokeWidth, borderless, drawFill, drawAbove, length, width, aspect, angle, direction, offset}); // Load gun config into container
         if (time > global.player.lastUpdate - global.metrics.rendergap) z.guns.fire(i, power); // Shoot it
     }
     // Update turrets
@@ -673,7 +613,7 @@ const process = (z = {}) => {
         }
     } else {
         if (z.turrets.length !== turnumb) {
-            throw new Error("Mismatch between data turret number and remembered turret number!");
+            throw new Error('Mismatch between data turret number and remembered turret number!');
         }
         for (let tur of z.turrets) {
             tur = process(tur);
@@ -682,208 +622,44 @@ const process = (z = {}) => {
     // Return our monsterous creation
     return z;
 };
-const killEntity = (e, output) => {
-    e.render.status.set(e.health === 1 ? "dying" : "killed");
-    if (e.render.status.getFade() !== 0 && util.isInView(e.render.x - global.player.renderx, e.render.y - global.player.rendery, e.size, true)) {
-        output.push(e);
-    } else {
-        if (global.chats[e.id]) {
-            for (let o of global.chats[e.id]) {
-                util.remove(global.chats[e.id], global.chats[e.id].indexOf(o));
-            };
-            delete global.chats[e.id];
-        };
-        if (e.render.textobjs != null) {
-            for (let o of e.render.textobjs) {
-                o.remove();
-            }
-        }
-    }
-};
-const patch = (z, mask) => {
-    if (z) {
-        z.interval = global.metrics.rendergap;
-        z.render.lastRender = global.player.time;
-    }
-    if (mask & 0x0001) {
-        if (z) {
-            z.render.lastx = z.x;
-            z.render.lasty = z.y;
-        }
-        let x = get.next(),
-            y = get.next();
-        if (z) {
-            z.x = x;
-            z.y = y;
-        }
-    }
-    if (mask & 0x0002) {
-        if (z) {
-            z.render.lastvx = z.vx;
-            z.render.lastvy = z.vy;
-        }
-        let vx = get.next(),
-            vy = get.next();
-        if (z) {
-            z.vx = vx;
-            z.vy = vy;
-        }
-    }
-    if (mask & 0x0004) {
-        let size = get.next();
-        if (z) {
-            z.size = size;
-            z.render.size.add(z.size);
-        }
-    }
-    if (mask & 0x0008) {
-        if (z) z.render.lastf = z.facing;
-        let facing = get.next(),
-            vfacing = get.next();
-        if (z) {
-            z.facing = facing;
-            z.vfacing = vfacing;
-        }
-    }
-    if (mask & 0x0010) {
-        let health = get.next() / 65535,
-            shield = get.next() / 65535;
-        if (z) {
-            let hh = z.health,
-                ss = z.shield;
-            z.health = health;
-            z.shield = shield;
-            z.render.health.set(z.health);
-            z.render.shield.set(z.shield);
-            if (z.health < hh || z.shield < ss) {
-                z.render.status.set("injured");
-            } else if (z.render.status.getFade() !== 1) {
-                z.render.status.set("normal");
-            }
-        }
-    }
-    if (mask & 0x0020) {
-        let alpha = get.next() / 255;
-        if (z) z.alpha = alpha;
-    }
-    if (mask & 0x0040) {
-        // bit0 twiggle, bit1 invuln, bit2 borderless, bit3 drawFill
-        let flags = get.next();
-        if (z) {
-            z.twiggle = !!(flags & 1);
-            z.invuln = (flags & 2) ? (z.invuln || Date.now()) : 0;
-            z.borderless = !!(flags & 4);
-            z.drawFill = !!(flags & 8);
-            if (flags & 2) z.render.status.set("invuln");
-            else if (z.render.status.getState() === "invuln") z.render.status.set("normal");
-        }
-    }
-    if (mask & 0x0080) {
-        let color = decodeColor(get.next());
-        if (z) z.color = color;
-    }
-    if (mask & 0x0100) {
-        let name = get.next();
-        if (z) z.name = name;
-    }
-    if (mask & 0x0200) {
-        let score = get.next();
-        if (z) z.score = score;
-    }
-    if (mask & 0x0400) {
-        let layer = get.next();
-        if (z) z.layer = layer;
-    }
-    if (mask & 0x0800) {
-        let gunnumb = get.next();
-        if (z && gunnumb !== z.guns.length) z.guns = GunContainer(gunnumb);
-        for (let i = 0; i < gunnumb; i++) {
-            let gunMask = get.next();
-            let time = gunMask & 0x0001 ? get.next() : 0,
-                power = gunMask & 0x0002 ? get.next() : 0,
-                color = gunMask & 0x0004 ? decodeColor(get.next()) : "",
-                alpha = gunMask & 0x0008 ? get.next() : 1,
-                strokeWidth = gunMask & 0x0010 ? get.next() : 1,
-                borderless = gunMask & 0x0020 ? get.next() : false,
-                drawFill = gunMask & 0x0040 ? get.next() : true,
-                drawAbove = gunMask & 0x0080 ? get.next() : false,
-                length = gunMask & 0x0100 ? get.next() : 0,
-                width = gunMask & 0x0200 ? get.next() : 0,
-                aspect = gunMask & 0x0400 ? get.next() : 0,
-                angle = gunMask & 0x0800 ? get.next() : 0,
-                direction = gunMask & 0x1000 ? get.next() : 0,
-                offset = gunMask & 0x2000 ? get.next() : 0,
-                layer = gunMask & 0x4000 ? get.next() : 0;
-            if (z) {
-                z.guns.setConfig(i, {color, alpha, strokeWidth, borderless, drawFill, drawAbove, length, width, aspect, angle, direction, offset, layer});
-                if (time > global.player.lastUpdate - global.metrics.rendergap) z.guns.fire(i, power);
-            }
-        }
-    }
-    if (mask & 0x1000) {
-        const turnumb = get.next();
-        const rebuild = !z || z.turrets.length !== turnumb;
-        if (z && rebuild) z.turrets = [];
-        for (let i = 0; i < turnumb; i++) {
-            const tflag = get.next();
-            if (tflag === 1) {
-                const facing = get.next();
-                if (z && !rebuild) z.turrets[i].facing = facing;
-            } else if (tflag === 2) {
-                if (!z) process();
-                else if (rebuild) z.turrets.push(process());
-                else z.turrets[i] = process(z.turrets[i]);
-            }
-        }
-    }
-    if (mask & 0x2000) {
-        let hit = get.next();
-        if (z && hit) z.render.status.set("injured");
-    }
-    if (z) {
-        z.render.xAnim.add(z.x);
-        z.render.yAnim.add(z.y);
-        z.render.faceAnim.add(z.facing);
-    }
-};
 // This is what we use to figure out what the hell the server is telling us to look at
 const convert = {
     begin: data => get.set(data),
     // Make a data convertor
     data: () => {
+        // Set up the output thingy+
         let output = [];
-        if (global.deltaEntities) {
-            for (let i = 0, len = get.next(); i < len; i++) {
-                output.push(process());
+        // Get the number of entities and work through them
+        for (let i = 0, len = get.next(); i < len; i++) {
+            output.push(process());
+        }
+        // Handle the dead/leftover entities
+        for (let e of global.entities) {
+            // Kill them
+            e.render.status.set(e.health === 1 ? 'dying' : 'killed');
+            // And only push them if they're not entirely dead and still visible
+            if (e.render.status.getFade() !== 0 && util.isInView(e.render.x - global.player.renderx, e.render.y - global.player.rendery, e.size, true)) {
+                output.push(e);
+            } else {
+                if (global.chats[e.id]) {
+                    for (let o of global.chats[e.id]) {
+                        util.remove(global.chats[e.id], global.chats[e.id].indexOf(o)); // Remove it properly
+                    };
+                    delete global.chats[e.id]; // Now we can delete it entirely
+                };
+                if (e.render.textobjs != null) {
+                    for (let o of e.render.textobjs) {
+                        o.remove();
+                    }
+                }
             }
-            for (let i = 0, len = get.next(); i < len; i++) {
-                let id = get.next(),
-                    mask = get.next(),
-                    index = global.entities.findIndex(x => x.id === id),
-                    z = index !== -1 ? global.entities.splice(index, 1)[0] : null;
-                patch(z, mask);
-                if (z) output.push(z);
-            }
-            for (let i = 0, len = get.next(); i < len; i++) {
-                let id = get.next();
-                let index = global.entities.findIndex(x => x.id === id);
-                if (index !== -1) killEntity(global.entities.splice(index, 1)[0], output);
-            }
-            for (let e of global.entities) if (e.render.status.getFade() !== 0) output.push(e);
-        } else {
-            // Get the number of entities and work through them
-            for (let i = 0, len = get.next(); i < len; i++) {
-                output.push(process());
-            }
-            // Handle the dead/leftover entities
-            for (let e of global.entities) killEntity(e, output);
         }
         // Save the new entities list
         global.entities = output;
         global.entities.sort((a, b) => {
             let sort = a.layer - b.layer;
             if (!sort) sort = b.id - a.id;
-            if (!sort) throw new Error("tha fuq is up now");
+            if (!sort) throw new Error('tha fuq is up now');
             return sort;
         });
     },
@@ -912,7 +688,7 @@ const convert = {
         }
         if (indices.label) {
             gui.type = get.next();
-            gui.color = decodeColor(get.next());
+            gui.color = get.next();
             gui.playerid = get.next();
         }
         if (indices.score) {
@@ -990,7 +766,7 @@ const convert = {
                 type: data[0],
                 x: (data[1] * global.gameWidth) / 255,
                 y: (data[2] * global.gameHeight) / 255,
-                color: decodeColor(data[3]),
+                color: data[3],
                 size: data[4]
             });
         }
@@ -1003,7 +779,7 @@ const convert = {
                 type: 0,
                 x: (data[0] * global.gameWidth) / 255,
                 y: (data[1] * global.gameHeight) / 255,
-                color: decodeColor(data[2]),
+                color: data[2],
                 size: 0
             });
         }
@@ -1016,11 +792,11 @@ const convert = {
             entries.push({
                 id,
                 score: data[0],
-                index: String(data[1]),
+                index: data[1],
                 name: data[2],
-                color: decodeColor(data[3]),
-                bar: decodeColor(data[4]),
-                nameColor: decodeColor(data[5]),
+                color: data[3],
+                bar: data[4],
+                nameColor: data[5],
                 label: data[6],
                 renderEntity: data[7],
             })
@@ -1034,24 +810,22 @@ const protocols = {
     "https:": "wss://"
 };
 let incoming = async function(message, socket) {
-    global.metrics.lastPacketTime = Date.now();
     await new Promise(Resolve => setTimeout(Resolve, window.fakeLagMS));
     // Make sure it looks legit.
     global.bandwidth.currentFa += message.data.byteLength;
-    global.bandwidth.totalFa += message.data.byteLength;
     let m = protocol.decode(message.data);
     if (m === -1) {
-        throw new Error("Malformed packet.");
+        throw new Error('Malformed packet.');
     }
     // Decide how to interpret it
     switch (m.shift()) {
-        case "W": {
+        case 'W': {
             if (m[0]) {
-                global.message = "";
-                socket.talk("k", global.playerKey, config.game.deltaEntities ? 1 : 0);
+                global.message = '';
+                socket.talk('k', global.playerKey);
                 // define a pinging function
                 socket.ping = (payload) => {
-                    socket.talk("p", payload);
+                    socket.talk('p', payload);
                 };
                 socket.commandCycle = setInterval(() => {
                     if (socket.cmd.check()) socket.cmd.talk();
@@ -1060,61 +834,39 @@ let incoming = async function(message, socket) {
         }; break;
 
 
-            case "w": { // welcome to the game
-                global.deltaEntities = m[1] === 1; // server tells us if it will send delta entity packets
+            case 'w': { // welcome to the game
                 if (m[0]) { // Ask to get the room data first
-                    socket.talk("s", "", 1, 0, false, 0);
+                    socket.talk('s', "", 1, 0, false, 0);
                 }
             }; break;
-            case "R": { // room setup
+            case 'R': { // room setup
                 global.gameWidth = m[0];
                 global.gameHeight = m[1];
                 global.player.roomAnim.x.add(m[0]);
                 global.player.roomAnim.y.add(m[1]);
-                global.roomSetup = expandRoom(JSON.parse(m[2]), true);
+                global.roomSetup = JSON.parse(m[2]);
                 serverStart = JSON.parse(m[3]);
                 global.serverStart = serverStart;
                 config.roomSpeed = m[4];
                 let blackoutData = JSON.parse(m[5]);
                 global.advanced.blackout.active = blackoutData.active;
                 global.advanced.blackout.color = blackoutData.color;
-                global.advanced.roundArena = m[6];
-                config.game.instantRespawn = m[7];
+                global.advanced.roundMap = m[6] == "circle" ? true : false;
                 // Start syncing
-                socket.talk("S", getNow());
+                socket.talk('S', getNow());
             } break;
             case "r": {
                 global.gameWidth = m[0];
                 global.gameHeight = m[1];
                 global.player.roomAnim.x.add(m[0]);
                 global.player.roomAnim.y.add(m[1]);
-                global.roomSetup = expandRoom(JSON.parse(m[2]), false);
+                global.roomSetup = JSON.parse(m[2]);
             } break;
-            case "ru": {
-                let x = m[0], y = m[1];
-                if (global.roomSetup[y] && global.roomSetup[y][x]) {
-                    global.roomSetup[y][x].color = m[2];
-                    global.roomSetup[y][x].image = m[3];
-                }
+            case "temporaryban": {
+                global.message = "You have been temporarily banned from the game. You will be able to rejoin after a server restart.";
             } break;
-            /*
-                TODO:
-                - Display ban ID when trying to connect under any of these circumstances (right now just a "XXXXXXXX" placeholder)
-                - Ban IDs are always 8 chars long, in hex, and (seemingly) randomly generated
-                - Each IP ban generates a different code, each temp/perm ban uses the same one from the ban it's referring to
-                - Try to avoid duplicate ban IDs just in case of a 1 in 4 billion chance
-            */
-            case "ipBan": {
-                global.message = `Your network has been flagged and is currently restricted.\nIf you are using a VPN or proxy, please turn it off.\nIf you are not using a VPN or proxy of any kind, please contact support at [DISCORD LINK HERE].\nConnection ID: C-${"XXXXXXXX"}`;
-            } break;
-            case "temporaryBan": {
-                global.message = `You have been temporarily banned from the game.\nYou will be able to rejoin after a server restart.\nBan ID: B-${"XXXXXXXX"}`;
-            } break;
-            case "tempModBan": {
-                global.message = `You have been temporarily banned by a game moderator.\nYou will be able to rejoin after a server restart.\nBan ID: M-${"XXXXXXXX"}`;
-            } break;
-            case "permanentBan": {
-                global.message = `You have been permanently banned from the game.\nReason: \nBan ID: U-${"XXXXXXXX"}`;
+            case "permanentban": {
+                global.message = "You have been banned from the game.";
             } break;
             case "svInfo": {
                 // For debugging.
@@ -1125,14 +877,14 @@ let incoming = async function(message, socket) {
             case "gSvInfo": {
                 global.serverStats.players = m[1];
             } break;
-            case "c": { // force camera move
+            case 'c': { // force camera move
                 global.player.renderx = global.player.cx.x = m[0];
                 global.player.rendery = global.player.cy.y = m[1];
                 global.player.renderv = global.player.view = m[2];
                 global.player.animX.add(m[0]);
                 global.player.animY.add(m[1]);
             } break;
-            case "S": { // clock syncing
+            case 'S': { // clock syncing
                 let clientTime = m[0],
                     serverTime = m[1],
                     laten = (getNow() - clientTime) / 2,
@@ -1147,7 +899,7 @@ let incoming = async function(message, socket) {
                     // Erase entities if resync is needed.
                     if (startSettings.neededtoresync) global.entities = [];
                     // Wait a bit just to space things out
-                    setTimeout(() => socket.talk("S", getNow()), 10);
+                    setTimeout(() => socket.talk('S', getNow()), 10);
                 } else {
                     // Calculate the clock error
                     sync.sort((e, f) => e.latency - f.latency);
@@ -1177,29 +929,28 @@ let incoming = async function(message, socket) {
                     util.pullTotalPlayers();
                     global.gameUpdate = true;
                     // Now we can ask for spawn.
-                    socket.talk("s", global.playerName, 0, 1 * config.game.autoLevelUp, global.bodyID ? global.bodyID : false, 1 * config.game.incognitoMode);
+                    socket.talk('s', global.playerName, 0, 1 * config.game.autoLevelUp, global.bodyID ? global.bodyID : false, 1 * config.game.incognitoMode);
                     global.bodyID = undefined;
                 }
             } break;
-        case "m": { // message
+        case 'm': { // message
             global.createMessage(m[1], m[0]);
         } break;
         case "Em": {
             global.createMessage(m[1], m[0], true);
         } break;
-        case "RE": {
+        case 'RE': {
             global.mockups = [];
             global.entities = [];
         } break;
-        case "CC": {
+        case 'CC': {
             global.cached = {};
         } break;
-        case "M": {
+        case 'M': {
             if (!m[1]) return;
-            const raw = JSON.parse(m[1]);
-            global.mockups[m[0]] = Array.isArray(raw) ? decodeMockupVal(raw) : raw;
+            global.mockups[m[0]] = JSON.parse(m[1]);
         } break;
-        case "u": { // uplink
+        case 'u': { // uplink
             // Pull the camera info
             if (m[0] == true) { // Update camera only if we want to.
                 let camx = m[1],
@@ -1235,7 +986,7 @@ let incoming = async function(message, socket) {
                 global.player.time = camtime + lag.get();
                 global.metrics.rendergap = camtime - global.player.lastUpdate;
                 if (global.metrics.rendergap <= 0) {
-                    console.log("yo some bullshit is up wtf");
+                    console.log('yo some bullshit is up wtf');
                 }
                 global.player.lastUpdate = camtime;
                 // Convert the gui and entities
@@ -1271,7 +1022,7 @@ let incoming = async function(message, socket) {
                 console.log("Old data! Last given time: " + global.player.time + "; offered packet timestamp: " + camtime + ".");
             }
             // Send the downlink and the target
-            socket.talk("d", Math.max(global.player.lastUpdate, camtime));
+            socket.talk('d', Math.max(global.player.lastUpdate, camtime));
             socket.cmd.talk();
             global.updateTimes++; // metrics
         } break;
@@ -1280,7 +1031,7 @@ let incoming = async function(message, socket) {
             convert.begin(m);
             convert.broadcast();
         } break;
-        case "p": { // ping
+        case 'p': { // ping
             setTimeout(() => {
                 try {
                     global.socket.ping(Date.now() - clockDiff - serverStart);
@@ -1290,8 +1041,7 @@ let incoming = async function(message, socket) {
             let c = Date.now() - clockDiff - serverStart - m[0];
             0 < c && global.metrics.latency.push(c);
         } break;
-        case "F": { // to pay respects
-            global.deathTimestamp = Date.now();
+        case 'F': { // to pay respects
             global.deathAnimation = util.AdvancedSmoothBar(0, 4, 1);
             global.deathAnimation.set(4);
             global.finalScore = util.AdvancedSmoothBar(0, 1.5);
@@ -1300,15 +1050,6 @@ let incoming = async function(message, socket) {
             global.finalLifetime.set(m[1]);
             global.finalKills = [util.AdvancedSmoothBar(0, 4), util.AdvancedSmoothBar(0, 5.5), util.AdvancedSmoothBar(0, 2.5), util.AdvancedSmoothBar(0, 6)];
             global.respawnTimeout = m[2];
-            global.readyToRespawn = false;
-            if (global.respawnReadyTimeout) clearTimeout(global.respawnReadyTimeout);
-            if (config.game.instantRespawn) {
-                global.readyToRespawn = true;
-            } else {
-                global.respawnReadyTimeout = setTimeout(() => {
-                    global.readyToRespawn = true;
-                }, 3000);
-            }
             if (global.respawnTimeout > 0) {
                 global.cannotRespawn = true;
                 setTimeout(() => {
@@ -1329,7 +1070,7 @@ let incoming = async function(message, socket) {
             global.finalKills[3].set(m[6]);
             global.finalKillers = [];
             for (let i = 0; i < m[7]; i++) {
-                global.finalKillers.push(String(m[8 + i]));
+                global.finalKillers.push(m[8 + i]);
             }
             global.canvas.reverseDirection = false;
             global.died = true;
@@ -1337,14 +1078,14 @@ let incoming = async function(message, socket) {
             global.syncingWithTank = false;
             global.clickables.mobileButtons.active = false;
         } break;
-        case "I": { // sync with the tank
+        case 'I': { // sync with the tank
             if (m[0]) {
                 global.syncingWithTank = true;
             } else {
                 global.syncingWithTank = false;
             }
         } break;
-        case "DTA": {
+        case 'DTA': {
             let data = JSON.parse(m[0]);
             if (data.waitTime == "isVideo") {
                 let renderDoc = document.createElement("video");
@@ -1389,11 +1130,11 @@ let incoming = async function(message, socket) {
             }
             global.dailyTankAd.renderUI = true;
         } break;
-        case "DTAD": {
+        case 'DTAD': {
             if (global.dailyTankAd.requestInterval) clearInterval(global.dailyTankAd.requestInterval)
             global.dailyTankAd.exit();
         } break;
-        case "DTAST": {
+        case 'DTAST': {
             global.dailyTankAd.render.onended = () => {
                 global.dailyTankAd.requestInterval = setInterval(() => {
                     socket.talk("DTAD");
@@ -1403,7 +1144,7 @@ let incoming = async function(message, socket) {
             global.dailyTankAd.render.play();
             global.dailyTankAd.readyToRender = true;
         } break;
-        case "SH": {
+        case 'SH': {
             let data = JSON.parse(m[0]);
             if (data.type == "camera") { // If the server wants to shake our camera...
                 let set = config.graphical.shakeProperties.CameraShake; // Quick define
@@ -1448,10 +1189,10 @@ let incoming = async function(message, socket) {
             socket.open = false;
             clearInterval(socket.commandCycle);
             global.gameStart = false;
-
+    
             // Reset the player
             global.player = global.initPlayer();
-
+    
             // Setup
             global.gameLoading = true;
             global.serverAdd = m[0];
@@ -1466,44 +1207,36 @@ let incoming = async function(message, socket) {
             // Reconnect server
             global.reconnect();
         } break;
-        case "T": {
+        case 'T': {
             global.generateTankTree = true;
             global.renderTankTree = true;
         } break;
-
-        case "K": { // kicked
-            // Put your code while being kicked from the server.
+        
+        case 'K': { // kicked
+            // Put your code while being kicked from the server. 
         } break;
-        case "z": { // name color
-            global.nameColor = decodeColor(m[0]);
+        case 'z': { // name color
+            global.nameColor = m[0];
         } break;
-        case "Op": { // operator status change telling
-            global.hasOperator = m[0];
-            // If lost op remove the key buttons
-            if (!global.hasOperator) {
-                global.operatorKeyboard.open = false;
-                global.operatorKeyboard.prefix = null;
-            }
-        } break;
-        case "RM": { // Reset minimap teams if needed
+        case 'RM': { // Reset minimap teams if needed
             minimapTeamInt.reset();
             minimapAllInt.elements = {};
         } break;
-        case "RL": { // Reset leaderboard if needed
+        case 'RL': { // Reset leaderboard if needed
             leaderboardInt.reset();
         } break;
-        case "message": {
+        case 'message': {
             global.message = m[0];
         } break;
-        case "AS": { // Activating smooth camera if needed.
+        case 'AS': { // Activating smooth camera if needed.
             config.graphical.smoothcamera2 = config.graphical.smoothcamera;
             config.graphical.smoothcamera = true;
         } break;
-        case "DS": { // Deactivate smooth camera if needed.
+        case 'DS': { // Deactivate smooth camera if needed.
             if (!config.graphical.smoothcamera2) config.graphical.smoothcamera = false;
             delete config.graphical.smoothcamera2;
         } break;
-        case "CHAT_MESSAGE_ENTITY": {
+        case 'CHAT_MESSAGE_ENTITY': {
             if (!global.chats) global.chats = {};
             for (let data of JSON.parse(m[0])) {
                 if (!global.chats[data.id]) global.chats[data.id] = [];
@@ -1535,7 +1268,7 @@ const socketInit = () => {
     window.resizeEvent();
     let socket = new WebSocket(protocols[location.protocol] + global.serverAdd);
     // Set up our socket
-    socket.binaryType = "arraybuffer";
+    socket.binaryType = 'arraybuffer';
     socket.open = false;
     // Handle commands
     let flag = false;
@@ -1563,7 +1296,7 @@ const socketInit = () => {
                 if (commands[i]) o += Math.pow(2, i);
             }
             let ratio = util.getRatio();
-            socket.talk("C", Math.round(global.target.x / ratio), Math.round(global.target.y / ratio), global.reverseTank, o);
+            socket.talk('C', Math.round(global.target.x / ratio), Math.round(global.target.y / ratio), global.reverseTank, o);
         },
         check: () => flag,
         getMotion: () => ({
@@ -1575,7 +1308,7 @@ const socketInit = () => {
             return flag;
         }
     };
-
+    // Learn how to talk
     socket.talk = async (...message) => {
         await new Promise(Resolve => setTimeout(Resolve, window.fakeLagMS));
         // Make sure the socket is open before we do anything
@@ -1583,17 +1316,19 @@ const socketInit = () => {
         message = protocol.encode(message)
         socket.send(message);
         global.bandwidth.currentHa += message.byteLength;
-        global.bandwidth.totalHa += message.byteLength;
     };
-
+    // Websocket functions for when stuff happens
+    // This is for when the socket first opens
     socket.onopen = function socketOpen() {
         socket.open = true;
         // define a pinging function
-        socket.ping = payload => socket.talk("p", payload);
+        socket.ping = payload => socket.talk('p', payload);
     };
-
+    
+    // Handle incoming messages
     socket.onmessage = (msg) => incoming(msg, socket);
 
+    // Handle closing
     socket.onclose = () => {
         if (!global.gameLoading) return;
         clearInterval(socket.commandCycle);
@@ -1601,15 +1336,14 @@ const socketInit = () => {
         if (global.dailyTankAd.render) global.dailyTankAd.exit();
         socket.open = false;
         global.disconnected = true;
-        global.disconnectTimestamp = Date.now();
     };
-
+    // Notify about errors
     socket.onerror = error => {
         clearInterval(socket.commandCycle);
         clearInterval(global.socketMotionCycle);
-        //global.message = "Socket timed out.";
+        global.message = 'Socket error. Maybe another server will work.';
     };
-
+    // Gift it to the rest of the world
     return socket;
 };
 
@@ -1625,7 +1359,7 @@ const resync = () => {
     leaderboardInt.elements = {};
     leaderboard.entries = {};
     minimap.map = {};
-    socket.talk("S", Date.now() - clockDiff - serverStart);
+    socket.talk('S', Date.now() - clockDiff - serverStart);
 };
 
 global.resetSocket = () => {

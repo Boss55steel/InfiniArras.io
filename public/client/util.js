@@ -4,13 +4,13 @@ import { config } from "./config.js";
 const util = (function() {
     return {
         submitToLocalStorage: name => {
-            localStorage.setItem(name + "Value", document.getElementById(name).value);
-            localStorage.setItem(name + "Checked", document.getElementById(name).checked);
+            localStorage.setItem(name + 'Value', document.getElementById(name).value);
+            localStorage.setItem(name + 'Checked', document.getElementById(name).checked);
             return false;
         },
         retrieveFromLocalStorage: name => {
-            document.getElementById(name).value = localStorage.getItem(name + "Value");
-            document.getElementById(name).checked = localStorage.getItem(name + "Checked") === "true";
+            document.getElementById(name).value = localStorage.getItem(name + 'Value');
+            document.getElementById(name).checked = localStorage.getItem(name + 'Checked') === 'true';
             return false;
         },
         pullJSON: fileName => {
@@ -77,10 +77,10 @@ const util = (function() {
         },
         handleLargeNumber: (a, cullZeroes = false) => {
             if (cullZeroes && a == 0) {
-                return "";
+                return '';
             }
             if (a < Math.pow(10, 3)) {
-                return "" + a.toFixed(0);
+                return '' + a.toFixed(0);
             }
             if (a < Math.pow(10, 6)) {
                 return (a / Math.pow(10, 3)).toFixed(2) + "k";
@@ -108,24 +108,24 @@ const util = (function() {
             x /= 24;
             x = Math.floor(x);
             let days = x;
-            let y = "";
+            let y = '';
     
             function weh(z, text) {
                 if (z) {
-                    y = y + ((y === "") ? "" : ", ") + z + " " + text + ((z > 1) ? "s" : "");
+                    y = y + ((y === '') ? '' : ', ') + z + ' ' + text + ((z > 1) ? 's' : '');
                 }
             }
-            weh(days, "day");
-            weh(hours, "hour");
-            weh(minutes, "minute");
-            weh(seconds, "second");
-            if (y === "") {
-                y = "less than a second";
+            weh(days, 'day');
+            weh(hours, 'hour');
+            weh(minutes, 'minute');
+            weh(seconds, 'second');
+            if (y === '') {
+                y = 'less than a second';
             }
             return y;
         },
         addArticle: string => {
-            return (/[aeiouAEIOU]/.test(string[0])) ? "an " + string : "a " + string;
+            return (/[aeiouAEIOU]/.test(string[0])) ? 'an ' + string : 'a ' + string;
         },
         formatLargeNumber: x => {
             return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -195,7 +195,7 @@ const util = (function() {
             }
         },
         animBar: class {
-            constructor(a = false) {
+            constructor(a = !1) {
               this.O = a;
               this.h = this.time = this.value = this.D = 0;
             }
@@ -205,7 +205,7 @@ const util = (function() {
               this.time = 0;
               this.h = 1;
             }
-            get(a, b = false) {
+            get(a, b = !1) {
               if (0 === config.animationSettings.value) return this.value;
               if (0 === this.h) return 0;
               if (1 === this.h) return (this.h = 2), (this.time = a), this.D;
@@ -256,7 +256,7 @@ const util = (function() {
                 rerootUpgradeTree = [],
                 allRoots = [],
                 trueColor = mainMockup.color;
-                if (trueColor == "16 0 1 0 false" && color) trueColor = color;
+                if (trueColor == '16 0 1 0 false' && color) trueColor = color;
             
             for (let i of index.split("-")) {
                 let mockup = global.mockups[parseInt(i)];
@@ -274,7 +274,6 @@ const util = (function() {
                     rerootUpgradeTree.push(root);
             }
             turrets.sort((a, b) => a.layer - b.layer);
-            guns.sort((a, b) => a.layer - b.layer);
             return {
                 time: 0,
                 index: index,
@@ -296,7 +295,7 @@ const util = (function() {
                             return 1;
                         },
                         getColor: () => {
-                            return "#FFFFFF";
+                            return '#FFFFFF';
                         },
                         getBlend: () => {
                             return 0;
@@ -340,7 +339,6 @@ const util = (function() {
                             angle: g.angle,
                             direction: g.direction,
                             offset: g.offset,
-                            layer: g.layer,
                         };
                     }),
                     update: () => {},
@@ -476,15 +474,15 @@ const util = (function() {
             if (!global.cached.imageEntities) global.cached.imageEntities = [];
             if (!global.cached.indexes) global.cached.indexes = [];
             if (!data) throw new Error("undefined detected!");
-            if (typeof data === "string" || data instanceof String && data.includes("-")) return util.getEntityImageFromMockup(data, color);
+            if (typeof data === 'string' || data instanceof String && data.includes("-")) return util.getEntityImageFromMockup(data, color);
             let image = {};
-            for (let index of typeof data === "string" || data instanceof String ? data.split("-") : data.index.split("-")) {
+            for (let index of typeof data === 'string' || data instanceof String ? data.split("-") : data.index.split("-")) {
                 if (global.cached.indexes.includes(index)) {
-                    const int = typeof data === "string" || data instanceof String ? data.toString() : index;
+                    const int = typeof data === 'string' || data instanceof String ? data.toString() : index;
                     image = global.cached.imageEntities.find(o => o.index == int);
                     continue;
                 };
-                image = util.getEntityImageFromMockup(typeof data === "string" || data instanceof String ? data.toString() : data.index, color);
+                image = util.getEntityImageFromMockup(typeof data === 'string' || data instanceof String ? data.toString() : data.index, color);
                 global.cached.imageEntities.push(image);
                 global.cached.indexes.push(index);
             }
@@ -509,7 +507,6 @@ const util = (function() {
                     turrets: image.turrets,
                     mirrorMasterAngle: true,
                     isImage: true,
-                    isProp: true
                 }
             } else return image;
         }

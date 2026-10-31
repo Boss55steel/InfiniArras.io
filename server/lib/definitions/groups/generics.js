@@ -1,9 +1,6 @@
-const { combineStats, skillSet, makePolyhedron } = require("../facilitators.js");
-const { base, dfltskl, smshskl, statnames } = require("../constants.js");
-const g = require("../gunvals.js");
-
-// Set the below variable to true to enable the flat ball from arras.io.
-const classic_ball = false;
+const {combineStats, skillSet, makeCrasher, makeLaby, makePolychoron, makePolyhedron, makePresent, makeRarities, makeRelic} = require('../facilitators.js')
+const {base, dfltskl, smshskl, statnames} = require('../constants.js')
+const g = require('../gunvals.js')
 
 // Entities
 Class.genericEntity = {
@@ -14,13 +11,12 @@ Class.genericEntity = {
     DANGER: 0,
     VALUE: 0,
     SHAPE: 0,
-    SIZE: 10,
     COLOR: {
         BASE: 16, // ID
         HUE_SHIFT: 0, // Additive, degrees
         SATURATION_SHIFT: 1, // Multiplicative
         BRIGHTNESS_SHIFT: 0, // Additive, ranges from -100 to 100
-        ALLOW_BRIGHTNESS_INVERT: false // Toggles offset invert if exceeding normal color bounds
+        ALLOW_BRIGHTNESS_INVERT: false, // Toggles offset invert if exceeding normal color bounds
     },
     INDEPENDENT: false,
     CONTROLLERS: [],
@@ -30,7 +26,6 @@ Class.genericEntity = {
     DRAW_HEALTH: false,
     DRAW_SELF: true,
     IS_IMMUNE_TO_TILES: false,
-    IS_IMMUNE_TO_PORTALS: false,
     DAMAGE_EFFECTS: true,
     RATEFFECTS: true,
     MOTION_EFFECTS: true,
@@ -95,8 +90,84 @@ Class.genericEntity = {
     FOOD: {
         LEVEL: -1
     }
-};
+}
+Class.cnx3DTank = {
+    PARENT: ["genericTank"], 
+    LABEL: "Mega 3D Tank",
+    COLOR: "grey", 
+    SIZE: 25, // MASSIVELY bigger base size
+    SHAPE: (function() {
+        const faces = [];
+        
+        // Builder function for true 3D geometry
+        function addBox(cx, cy, cz, dx, dy, dz) {
+            let top1 = [cx+dx, cy-dy, cz+dz], top2 = [cx-dx, cy-dy, cz+dz];
+            let top3 = [cx-dx, cy+dy, cz+dz], top4 = [cx+dx, cy+dy, cz+dz];
+            
+            let bot1 = [cx+dx, cy-dy, cz-dz], bot2 = [cx-dx, cy-dy, cz-dz];
+            let bot3 = [cx-dx, cy+dy, cz-dz], bot4 = [cx+dx, cy+dy, cz-dz];
 
+            faces.push([top1, top2, top3, top4]); // Top
+            faces.push([bot4, bot3, bot2, bot1]); // Bottom
+            faces.push([top4, bot4, bot1, top1]); // Front (Faces X+)
+            faces.push([top2, bot2, bot3, top3]); // Back (Faces X-)
+            faces.push([top3, bot3, bot4, top4]); // Right side
+            faces.push([top1, bot1, bot2, top2]); // Left side
+        }
+
+        // --- EXTREME 3D TANK GEOMETRY ---
+        // 1. Left & Right Tracks (Thick and heavy)
+        addBox(0, 10, -5, 15, 3, 3);
+        addBox(0, -10, -5, 15, 3, 3);
+        
+        // 2. Track Fenders (Overhangs that create deep shadows over the treads)
+        addBox(0, 10, -1.5, 16, 3.5, 0.5);
+        addBox(0, -10, -1.5, 16, 3.5, 0.5);
+        
+        // 3. Lower Hull
+        addBox(0, 0, -3, 14, 7, 2.5);
+        
+        // 4. Upper Hull / Engine Deck (Stepped up for depth)
+        addBox(-2, 0, 0, 12, 7, 1.5);
+        
+        // 5. Main Turret
+        addBox(-2, 0, 3, 6, 6, 1.5);
+        
+        // 6. Commander's Cupola (Small raised hatch on top of the turret)
+        addBox(-4, 0, 5, 2, 2, 1);
+        
+        // 7. Gun Mantlet (Thick armor block connecting barrel to turret)
+        addBox(5, 0, 3, 2, 3, 2);
+        
+        // 8. Main Cannon Barrel
+        addBox(14, 0, 3, 8, 0.8, 0.8);
+        
+        // 9. Muzzle Brake (Thickened tip at the very end of the barrel)
+        addBox(22, 0, 3, 1.5, 1.2, 1.2);
+
+        return makePolyhedron({
+            FACES: faces,
+            SCALE: 3, // Doubled the 3D projection scale!
+            VERTEXES_SCALE: 0.1 
+        });
+    })(),
+    BODY: {
+        HEALTH: 2000, // Gave it a bit more health to match its massive size
+        DAMAGE: 5,
+        SPEED: 0.8, // Slightly slower because it's so huge
+        FOV: 1.5 // Zooms your camera out a bit so you can see your massive tank
+    },
+    GUNS: [
+        {
+            // Pushed the bullet spawn point all the way out to the end of the new massive barrel
+            POSITION: [30, 4, 1, 0, 0, 0, 0], 
+            PROPERTIES: {
+                SHOOT_SETTINGS: combineStats([g.basic, g.pounder, g.destroyer]), // Shoots massive destroyer bullets now!
+                TYPE: "bullet"
+            }
+        }
+    ]
+};
 // Tanks
 Class.genericTank = {
     LABEL: "Unknown Class",
@@ -105,33 +176,24 @@ Class.genericTank = {
     DANGER: 5,
     SHAPE: 0,
     SIZE: 12,
-    HITS_OWN_TYPE: "hardOnlyTanks",
     MOTION_TYPE: "motor",
     FACING_TYPE: "toTarget",
-    ACCEPTS_SCORE: true,
-    ALPHA: [0, 1],
     ARENA_CLOSER: false,
     FULL_INVISIBLE: false,
-    CAN_BE_ON_LEADERBOARD: true,
-    CAN_GO_OUTSIDE_ROOM: false,
     CAN_SEE_INVISIBLE_ENTITIES: false,
     CONNECT_CHILDREN_ON_CAMERA: false,
     DAMAGE_EFFECTS: false,
     DRAW_HEALTH: true,
     GIVE_KILL_MESSAGE: true,
     HAS_NO_RECOIL: false,
+    HITS_OWN_TYPE: "hardOnlyTanks",
     IGNORED_BY_AI: false,
-    INVISIBLE: [0, 0],
     IS_IMMUNE_TO_TILES: false,
-    IS_IMMUNE_TO_PORTALS: false,
     MAX_CHILDREN: 0,
-    NECRO: false,
     NO_SIZE_ANIMATION: false,
     RENDER_ON_LEADERBOARD: true,
     REROOT_UPGRADE_TREE: Config.spawn_class,
-    RESET_CHILDREN: true,
     RESET_EVENTS: true,
-    SKILL_CAP: Array(10).fill(dfltskl),
     SYNC_WITH_TANK: false,
     BODY: {
         ACCELERATION: base.ACCEL,
@@ -144,13 +206,13 @@ Class.genericTank = {
         FOV: base.FOV,
         DENSITY: base.DENSITY,
         PUSHABILITY: 1,
-        HETERO: 3
+        HETERO: 3,
     },
     GUNS: [],
     TURRETS: [],
     PROPS: [],
-    ON: []
-};
+    ON: [],
+}
 Class.genericFlail = {
     PARENT: "genericTank",
     STAT_NAMES: statnames.flail,
@@ -166,8 +228,8 @@ Class.genericFlail = {
         MOVEMENT_SPEED: dfltskl,
         SHIELD_REGENERATION: dfltskl,
         SHIELD_CAPACITY: dfltskl
-    }
-};
+    },
+}
 Class.genericHealer = {
     PARENT: "genericTank",
     HEALING_TANK: true, // Mainly for bots to recognize the tank
@@ -181,46 +243,31 @@ Class.genericHealer = {
             }
         }
     ]
-};
+}
 Class.genericSmasher = {
     PARENT: "genericTank",
     DANGER: 7,
     IS_SMASHER: true,
     SKILL_CAP: {
+        RELOAD: smshskl,
+        PENETRATION: 0,
+        BULLET_HEALTH: 0,
+        BULLET_DAMAGE: 0,
+        BULLET_SPEED: 0,
+        SHIELD_CAPACITY: smshskl,
         BODY_DAMAGE: smshskl,
         MAX_HEALTH: smshskl,
-        BULLET_SPEED: 0,
-        BULLET_HEALTH: 0,
-        PENETRATION: 0,
-        BULLET_DAMAGE: 0,
-        RELOAD: smshskl,
-        MOVEMENT_SPEED: smshskl,
         SHIELD_REGENERATION: smshskl,
-        SHIELD_CAPACITY: smshskl
+        MOVEMENT_SPEED: smshskl
     },
     STAT_NAMES: statnames.smasher,
     BODY: {
         FOV: 1.05 * base.FOV,
-        SPEED: 1.125 * base.SPEED,
         DENSITY: 2 * base.DENSITY
     }
-};
+}
 
 // Map Objects
-Class.flag = {
-    LABEL: "Flag",
-    SIZE: 20,
-    COLOR: 3,
-    TURRETS: [
-        {
-            TYPE: "flagHat",
-            POSITION: {
-                SIZE: 20,
-                LAYER: 1
-            }
-        }
-    ]
-};
 Class.food = {
     TYPE: "food",
     DAMAGE_CLASS: 1,
@@ -229,7 +276,6 @@ Class.food = {
     MOTION_TYPE: "drift",
     FACING_TYPE: "turnWithSpeed",
     IS_IMMUNE_TO_TILES: false,
-    IS_IMMUNE_TO_PORTALS: false,
     LEVEL_CAP: 1,
     BODY: {
         STEALTH: 30,
@@ -238,8 +284,8 @@ Class.food = {
     },
     DAMAGE_EFFECTS: false,
     RATEFFECTS: false,
-    HEALTH_WITH_LEVEL: false
-};
+    HEALTH_WITH_LEVEL: false,
+}
 Class.genericObstacle = {
     TYPE: "wall",
     DAMAGE_CLASS: 1,
@@ -252,149 +298,13 @@ Class.genericObstacle = {
         REGEN: 1000,
         DAMAGE: 1,
         RESIST: 100,
-        STEALTH: 1
+        STEALTH: 1,
     },
     VALUE: 0,
     COLOR: "lightGray",
     ACCEPTS_SCORE: false,
     VARIES_IN_SIZE: true
-};
-
-// Colour each face by its vertex count: a truncated icosahedron (football) has 12 PENTAGONS
-// (5 verts → black) and 20 HEXAGONS (6 verts → white). Reading it from the geometry means the
-// right faces are always coloured, regardless of face order — no hand-made list to get wrong.
-let ballShape = makePolyhedron({
-    VERTEXES: [
-        [0.742344, 0.28355, -0.350487],
-        [0.850651, 0, -0.175244],
-        [0.742344, -0.28355, -0.350487],
-        [0.5671, -0.175244, -0.634038],
-        [0.5671, 0.175244, -0.634038],
-        [-0.5671, 0.175244, -0.634038],
-        [-0.5671, -0.175244, -0.634038],
-        [-0.742344, -0.28355, -0.350487],
-        [-0.850651, 0, -0.175244],
-        [-0.742344, 0.28355, -0.350487],
-        [0.5671, 0.175244, 0.634038],
-        [0.5671, -0.175244, 0.634038],
-        [0.742344, -0.28355, 0.350487],
-        [0.850651, 0, 0.175244],
-        [0.742344, 0.28355, 0.350487],
-        [-0.742344, 0.28355, 0.350487],
-        [-0.850651, 0, 0.175244],
-        [-0.742344, -0.28355, 0.350487],
-        [-0.5671, -0.175244, 0.634038],
-        [-0.5671, 0.175244, 0.634038],
-        [0.350487, 0.742344, -0.28355],
-        [0.175244, 0.850651, 0],
-        [0.350487, 0.742344, 0.28355],
-        [0.634038, 0.5671, 0.175244],
-        [0.634038, 0.5671, -0.175244],
-        [0.634038, -0.5671, -0.175244],
-        [0.634038, -0.5671, 0.175244],
-        [0.350487, -0.742344, 0.28355],
-        [0.175244, -0.850651, 0],
-        [0.350487, -0.742344, -0.28355],
-        [-0.634038, 0.5671, -0.175244],
-        [-0.634038, 0.5671, 0.175244],
-        [-0.350487, 0.742344, 0.28355],
-        [-0.175244, 0.850651, 0],
-        [-0.350487, 0.742344, -0.28355],
-        [-0.350487, -0.742344, -0.28355],
-        [-0.175244, -0.850651, 0],
-        [-0.350487, -0.742344, 0.28355],
-        [-0.634038, -0.5671, 0.175244],
-        [-0.634038, -0.5671, -0.175244],
-        [0.28355, 0.350487, -0.742344],
-        [0, 0.175244, -0.850651],
-        [-0.28355, 0.350487, -0.742344],
-        [-0.175244, 0.634038, -0.5671],
-        [0.175244, 0.634038, -0.5671],
-        [0.175244, 0.634038, 0.5671],
-        [-0.175244, 0.634038, 0.5671],
-        [-0.28355, 0.350487, 0.742344],
-        [0, 0.175244, 0.850651],
-        [0.28355, 0.350487, 0.742344],
-        [0.175244, -0.634038, -0.5671],
-        [-0.175244, -0.634038, -0.5671],
-        [-0.28355, -0.350487, -0.742344],
-        [0, -0.175244, -0.850651],
-        [0.28355, -0.350487, -0.742344],
-        [0.28355, -0.350487, 0.742344],
-        [0, -0.175244, 0.850651],
-        [-0.28355, -0.350487, 0.742344],
-        [-0.175244, -0.634038, 0.5671],
-        [0.175244, -0.634038, 0.5671]
-    ],
-    FACES: [
-        [41, 42, 5, 6, 52, 53],
-        [44, 20, 21, 33, 34, 43],
-        [41, 40, 44, 43, 42],
-        [42, 43, 34, 30, 9, 5],
-        [32, 31, 30, 34, 33],
-        [19, 15, 31, 32, 46, 47],
-        [47, 48, 56, 57, 18, 19],
-        [48, 49, 10, 11, 55, 56],
-        [11, 10, 14, 13, 12],
-        [2, 25, 26, 12, 13, 1],
-        [1, 0, 4, 3, 2],
-        [21, 20, 24, 23, 22],
-        [32, 33, 21, 22, 45, 46],
-        [46, 45, 49, 48, 47],
-        [10, 49, 45, 22, 23, 14],
-        [14, 23, 24, 0, 1, 13],
-        [44, 40, 4, 0, 24, 20],
-        [41, 53, 54, 3, 4, 40],
-        [39, 7, 8, 16, 17, 38],
-        [9, 30, 31, 15, 16, 8],
-        [15, 19, 18, 17, 16],
-        [50, 29, 28, 36, 35, 51],
-        [53, 52, 51, 50, 54],
-        [25, 2, 3, 54, 50, 29],
-        [26, 25, 29, 28, 27],
-        [6, 5, 9, 8, 7],
-        [52, 6, 7, 39, 35, 51],
-        [39, 38, 37, 36, 35],
-        [58, 57, 56, 55, 59],
-        [18, 57, 58, 37, 38, 17],
-        [11, 12, 26, 27, 59, 55],
-        [28, 27, 59, 58, 37, 36]
-    ],
-    SCALE: 12,
-    VERTEXES_SCALE: 0.1
-});
-Class.ball = {
-    PARENT: "food",
-    LABEL: "Ball",
-    VALUE: 2e7,
-    SIZE: 30,
-    COLOR: "veryLightGrey",
-    SHAPE: ballShape + "/" + ballShape.split("/")[1].split(";").map(face => face.split(",").length === 5 ? "black" : "veryLightGrey").join(","),
-    BODY: {
-        DAMAGE: 4.8,
-        DENSITY: 20,
-        HEALTH: 40,
-        RESIST: 1.25,
-        PENETRATION: 17.5,
-        ACCELERATION: 0.002
-    },
-    DRAW_HEALTH: false,
-    INTANGIBLE: false,
-    GIVE_KILL_MESSAGE: true
-};
-if (classic_ball) {
-    Class.ball.SHAPE = 0;
-    Class.ball.COLOR = "black";
-    Class.ball.PROPS = [
-        {
-            TYPE: "ballHat",
-            POSITION: {
-                SIZE: 20,
-                LAYER: 1
-            }
-        }
-    ];
-};
+}
 
 // Projectiles
 Class.bullet = {
@@ -408,13 +318,13 @@ Class.bullet = {
         DENSITY: 1.25,
         HEALTH: 0.165,
         DAMAGE: 6,
-        PUSHABILITY: 0.3
+        PUSHABILITY: 0.3,
     },
     FACING_TYPE: "smoothWithMotion",
     CAN_GO_OUTSIDE_ROOM: true,
     HITS_OWN_TYPE: "never",
-    DIE_AT_RANGE: true
-};
+    DIE_AT_RANGE: true,
+}
 Class.drone = {
     LABEL: "Drone",
     TYPE: "drone",
@@ -428,10 +338,10 @@ Class.drone = {
         "nearestDifferentMaster",
         "canRepel",
         "mapTargetToGoal",
-        "hangOutNearMaster"
+        "hangOutNearMaster",
     ],
     AI: {
-        BLIND: true
+        BLIND: true,
     },
     BODY: {
         PENETRATION: 1.2,
@@ -443,13 +353,13 @@ Class.drone = {
         RANGE: 200,
         DENSITY: 0.03,
         RESIST: 1.5,
-        FOV: 0.5
+        FOV: 0.5,
     },
     HITS_OWN_TYPE: "droneCollision",
     DRAW_HEALTH: false,
     CLEAR_ON_MASTER_UPGRADE: true,
-    BUFF_VS_FOOD: true
-};
+    BUFF_VS_FOOD: true,
+}
 Class.satellite = { 
     LABEL: "Satellite",
     TYPE: "satellite",
@@ -457,7 +367,7 @@ Class.satellite = {
     DANGER: 2,
     SHAPE: 0,
     LAYER: 13,
-    CONTROLLERS: ["orbit"],
+    CONTROLLERS: ['orbit'],
     FACING_TYPE: "spin",
     BODY: {
         PENETRATION: 1.2,
@@ -469,13 +379,13 @@ Class.satellite = {
         RANGE: 200,
         DENSITY: 0.03,
         RESIST: 1.5,
-        FOV: 0.5
+        FOV: 0.5,
     },
     DRAW_HEALTH: false,
     CLEAR_ON_MASTER_UPGRADE: true,
     BUFF_VS_FOOD: true,
-    MOTION_TYPE: "motor"
-};
+    MOTION_TYPE: 'motor'
+}
 Class.swarm = {
     LABEL: "Swarm Drone",
     TYPE: "swarm",
@@ -495,11 +405,11 @@ Class.swarm = {
         RANGE: 225,
         DENSITY: 12,
         PUSHABILITY: 0.6,
-        FOV: 1.5
+        FOV: 1.5,
     },
     DIE_AT_RANGE: true,
-    BUFF_VS_FOOD: true
-};
+    BUFF_VS_FOOD: true,
+}
 Class.trap = {
     LABEL: "Thrown Trap",
     TYPE: "trap",
@@ -515,10 +425,451 @@ Class.trap = {
         RANGE: 450,
         DENSITY: 2.5,
         RESIST: 2.5,
-        SPEED: 0
-    }
-};
+        SPEED: 0,
+    },
+}
+{
+    tetrahedron_shape = makePolyhedron({
+        FACES: [
+            [[1, 1, 1], [-1, 1, -1], [1, -1, -1]],
+            [[-1, 1, -1], [-1, -1, 1], [1, -1, -1]],
+            [[1, 1, 1], [1, -1, -1], [-1, -1, 1]],
+            [[1, 1, 1], [-1, -1, 1], [-1, 1, -1]]
+        ],
+        SCALE: 5,
+        VERTEXES_SCALE: 0.1
+    })
+    octahedron_shape = makePolyhedron({
+        FACES: (function () {
+            const x = 3 / (2 * Math.sqrt(2));
+            const y = 3 / 2;
+            return [
+                [[-x, 0, x], [-x, 0, -x], [0, y, 0]],
+                [[-x, 0, -x], [x, 0, -x], [0, y, 0]],
+                [[x, 0, -x], [x, 0, x], [0, y, 0]],
+                [[x, 0, x], [-x, 0, x], [0, y, 0]],
+                [[x, 0, -x], [-x, 0, -x], [0, -y, 0]],
+                [[-x, 0, -x], [-x, 0, x], [0, -y, 0]],
+                [[x, 0, x], [x, 0, -x], [0, -y, 0]],
+                [[-x, 0, x], [x, 0, x], [0, -y, 0]]
+            ];
+        })(),
+        SCALE: 7.5,
+        VERTEXES_SCALE: 0.1
+    })
+    cube_shape = makePolyhedron({
+        VERTEXES: [
+            [1, 1, 1],
+            [-1, 1, 1],
+            [-1, -1, 1],
+            [1, -1, 1],
+            [1, 1, -1],
+            [-1, 1, -1],
+            [-1, -1, -1],
+            [1, -1, -1]
+        ],
+        FACES: [
+            [0, 1, 2, 3],
+            [4, 5, 6, 7],
+            [1, 2, 6, 5],
+            [0, 3, 7, 4],
+            [0, 1, 5, 4],
+            [2, 3, 7, 6]
+        ],
+        SCALE: 7.5,
+        VERTEXES_SCALE: 0.1
+    })
+    dodecahedron_shape = makePolyhedron({
+        FACES: (function () {
+            let phi = (1 + Math.sqrt(5)) / 2,
+                x = 1,
+                y = 1 / phi,
+                z = 2 - phi;
 
+            x *= 1.5;
+            y *= 1.5;
+            z *= 1.5;
+
+            return [
+                [
+                    [z, 0, x],
+                    [-z, 0, x],
+                    [-y, y, y],
+                    [0, x, z],
+                    [y, y, y]
+                ],
+                [
+                    [-z, 0, x],
+                    [z, 0, x],
+                    [y, -y, y],
+                    [0, -x, z],
+                    [-y, -y, y]
+                ],
+                [
+                    [z, 0, -x],
+                    [-z, 0, -x],
+                    [-y, -y, -y],
+                    [0, -x, -z],
+                    [y, -y, -y]
+                ],
+                [
+                    [-z, 0, -x],
+                    [z, 0, -x],
+                    [y, y, -y],
+                    [0, x, -z],
+                    [-y, y, -y]
+                ],
+                [
+                    [0, x, -z],
+                    [0, x, z],
+                    [y, y, y],
+                    [x, z, 0],
+                    [y, y, -y]
+                ],
+                [
+                    [0, x, z],
+                    [0, x, -z],
+                    [-y, y, -y],
+                    [-x, z, 0],
+                    [-y, y, y]
+                ],
+                [
+                    [0, -x, -z],
+                    [0, -x, z],
+                    [-y, -y, y],
+                    [-x, -z, 0],
+                    [-y, -y, -y]
+                ],
+                [
+                    [0, -x, z],
+                    [0, -x, -z],
+                    [y, -y, -y],
+                    [x, -z, 0],
+                    [y, -y, y]
+                ],
+                [
+                    [x, z, 0],
+                    [x, -z, 0],
+                    [y, -y, y],
+                    [z, 0, x],
+                    [y, y, y]
+                ],
+                [
+                    [x, -z, 0],
+                    [x, z, 0],
+                    [y, y, -y],
+                    [z, 0, -x],
+                    [y, -y, -y]
+                ],
+                [
+                    [-x, z, 0],
+                    [-x, -z, 0],
+                    [-y, -y, -y],
+                    [-z, 0, -x],
+                    [-y, y, -y]
+                ],
+                [
+                    [-x, -z, 0],
+                    [-x, z, 0],
+                    [-y, y, y],
+                    [-z, 0, x],
+                    [-y, -y, y]
+                ]
+            ];
+        })(),
+        SCALE: 6.5,
+        VERTEXES_SCALE: 0.1
+    })
+    icosahedron_shape = makePolyhedron({
+        FACES: (function () {
+            let phi = (1 + Math.sqrt(5)) / 2, // golden ratio
+                x = 1 / 2,
+                y = 1 / (2 * phi);
+            x *= 3;
+            y *= 3;
+
+            return [
+                [
+                    [0, y, -x],
+                    [y, x, 0],
+                    [-y, x, 0]
+                ],
+                [
+                    [0, y, x],
+                    [-y, x, 0],
+                    [y, x, 0]
+                ],
+                [
+                    [0, y, x],
+                    [0, -y, x],
+                    [-x, 0, y]
+                ],
+                [
+                    [0, y, x],
+                    [x, 0, y],
+                    [0, -y, x]
+                ],
+                [
+                    [0, y, -x],
+                    [0, -y, -x],
+                    [x, 0, -y]
+                ],
+                [
+                    [0, y, -x],
+                    [-x, 0, -y],
+                    [0, -y, -x]
+                ],
+                [
+                    [0, -y, x],
+                    [y, -x, 0],
+                    [-y, -x, 0]
+                ],
+                [
+                    [0, -y, -x],
+                    [-y, -x, 0],
+                    [y, -x, 0]
+                ],
+                [
+                    [-y, x, 0],
+                    [-x, 0, y],
+                    [-x, 0, -y]
+                ],
+                [
+                    [-y, -x, 0],
+                    [-x, 0, -y],
+                    [-x, 0, y]
+                ],
+                [
+                    [y, x, 0],
+                    [x, 0, -y],
+                    [x, 0, y]
+                ],
+                [
+                    [y, -x, 0],
+                    [x, 0, y],
+                    [x, 0, -y]
+                ],
+                [
+                    [0, y, x],
+                    [-x, 0, y],
+                    [-y, x, 0]
+                ],
+                [
+                    [0, y, x],
+                    [y, x, 0],
+                    [x, 0, y]
+                ],
+                [
+                    [0, y, -x],
+                    [-y, x, 0],
+                    [-x, 0, -y]
+                ],
+                [
+                    [0, y, -x],
+                    [x, 0, -y],
+                    [y, x, 0]
+                ],
+                [
+                    [0, -y, -x],
+                    [-x, 0, -y],
+                    [-y, -x, 0]
+                ],
+                [
+                    [0, -y, -x],
+                    [y, -x, 0],
+                    [x, 0, -y]
+                ],
+                [
+                    [0, -y, x],
+                    [-y, -x, 0],
+                    [-x, 0, y]
+                ],
+                [
+                    [0, -y, x],
+                    [x, 0, y],
+                    [y, -x, 0]
+                ]
+            ];
+        })(),
+        SCALE: 20,
+        VERTEXES_SCALE: 0.03
+    })
+    tesseract_shape = makePolychoron({
+        VERTEXES: [
+            [ -1, 1, 1, 1 ],   [ 1, 1, 1, 1 ],
+            [ 1, -1, 1, 1 ],   [ -1, -1, 1, 1 ],
+            [ -1, 1, -1, 1 ],  [ 1, 1, -1, 1 ],
+            [ 1, -1, -1, 1 ],  [ -1, -1, -1, 1 ],
+            [ -1, 1, 1, -1 ],  [ 1, 1, 1, -1 ],
+            [ 1, -1, 1, -1 ],  [ -1, -1, 1, -1 ],
+            [ -1, 1, -1, -1 ], [ 1, 1, -1, -1 ],
+            [ 1, -1, -1, -1 ], [ -1, -1, -1, -1 ]
+        ],
+        FACES: [
+            // broken
+            [0,1,2,3], [7,6,5,4], [0,1,5,4], [1,2,6,5], [2,3,7,6], [3,0,4,7],
+            [8,9,10,11], [15,14,13,12], [8,9,13,12], [9,10,14,13], [10,11,15,14], [11,8,12,15],
+            [0,1,9,8],
+            [4,5,13,12],
+            [1,2,10,9],
+            [3,0,8,11],
+            [2,3,11,10],
+            [7,6,14,15],[5,6,14,13], [4,7,15,12]
+        ],
+        VERTEXES_SCALE: 0.1,
+        SCALE: 6
+    })
+}
+Class.fakecube = {
+    LABEL: "Fake Cube",
+    COLOR: "white",
+    PARENT: "cube",
+    SIZE: 10,
+    TYPE: "cube",
+    ACCEPTS_SCORE: false,
+    SHAPE: cube_shape,
+    MOTION_TYPE: "spin",
+    HITS_OWN_TYPE: "push",
+    DIE_AT_RANGE: true,
+    BODY: {
+        HEALTH: 1000000000000000000000000000000000000000000000000000000000000000000,
+        DAMAGE: 0.01,
+        RANGE: 450,
+        DENSITY: 1000000000000000000000000000000000000000000000000000000000000000000,
+        RESIST: 1000000000000000000000000000000000000000000000000000000000000000000,
+        SPEED: 0,
+        RESIST: 1.25,
+        PENETRATION: 17.5,
+        ACCELERATION: 0.002,
+        SPIN: 2,
+        DRAW_HEALTH: true
+    },
+}
+Class.faketetrahedron = {
+    LABEL: "Fake Tetrahedron",
+    COLOR: "white",
+    PARENT: "tetrahedron",
+    SIZE: 12,
+    TYPE: "tetrahedron",
+    ACCEPTS_SCORE: false,
+    SHAPE: tetrahedron_shape,
+    MOTION_TYPE: "spin",
+    HITS_OWN_TYPE: "push",
+    DIE_AT_RANGE: true,
+    BODY: {
+        HEALTH: 1000000000000000000000000000000000000000000000000000000000000000000,
+        DAMAGE: 0.01,
+        RANGE: 450,
+        DENSITY: 1000000000000000000000000000000000000000000000000000000000000000000,
+        RESIST: 1000000000000000000000000000000000000000000000000000000000000000000,
+        SPEED: 0,
+        RESIST: 1.25,
+        PENETRATION: 17.5,
+        ACCELERATION: 0.002,
+        SPIN: 2,
+        DRAW_HEALTH: true
+    },
+}
+Class.fakeoctahedron = {
+    LABEL: "Fake Octahedron",
+    COLOR: "white",
+    PARENT: "octahedron",
+    SIZE: 13,
+    TYPE: "octahedron",
+    ACCEPTS_SCORE: false,
+    SHAPE: octahedron_shape,
+    MOTION_TYPE: "spin",
+    HITS_OWN_TYPE: "push",
+    DIE_AT_RANGE: true,
+    BODY: {
+        HEALTH: 1000000000000000000000000000000000000000000000000000000000000000000,
+        DAMAGE: 0.01,
+        RANGE: 450,
+        DENSITY: 1000000000000000000000000000000000000000000000000000000000000000000,
+        RESIST: 1000000000000000000000000000000000000000000000000000000000000000000,
+        SPEED: 0,
+        RESIST: 1.25,
+        PENETRATION: 17.5,
+        ACCELERATION: 0.002,
+        SPIN: 2,
+        DRAW_HEALTH: true
+    },
+}
+Class.fakedodecahedron = {
+    LABEL: "Fake Dodecahedron",
+    COLOR: "white",
+    PARENT: "dodecahedron",
+    SIZE: 18,
+    TYPE: "dodecahedron",
+    ACCEPTS_SCORE: false,
+    SHAPE: dodecahedron_shape,
+    MOTION_TYPE: "spin",
+    HITS_OWN_TYPE: "push",
+    DIE_AT_RANGE: true,
+    BODY: {
+        HEALTH: 1000000000000000000000000000000000000000000000000000000000000000000,
+        DAMAGE: 0.01,
+        RANGE: 450,
+        DENSITY: 1000000000000000000000000000000000000000000000000000000000000000000,
+        RESIST: 1000000000000000000000000000000000000000000000000000000000000000000,
+        SPEED: 0,
+        RESIST: 1.25,
+        PENETRATION: 17.5,
+        ACCELERATION: 0.002,
+        SPIN: 2,
+        DRAW_HEALTH: true
+    },
+}
+Class.fakeicosahedron = {
+    LABEL: "Fake Icosahedron",
+    COLOR: "white",
+    PARENT: "icosahedron",
+    SIZE: 20,
+    TYPE: "icosahedron",
+    ACCEPTS_SCORE: false,
+    SHAPE: icosahedron_shape,
+    MOTION_TYPE: "spin",
+    HITS_OWN_TYPE: "push",
+    DIE_AT_RANGE: true,
+    BODY: {
+        HEALTH: 1000000000000000000000000000000000000000000000000000000000000000000,
+        DAMAGE: 0.01,
+        RANGE: 450,
+        DENSITY: 1000000000000000000000000000000000000000000000000000000000000000000,
+        RESIST: 1000000000000000000000000000000000000000000000000000000000000000000,
+        SPEED: 0,
+        RESIST: 1.25,
+        PENETRATION: 17.5,
+        ACCELERATION: 0.002,
+        SPIN: 2,
+        DRAW_HEALTH: true
+    },
+}
+Class.faketesseract = {
+    LABEL: "Fake Tesseract",
+    COLOR: "white",
+    PARENT: "tesseract",
+    SIZE: 25,
+    TYPE: "tesseract",
+    ACCEPTS_SCORE: false,
+    SHAPE: tesseract_shape,
+    MOTION_TYPE: "spin",
+    HITS_OWN_TYPE: "push",
+    DIE_AT_RANGE: true,
+    BODY: {
+        HEALTH: 1000000000000000000000000000000000000000000000000000000000000000000,
+        DAMAGE: 0.01,
+        RANGE: 450,
+        DENSITY: 1000000000000000000000000000000000000000000000000000000000000000000,
+        RESIST: 1000000000000000000000000000000000000000000000000000000000000000000,
+        SPEED: 0,
+        RESIST: 1.25,
+        PENETRATION: 17.5,
+        ACCELERATION: 0.002,
+        SPIN: 2,
+        DRAW_HEALTH: true
+    },
+}
 // Bosses
 Class.genericBoss = {
     PARENT: "genericTank",
@@ -534,21 +885,21 @@ Class.genericBoss = {
         hlt: 1,
         shi: 0.7,
         rgn: 0.7,
-        mob: 0
+        mob: 0,
     }),
     LEVEL: 45,
     CONTROLLERS: [["nearestDifferentMaster", { lockThroughWalls: true }], "canRepel"],
-    FACING_TYPE: ["spin", {speed: 0.04}],
+    FACING_TYPE: ['spin', {speed: 0.02}],
     HITS_OWN_TYPE: "hardOnlyBosses",
     BROADCAST_MESSAGE: "A visitor has left!",
     BODY: { PUSHABILITY: 0.05 }
-};
+}
 Class.miniboss = {
     PARENT: "genericBoss",
     RENDER_ON_LEADERBOARD: true,
     CONTROLLERS: ["nearestDifferentMaster", ["minion", {turnwiserange: 360}], "canRepel"],
-    AI: { NO_LEAD: true }
-};
+    AI: { NO_LEAD: true },
+}
 
 // Aura Components
 Class.auraBase = {
@@ -569,33 +920,33 @@ Class.auraBase = {
         HEALTH: 1e9,
         DENSITY: 0,
         SPEED: 0,
-        PUSHABILITY: 0
+        PUSHABILITY: 0,
     }
-};
+}
 Class.aura = {
     PARENT: "auraBase",
     LABEL: "Aura",
     COLOR: "teal",
     BODY: {
-        DAMAGE: 0.4
-    }
-};
+        DAMAGE: 0.4,
+    },
+}
 Class.healAura = {
     PARENT: "auraBase",
     LABEL: "Heal Aura",
-    COLOR: "red",
     HEALER: true,
+    COLOR: "red",
     BODY: {
-        DAMAGE: 0.4 / 3
-    }
-};
+        DAMAGE: 0.4 / 3,
+    },
+}
 Class.auraSymbol = {
     PARENT: "genericTank",
     CONTROLLERS: [["spin", {speed: -0.04}]],
     INDEPENDENT: true,
     COLOR: "teal",
-    SHAPE: [[-0.598, -0.7796], [-0.3817, -0.9053], [0.9688, -0.1275], [0.97, 0.125], [-0.3732, 0.9116], [-0.593, 0.785]]
-};
+    SHAPE: [[-0.598,-0.7796],[-0.3817,-0.9053],[0.9688,-0.1275],[0.97,0.125],[-0.3732,0.9116],[-0.593,0.785]]
+}
 
 // Server Travel Portal
 Class.portalAura = {
@@ -609,12 +960,12 @@ Class.portalAura = {
         DAMAGE: 0,
         DENSITY: 0,
         SPEED: 0,
-        PUSHABILITY: 0
+        PUSHABILITY: 0,
     },
     DIE_AT_RANGE: false,
     ON: [
         {
-            event: "tick",
+            event: 'tick',
             handler: ({ body }) => {
                 if (body.growing) {
                     body.SIZE += 1.2;
@@ -624,9 +975,9 @@ Class.portalAura = {
                     if (body.SIZE < 32) body.growing = true;
                 }
             }
-        }
-    ]
-};
+        },
+    ],
+}
 Class.serverPortal = {
     PARENT: "genericTank",
     LABEL: "Travel Portal",
@@ -640,7 +991,7 @@ Class.serverPortal = {
         SHIELD: 1e100,
         REGEN: 1e100,
         PUSHABILITY: 0,
-        DENSITY: 0
+        DENSITY: 0,
     },
     FACING_TYPE: "spin",
     HITS_OWN_TYPE: "never",
@@ -668,11 +1019,10 @@ Class.serverPortal = {
             event: "tick",
             handler: ({ body }) => {
                 for (let instance of entities.values()) {
-                    if (instance.immuneToPortals) continue;
                     let diffX = instance.x - body.x,
                         diffY = instance.y - body.y,
                         dist2 = diffX ** 2 + diffY ** 2;
-                    if (dist2 <= ((body.size / 12) * 250) ** 1.9) {
+                    if (dist2 <= ((body.size / 12)*250) ** 1.9) {
                         let forceMulti = (0.2 / instance.size);
                         if (instance.isPlayer && instance.socket) {
                             if (dist2 < body.size ** 2.5 + instance.size ** 2.5) forceMulti = (3 / instance.size);
@@ -689,7 +1039,8 @@ Class.serverPortal = {
                             instance.type === "bullet" ||
                             instance.type === "drone" ||
                             instance.type === "trap" ||
-                            instance.type === "minion") {
+                            instance.type === "minion")
+                        {
                             forceMulti = (3 / instance.size);
                             instance.velocity.x -= util.clamp(body.x - instance.x, -90, 90) * instance.damp * forceMulti;//0.05
                             instance.velocity.y -= util.clamp(body.y - instance.y, -90, 90) * instance.damp * forceMulti;//0.05
@@ -699,7 +1050,7 @@ Class.serverPortal = {
             }
         }
     ]
-};
+}
 for (let i = 0; i < 60; i++) {
     let spawnDelay = Math.random() * 252;
     if (spawnDelay < 20) spawnDelay = Math.random() * 4;
@@ -708,7 +1059,7 @@ for (let i = 0; i < 60; i++) {
         PROPERTIES: {
             SHOOT_SETTINGS: combineStats([
                 g.basic,
-                { shudder: 0, speed: 2.7, spray: 0, reload: 0.8, recoil: 0, range: 0.15 }
+                { shudder: 0, speed: 2.7, spray: 0, reload: 0.8, recoil: 0, range: 0.15 },
             ]),
             SYNCS_SKILLS: true,
             AUTOFIRE: true,
@@ -729,29 +1080,29 @@ for (let i = 0; i < 60; i++) {
                             }
                         }
                     ]
-                }
-            ]
-        }
+                },
+            ],
+        },
     });
-};
+}
 for (let i = 0; i < 2; i++) {
     if (i & 1) i++;
     Class.serverPortal.GUNS.push({
         POSITION: [2, 14, 1, 2.5, 0, 0, i],
         PROPERTIES: {
-            SHOOT_SETTINGS: combineStats([g.basic, {damage: 0, speed: 0, maxSpeed: 0, reload: 0.4, recoil: 0, size: 3}]),
+        SHOOT_SETTINGS: combineStats([g.basic,{damage: 0, speed: 0, maxSpeed: 0, reload: 0.4, recoil: 0, size: 3}]),
             TYPE: "portalAura",
             SYNCS_SKILLS: true,
             AUTOFIRE: true,
             NO_LIMITATIONS: true,
-            MAX_CHILDREN: 1
-        }
+            MAX_CHILDREN: 1,
+        },
     });
-};
+}
 
 // Technical
 Class.bot = {
-    FACING_TYPE: "looseToTarget",
+    FACING_TYPE: 'looseToTarget',
     CONTROLLERS: [
         "nearestDifferentMaster",
         "mapAltToFire",
@@ -761,15 +1112,12 @@ Class.bot = {
         ["wanderAroundMap", {replicatePlayerMovement: true, lookAtGoal: true}]
     ],
     AI: {IGNORE_SHAPES: true}
-};
+}
 Class.hp = { // HP for mothership or your custom gamemodes
     SHAPE: [],
     LABEL: "##% HP"
-};
-Class.selectionOrb = {
-    COLOR: "white"
-};
+}
 Class.tagMode = {
     SHAPE: "",
     LABEL: "Players"
-};
+}

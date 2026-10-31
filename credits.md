@@ -1,31 +1,28 @@
 # Active Developers
-- `TGS`: Current Project Owner, Creator of `aps-template` (original OSA)\
+Developers who are actively contributing to this project at the time of writing.
+- `TGS`: Project Co-Owner and creator of `aps-template` (original OSA)\
+- `AE0Hello`: Project Co-Owner, Mobile Controls, Daily Tanks, In-Game UI\
 - `Dogeiscut`: TODO\
+- `Helena`: March Madness\
 - `Toothless`: TODO\
-- `ZyraFAQ`: TODO\
 
 # Former Developers
-- `AE0Hello`: Former Project Owner, Mobile Controls, Daily Tanks, In-Game UI\
+Developers who used to be active but have either quit or stopped developing.
+- `Taureon`: Project Founder, Major Project Refactoring\
 - `Frostbyte`: Split upgrades, Dreadnoughts (V1 + V2 + V2AR)\
-- `Helena`: March Madness\
-- `Taureon`: Founder of `aps-plus-plus` (pre-rewrite OSA), Major Refactoring\
 - `Trioplane`: TODO\
 
 # Notable Contributors
-- `Anguisj`: Oroboros\
-- `DenisC!!!`: Hexagonal Grid, Growth Curve, 3D and 4D shapes\
-- `Dolan the Protogen`: Arms Race content, Meme tanks, Team Walls, Labyrinth\
-- `DRGNBOY`: Segmented 3D/4D shape colours\
+People who have submitted code to the project but are not official developers.
+- `DenisC!!!`: Accurate Growth Curve, 3D and 4D shapes\
 - `Excel`: Clan Wars\
 - `funny0_0`: More Maze Generations, Shiny Tanks, SVG Shapes, Kill Bars\
-- `Greninja9257`: Fixing the mockup sizes\
 - `kuoworic`: Precise Visual Tank Definitions\
 - `LA3T`: Custom Wall Collisions\
-- `Overlord K`: Meme tanks\
-- `pr2000`: Fireworks, Multiple GameServer instances via `worker_threads`, Editor\
-- `Wait What!?`: Snake code for Cocci/Rocket and Spiral branch bullets\
+- `pr2000`: Fireworks, Multiple GameServer Instances via `worker_threads`\
+- `Wait What!?`: Snake code for Cocci/Rocket and Spiral branch bullets
 
-# Special Thanks
-- `CX`: arras.io Developer\
-- `Damocles`: Former arras.io Developer, founder of `aps-plus`\
-- `nepphhh`: Original creator of arras.io
+# Main Developer
+This is the main developer of InfiniArras.io
+- 'xXBOSS55STEELXx/Project Infinite': Everything that has been added to this game/
+- AKA 'Boss55steel YT'

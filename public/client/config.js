@@ -1,5 +1,3 @@
-import { global } from "./global.js";
-import { translateServerMessage } from "./keybinds.js";
 const config = {
     graphical: {
         borderChunk: 6,
@@ -12,18 +10,14 @@ const config = {
         darkBorders: false,
         fancyAnimations: true,
         interpolation: false,
-        lerpAnimations: true,
-        smoothcamera: true,
+        lerpAnimations: false,
         lowResolution: false,
-        oldUIStyle: false,
         coloredNest: false,
-        colors: "normal",
+        colors: 'normal',
         pointy: true,
         showGrid: true,
-        hexaGrid: true,
-        gridDrawSize: 1,
         fontSizeBoost: 1.4,
-        fontStrokeRatio: 4.75,
+        fontStrokeRatio: 4.5,
         neon: false,
         coloredHealthbars: false,
         separatedHealthbars: false,
@@ -49,28 +43,25 @@ const config = {
         offset: +location.hash.match(/^(?:#debug_lag_offset=(\d+))?/)[1] || -50,
     },
     game: {
-        autoLevelUp: false,
+        autoLevelUp: true,
         centeredMinimap: false,
         incognitoMode: false,
-        deltaEntities: true,
-        rainbowTeamColors: false,
     }
-};
-export { config }
-
+  };
+  export { config }
 // globals.
 function createMessage(con, dur = 10_000, JSONMessage = false) {
     if (JSONMessage) {
         global.messages.push({
             text: "Nah that aint the text",
             faded: 0,
-            textJSON: JSON.parse(con).map(line => translateServerMessage(line)),
+            textJSON: JSON.parse(con),
             time: Date.now(),
             duration: dur,
         });
     } else {
         global.messages.push({
-            text: translateServerMessage(con),
+            text: con,
             faded: 0,
             time: Date.now(),
             duration: dur,
@@ -81,19 +72,21 @@ function resetTarget() {
     global.player.target.x = 0;
     global.player.target.y = 0;
 }
-global.tips = [
-    [
+import { global } from "./global.js";
+global.tips = [[
         "Tip: You can view and edit your keybinds in the options menu.",
-        `Tip: You can play on mobile by just going to ${window.location.host} on your phone!`,
-
+        "Tip: You can play on mobile by just going to infiniarras.io on your phone!" // TODO: make this automatically change to the host
+    ], [
         "Tip: You can have the shield and health bar be separated by going to the options menu.",
-        `Tip: If ${window.location.host} is having a low frame rate, you can try reducing your graphics level in the options menu.`,
-        //"Tip: You can edit or create your own theme in the options menu.",
-        `Tip: If you're new to the game, you can press T to see all of ${window.location.host}'s 100+ classes in the class tree.`,
-        "Tip: Tired of being targeted constantly when you're the leader? Try enabling incognito mode in the options menu.",
-
-        "You can sometimes see sneak peeks of content before it's released in our Discord and Reddit community!",
-        "Want to connect with other members of the community? Join our public Discord server!"
+        "Tip: If arras is having a low frame rate, you can try enabling low graphics in the options menu.",
+        "Tip: You can make traps rounded with the classic trap setting in the options menu.",
+        "Tip: You can create your own private server with the template in the link on the options menu.",
+        "Tip: You can create your own theme with the custom theme maker in the link on the options menu."
+    ], [
+        "Teaming in FFA or FFA Maze is frowned upon, but when taken to the extremes, you can be punished.",
+        "Witch hunting is when you continuously target someone and follow them. This is frowned upon, but when taken to the extremes, you can be punished.",
+        "Multiboxing is when you use a script to control multiple tanks at the same time. This is considered CHEATING and will result in a ban,",
+        "Try new [clans], you may find something cool!!!",
     ]
 ];
 global.createMessage = (content, duration, JSONMessageMode) => createMessage(content, duration, JSONMessageMode);

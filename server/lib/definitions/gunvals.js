@@ -20,7 +20,7 @@ module.exports = {
         recoil: 1.4,
         shudder: 0.1,
         damage: 0.75,
-        speed: 4,
+        speed: 5,
         spray: 15
     },
     drone: {
@@ -56,14 +56,6 @@ module.exports = {
         speed: 3.25,
         resist: 3,
         spray: 0
-    },
-    trapSpray: {
-        reload: 23,
-        shudder: 0.25,
-        size: 0.7,
-        damage: 0.75,
-        speed: 3.25,
-        resist: 3
     },
 
     // Spammers
@@ -124,19 +116,10 @@ module.exports = {
     },
     triplet: {
         reload: 1.2,
-        recoil: 2 / 3,
+        recoil: 2/3,
         shudder: 0.9,
         health: 0.85,
         damage: 0.85,
-        pen: 0.9,
-        density: 1.1,
-        spray: 0.9,
-        resist: 0.95
-    },
-    quintuplet: {
-        reload: 1.5,
-        recoil: 2 / 3,
-        shudder: 0.9,
         pen: 0.9,
         density: 1.1,
         spray: 0.9,
@@ -255,7 +238,7 @@ module.exports = {
     marksman: {
         pen: 2,
         damage: 0.12,
-        health: 25 / 3,
+        health: 25/3,
         reload: 1.75
 
     },
@@ -263,24 +246,12 @@ module.exports = {
     // Machine guns
     machineGun: {
         reload: 0.5,
+        recoil: 0.8,
         shudder: 1.7,
-        size: 0.8,
         health: 0.7,
         damage: 0.7,
         maxSpeed: 0.8,
         spray: 2.5
-    },
-    diesel: {
-        reload: 0.5,
-        recoil: 0.5,
-        size: 0.8,
-        range: 0.8,
-        spray: 2
-    },
-    jalopy: {
-        reload: 1 / 3,
-        recoil: 0.5,
-        spray: 5 / 3
     },
     minigun: {
         reload: 1.25,
@@ -334,7 +305,7 @@ module.exports = {
         resist: 1.2
     },
     machineGunner: {
-        reload: 2 / 3,
+        reload: 2/3,
         recoil: 0.8,
         shudder: 2,
         damage: 0.75,
@@ -355,22 +326,22 @@ module.exports = {
         spray: 1.5,
         resist: 0.8
     },
+    flamethrower: {
+        reload: 1.75,
+        recoil: 4/3,
+        shudder: 2,
+        size: 0.25,
+        health: 10,
+        damage: 0.2,
+        pen: 4,
+        speed: 2,
+        maxSpeed: 0,
+        range: 3,
+        density: 0.25
+    },
     gatlingGun: {
         reload: 1.25,
-        recoil: 4 / 3,
-        shudder: 0.8,
-        health: 0.8,
-        pen: 1.1,
-        speed: 1.25,
-        maxSpeed: 1.25,
-        range: 1.1,
-        density: 1.25,
-        spray: 0.5,
-        resist: 1.1
-    },
-    central: {
-        //reload: 1.25,
-        //recoil: 4 / 3,
+        recoil: 4/3,
         shudder: 0.8,
         health: 0.8,
         pen: 1.1,
@@ -507,13 +478,6 @@ module.exports = {
         maxSpeed: 1.5,
         density: 0.25
     },
-    dustStorm: {
-        reload: 1 / 3,
-        size: 1.35,
-        damage: 1 / 3,
-        speed: 0.75,
-        maxSpeed: 0.75
-    },
     sunchip: {
         reload: 4,
         size: 1.4,
@@ -549,21 +513,11 @@ module.exports = {
         range: 0.75,
         spray: 2
     },
-    honcho: {
-        reload: 5 / 3,
-        size: 1.5,
-        health: 1.5,
-        speed: 2 / 3
-    },
     bigCheese: {
-    //reload: 1.5,
-        size: 4 / 3,
-        //health: 4/3,
-        speed: 2 / 3
-    },
-    doper: { 
-        speed: 1.125, 
-        maxSpeed: 1.125 
+        reload: 1.5,
+        size: 1.8,
+        health: 2.5,
+        speed: 1.25
     },
     mothership: {
         reload: 1.25,
@@ -575,6 +529,7 @@ module.exports = {
     },
     satellite: {
         size: 0.8,
+        reload: 3,
         damage: 1.875
     },
 
@@ -582,14 +537,6 @@ module.exports = {
     spawner: {
         reload: 1.5,
         maxSpeed: 1.25
-    },
-    productionist: {
-        reload: 7 / 6,
-        recoil: 0.25,
-        shudder: 0.5,
-        speed: 4 / 3,
-        range: 1.5,
-        spray: 50
     },
 
     // Heavy cannons
@@ -607,9 +554,9 @@ module.exports = {
         recoil: 1.8,
         shudder: 0.5,
         health: 2,
-        damage: 0.9,
+        damage: 0.90,
         pen: 1.2,
-        speed: 0.5,
+        speed: 0.50,
         maxSpeed: 0.6,
         density: 2,
         resist: 3
@@ -751,20 +698,6 @@ module.exports = {
     },
 
     // Traps and blocks
-    pen: {
-        recoil: 0.75,
-        health: 1.02,
-        damage: 0.81,
-        pen: 0.9,
-        maxSpeed: 0.85,
-        density: 1.2
-    },
-    megaTrap: {
-        reload: 2,
-        damage: 2,
-        recoil: 2,
-        size: 5 / 3
-    },
     setTrap: {
         reload: 1.1,
         recoil: 2,
@@ -788,7 +721,7 @@ module.exports = {
         damage: 0.5,
         speed: 0.75,
         maxSpeed: 0.75,
-        range: 4 / 3
+        range: 4/3
     },
     nestKeeper: {
         reload: 3,
@@ -806,6 +739,7 @@ module.exports = {
         shudder: 1.25,
         speed: 0.8,
         range: 0.5
+   
     },
     trapperDominator: {
         reload: 1.46,
@@ -897,7 +831,7 @@ module.exports = {
 
     // Shiny menu
     worstTank: {
-        reload: 3,
+        reload: 15,
         damage: 0.01,
         health: 0.01,
         pen: 0.01
@@ -919,5 +853,5 @@ module.exports = {
         speed: 4.5,
         maxSpeed: 5.9,
         spray: 19
-    }
-};
+    },
+}

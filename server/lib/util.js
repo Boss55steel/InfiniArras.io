@@ -1,63 +1,61 @@
 /* jslint node: true */
 
-"use strict";
+'use strict';
 
 exports.addArticle = string => {
-    let article = /^[aeiou]/i.test(string) ? "an" : "a";
-    return `${article} ${string}`;
-};
+    let article = /^[aeiou]/i.test(string) ? 'an' : 'a'
+    return `${article} ${string}`
+}
 
-exports.getDistance = (p1, p2) => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+exports.getDistance = (p1, p2) => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2))
 
-exports.getDistanceSquared = (p1, p2) => Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2);
+exports.getDistanceSquared = (p1, p2) => Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)
 
-exports.getDirection = (p1, p2) => Math.atan2(p2.y - p1.y, p2.x - p1.x);
+exports.getDirection = (p1, p2) => Math.atan2(p2.y - p1.y, p2.x - p1.x)
 
-exports.clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+exports.clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
-exports.lerp = (value, target, scale) => value + scale * (target - value);
+exports.lerp = (value, target, scale) => value + scale * (target - value)
 
 exports.listify = list => {
-    if (list.length === 0) return "";
-    if (list.length === 1) return list[0];
-    if (list.length === 2) return `${list[0]} and ${list[1]}`;
+    if (list.length === 0) return ''
+    if (list.length === 1) return list[0]
+    if (list.length === 2) return `${list[0]} and ${list[1]}`
 
-    let output = "";
+    let output = ''
     for (let [i, item] of list.entries()) {
-        if (typeof item !== "string") throw Error(`Item #${i + 1} (${item} of list is not a string.`);
-        output += i !== list.length - 1 ? `${item}, ` : `and ${item}`;
+        if (typeof item !== 'string') throw Error(`Item #${i + 1} (${item} of list is not a string.`)
+        output += i !== list.length - 1 ? `${item}, ` : `and ${item}`
     }
-    return output;
-};
+    return output
+}
 
-exports.angleDifference = (a1, a2) => ((a2 - a1) % (2 * Math.PI) + Math.PI * 3) % (2 * Math.PI) - Math.PI;
+exports.angleDifference = (a1, a2) => ((a2 - a1) % (2 * Math.PI) + Math.PI * 3) % (2 * Math.PI) - Math.PI
 
-exports.interpolateAngle = (angle, desired, step) => angle + exports.angleDifference(angle, desired) * step;
+exports.interpolateAngle = (angle, desired, step) => angle + exports.angleDifference(angle, desired) * step
 
 exports.averageArray = arr => {
     if (!arr.length) return 0;
-    var sum = arr.reduce((a, b) => {
-        return a + b; 
-    });
+    var sum = arr.reduce((a, b) => { return a + b; });
     return sum / arr.length;
 };
 
 exports.sumArray = arr => {
-    if (!arr.length) return 0;
-    let sum = arr.reduce((a, b) => a + b);
-    return sum;
-};
+    if (!arr.length) return 0
+    let sum = arr.reduce((a, b) => a + b)
+    return sum
+}
 
-exports.signedSqrt = x => Math.sign(x) * Math.sqrt(Math.abs(x));
+exports.signedSqrt = x => Math.sign(x) * Math.sqrt(Math.abs(x))
 
-exports.getJackpot = x => x > 39450 ? Math.pow(x - 26300, 0.85) + 26300 : x / 1.5;
+exports.getJackpot = x => x > 39450 ? Math.pow(x - 26300, 0.85) + 26300 : x / 1.5
 
-exports.getReversedJackpot = x => x > 39450 ? Math.pow(x - 26300, 1.15) + 26300 : x * 1.5;
+exports.getReversedJackpot = x => x > 39450 ? Math.pow(x - 26300, 1.15) + 26300 : x * 1.5
 
 exports.rounder = (val, precision = 6) => {
     if (Math.abs(val) < 0.00001) val = 0;
     return +val.toPrecision(precision);
-};
+}
 
 
 
@@ -117,16 +115,15 @@ exports.deepClone = (obj, hash = new WeakMap()) => {
     if (hash.has(obj)) return hash.get(obj); // Cyclic reference
     try { // Try to run constructor (without arguments, as we don't know them)
         result = new obj.constructor();
-    } catch(e) { // Constructor failed, create object without running the constructor
+    } catch (e) { // Constructor failed, create object without running the constructor
         result = Object.create(Object.getPrototypeOf(obj));
     }
     // Optional: support for some standard constructors (extend as desired)
-    if (obj instanceof Map) {
+    if (obj instanceof Map)
         Array.from(obj, ([key, val]) => result.set(exports.deepClone(key, hash),
-            exports.deepClone(val, hash))); 
-    } else if (obj instanceof Set) {
-        Array.from(obj, (key) => result.add(exports.deepClone(key, hash))); 
-    }
+            exports.deepClone(val, hash)));
+    else if (obj instanceof Set)
+        Array.from(obj, (key) => result.add(exports.deepClone(key, hash)));
     // Register in hash    
     hash.set(obj, result);
     // Clone and assign enumerable own properties recursively
@@ -136,25 +133,20 @@ exports.deepClone = (obj, hash = new WeakMap()) => {
 
 exports.serverStartTime = Date.now();
 // Get a better logging function
-let lastStamp;
 exports.time = () => {
-    let t = Date.now() - exports.serverStartTime;
-    if (lastStamp === undefined) lastStamp = t;
-    else if (t < lastStamp) t = lastStamp + 1;
-    lastStamp = t;
-    return t;
+    return Date.now() - exports.serverStartTime;
 };
 
 // create a custom timestamp format for log statements
 
 exports.log = text => {
-    console.log(`[${(exports.time() / 1000).toFixed(3)}]: ${text}`);
+    console.log('[' + (exports.time() / 1000).toFixed(3) + ']: ' + text);
 };
 exports.saveToLog = (title, description, color) => {
-    console.log(`[!]: ${title} (#${color.toString(16).padStart(6, "0")})\n :: ${description}`);
-};
+    console.log("[!]: " + title + " (#" + color.toString(16).padStart(6, "0") + ")\n :: " + description);
+}
 exports.warn = text => {
-    console.log(`[${(exports.time() / 1000).toFixed(3)}]: [WARNING]: ${text}`);
+    console.log('[' + (exports.time() / 1000).toFixed(3) + ']: ' + '[WARNING]: ' + text);
 };
 exports.error = text => {
     console.log(text);
@@ -162,7 +154,7 @@ exports.error = text => {
 exports.remove = (array, index) => {
     // there is more than one object in the container
     if (index === array.length - 1) {
-    // special case if the obj is the newest in the container
+        // special case if the obj is the newest in the container
         return array.pop();
     } else {
         let o = array[index];
@@ -177,7 +169,7 @@ exports.forcePush = (object, property, ...items) => {
     } else {
         object[property] = [...items];
     }
-};
+}
 
 // Performance savings for define()
 exports.flattenDefinition = (output, definition) => {
@@ -186,15 +178,13 @@ exports.flattenDefinition = (output, definition) => {
     if (definition.PARENT) {
         if (!Array.isArray(definition.PARENT)) {
             exports.flattenDefinition(output, definition.PARENT);
-        } else {
-            for (let parent of definition.PARENT) {
-                exports.flattenDefinition(output, parent);
-            } 
+        } else for (let parent of definition.PARENT) {
+            exports.flattenDefinition(output, parent);
         }
     }
 
     for (let key in definition) {
-    // Skip parents
+        // Skip parents
         if (key === "PARENT") {
             continue;
         }
@@ -217,7 +207,5 @@ exports.flattenDefinition = (output, definition) => {
 exports.isStringified = (str) => { 
     try {  
         return JSON.parse(str);  
-    } catch(e) {
-        return str; 
-    } 
-};
+    } catch(e) { return str } 
+}

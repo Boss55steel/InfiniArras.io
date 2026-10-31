@@ -1,10 +1,15 @@
-const {makeMenu} = require("../../facilitators.js");
-const {base} = require("../../constants.js");
+const {makeMenu} = require('../../facilitators.js')
+const {base} = require('../../constants.js')
 
 Class.ramMiniboss = {
     PARENT: "genericBoss",
-    CONTROLLERS: ["nearestDifferentMaster", "canRepel", "mapTargetToGoal"]
-};
+    CONTROLLERS: ["nearestDifferentMaster", "canRepel", "mapTargetToGoal"],
+}
+
+Class.menu_rammers = makeMenu("Rammers", {upgrades: [
+    "bob",
+    "nemesis",
+], color: "aqua", boxColor: "aqua", props: [{TYPE: "dominationBody", POSITION: {SIZE: 21.5, ARC: 360 }}]})
 
 Class.bob = {
     PARENT: "ramMiniboss",
@@ -19,7 +24,7 @@ Class.bob = {
         DAMAGE: 5 * base.DAMAGE,
         REGEN: 8 * base.REGEN,
         FOV: 0.5 * base.FOV,
-        DENSITY: 6 * base.DENSITY
+        DENSITY: 6 * base.DENSITY,
     },
     CONTROLLERS: ["nearestDifferentMaster", "mapTargetToGoal"],
     TURRETS: [
@@ -36,7 +41,7 @@ Class.bob = {
             POSITION: [23.75, 0, 0, 0, 360, 0]
         }
     ]
-};
+}
 Class.nemesis = {
     PARENT: "bob",
     LABEL: "Nemesis",
@@ -47,6 +52,6 @@ Class.nemesis = {
         HEALTH: 1e6,
         DENSITY: 30,
         DAMAGE: 1e5,
-        FOV: 5
-    }
-};
+        FOV: 5,
+    },
+}
