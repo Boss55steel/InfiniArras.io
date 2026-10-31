@@ -69,7 +69,7 @@ Class.menu_celestials = makeMenu("Celestials", {upgrades: [
     "julius",
     "genghis",
     "napoleon",
-], color: "lime", boxColor: "lime", shape: 9.5, tooltip: preset.tooltip.menu_lag})
+], color: "lime", boxColor: "lime", shape: 9.5, tooltip: preset.menu_lag})
 
 let paladin = new LayeredBoss(null, "Paladin", "celestial", 9, "purple", "baseTrapTurret", 6.5, 5.5);
 paladin.addLayer({gun: {

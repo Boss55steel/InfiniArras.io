@@ -1,4 +1,4 @@
-const {combineStats, makeAura, deleteUpgrades, makeAuto, makeAutoArray, makeHat, makeBird, makeDrive, makeFlank, makeGuard, makeOver, makeRadialAuto, makeSnake, makeGunner, makeWhirlwind, weaponArray, weaponMirror, weaponStack} = require('../facilitators.js')
+const {combineStats, makeAura, removeUpgrades, makeAuto, makeAutoArray, makeHat, makeBird, makeBattle, makeFlank, makeGuard, makeOver, makeRadialAuto, makeSnake, makeGunner, makeWhirlwind, weaponArray, weaponMirror, weaponStack} = require('../facilitators.js')
 const {base, dfltskl, smshskl, statnames} = require('../constants.js')
 const g = require('../gunvals.js')
 const preset = require('../presets.js')
@@ -1411,7 +1411,34 @@ Class.volute = {
 Class.whirlwind_old = makeWhirlwind('genericTank', {hat: 'circleHat', hatSize: 24, hatLayer: 0, satellites: 6, satelliteType: 'satellite_old', label: "Whirlwind"})
 Class.whirlwind_old.UPGRADE_LABEL = "Old Whirlwind"
 Class.whirlwind_old.UPGRADES_TIER_3 = ['monsoon', 'maelstrom', 'tornado_old', 'typhoon_old', 'vortex_old']
-makeAutoArray(['trapper'], {tier: 1})
+Class.trapper = {
+    PARENT: "genericTank",
+    LABEL: "Trapper",
+    STAT_NAMES: statnames.trap,
+    GUNS: [
+        {
+            POSITION: {
+                LENGTH: 15,
+                WIDTH: 7
+            }
+        },
+        {
+            POSITION: {
+                LENGTH: 3,
+                WIDTH: 7,
+                ASPECT: 1.7,
+                X: 15
+            },
+            PROPERTIES: {
+                SHOOT_SETTINGS: combineStats([g.trap]),
+                TYPE: "trap",
+                STAT_CALCULATOR: "trap"
+            }
+        }
+    ],
+    UPGRADES_TIER_2: ["builder", "triTrapper", "trapGuard"],
+    UPGRADES_TIER_3: ["barricade", "overtrapper"]
+};
 Class.autoTrapper = makeAuto('trapper')
 
 // Tier 3
@@ -1505,7 +1532,7 @@ Class.annihilator = {
         }
     ]
 }
-Class.armsman = makeOver('rifle', "Armsman", preset.makeOver.hybrid)
+Class.armsman = makeOver('rifle', "Armsman", preset.hybrid)
 Class.architect = makeRadialAuto('architectGun', {isTurret: true, danger: 7, size: 12, label: "Architect", body: {SPEED: 1.1 * base.SPEED}}) // todo: fix this
 Class.assembler = {
     PARENT: 'genericTank',
@@ -1816,7 +1843,7 @@ Class.bender = {
     ]
 }
 Class.bentDouble = makeFlank('tripleShot', 2, "Bent Double", {extraStats: [g.doubleTwin]})
-Class.bentHybrid = makeOver('tripleShot', "Bent Hybrid", preset.makeOver.hybrid)
+Class.bentHybrid = makeOver('tripleShot', "Bent Hybrid", preset.hybrid)
 Class.bigCheese = {
     PARENT: 'genericTank',
     LABEL: "Big Cheese",
@@ -2454,7 +2481,7 @@ Class.construct = { // it's "construct" and not "constructor" because "construct
         }
     ]
 }
-Class.cropDuster = makeOver('minigun', "Crop Duster", preset.makeOver.hybrid)
+Class.cropDuster = makeOver('minigun', "Crop Duster", preset.hybrid)
 Class.crossbow = {
     PARENT: 'genericTank',
     LABEL: "Crossbow",
@@ -3324,7 +3351,7 @@ Class.hewnDouble = {
 }
 Class.hexaTrapper = makeAuto(makeFlank('trapper', 6, "", {extraStats: [g.hexaTrapper], delayIncrement: 0.5, danger: 6}), "Hexa-Trapper")
 Class.hexaWhirl = makeWhirlwind('hexaTank', {label: "Hexa Whirl"})
-Class.hybrid = makeOver('destroyer', "Hybrid", preset.makeOver.hybrid)
+Class.hybrid = makeOver('destroyer', "Hybrid", preset.hybrid)
 Class.infestor = {
     PARENT: 'genericTank',
     LABEL: "Infestor",
@@ -4056,7 +4083,7 @@ Class.oroboros = {
         })
     ]
 }
-Class.overdrive = makeDrive('overseer', {label: "Overdrive"})
+Class.overdrive = makeBattle('overseer', {label: "Overdrive"})
 Class.overgunner = makeOver({
     PARENT: 'genericTank',
     LABEL: "Gunner",
@@ -4236,7 +4263,7 @@ Class.pentaShot = {
     ]
 }
 Class.phoenix = makeBird('sprayer', "Phoenix")
-Class.poacher = makeOver('hunter', "Poacher", preset.makeOver.hybrid)
+Class.poacher = makeOver('hunter', "Poacher", preset.hybrid)
 Class.predator = {
     PARENT: 'genericTank',
     LABEL: "Predator",
@@ -6657,29 +6684,29 @@ if (Config.retrograde) {
 
 if (Config.siege) {
     Class.basic.UPGRADES_TIER_2 = ['healer']
-    deleteUpgrades('director', 2, ['underseer'])
-    deleteUpgrades('whirlwind', 3, ['prophet'])
+    removeUpgrades('director', 2, ['underseer'])
+    removeUpgrades('whirlwind', 3, ['prophet'])
 }
 
 if (Config.dreadwars) {
     Class.basic.UPGRADES_TIER_2 = ['dreadSnowdread', 'dreadnought_dreadsV2', 'dreadnought_dreadsV1', 'dreadSD', 'dreadZd', 'dreadND'];
-    deleteUpgrades('whirlwind', 3, ['prophet']);
-    deleteUpgrades('twin', 3, ['prophet']);
-    deleteUpgrades('sniper', 3, ['prophet']);
-    deleteUpgrades('director', 3, ['prophet']);
-    deleteUpgrades('pounder', 3, ['prophet']);
-    deleteUpgrades('trapper', 3, ['prophet']);
-    deleteUpgrades('desmos', 3, ['prophet']);
+    removeUpgrades('whirlwind', 3, ['prophet']);
+    removeUpgrades('twin', 3, ['prophet']);
+    removeUpgrades('sniper', 3, ['prophet']);
+    removeUpgrades('director', 3, ['prophet']);
+    removeUpgrades('pounder', 3, ['prophet']);
+    removeUpgrades('trapper', 3, ['prophet']);
+    removeUpgrades('desmos', 3, ['prophet']);
 }
 
 if (Config.corrupted_tanks) {
     Class.basic.UPGRADES_TIER_1 = ['corruptedLobby'];
-    deleteUpgrades('whirlwind', 3, ['prophet']);
-    deleteUpgrades('twin', 3, ['prophet']);
-    deleteUpgrades('sniper', 3, ['prophet']);
-    deleteUpgrades('director', 3, ['prophet']);
-    deleteUpgrades('pounder', 3, ['prophet']);
-    deleteUpgrades('trapper', 3, ['prophet']);
-    deleteUpgrades('desmos', 3, ['prophet']);
-    deleteUpgrades('smasher', 3, ['prophet']);
+    removeUpgrades('whirlwind', 3, ['prophet']);
+    removeUpgrades('twin', 3, ['prophet']);
+    removeUpgrades('sniper', 3, ['prophet']);
+    removeUpgrades('director', 3, ['prophet']);
+    removeUpgrades('pounder', 3, ['prophet']);
+    removeUpgrades('trapper', 3, ['prophet']);
+    removeUpgrades('desmos', 3, ['prophet']);
+    removeUpgrades('smasher', 3, ['prophet']);
 }

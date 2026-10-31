@@ -1,6 +1,6 @@
 // Global Variables (These must come before we import from the modules folder.)
-let EventEmitter = require('events');
-const HashGrid = require('../lib/hashgrid.js');
+let EventEmitter = require("events");
+const HashGrid = require("../lib/hashgrid.js");
 global.Events = new EventEmitter();
 global.Config = require("../config.js");
 
@@ -11,6 +11,7 @@ global.mazeGenerator = require("../miscFiles/mazeGenerator.js");
 global.grid = new HashGrid(7);
 global.cannotRespawn = false;
 global.mockupData = [];
+global.mockupMap = {};
 global.entities = new Map();
 global.targetableEntities = new Map();
 global.unspawnableTeam = [];
@@ -93,24 +94,25 @@ global.getWeakestTeam = () => {
     let lowestTeamCount = Math.min(...teamCounts.map(x => x[1])),
         entries = teamCounts.filter(a => a[1] == lowestTeamCount);
 
-        // If there are no entites that are in teams list, spawn on the blue team first.
-        let checkIfEmpty = 0;
-        for (let team of entries) {
-            if (team[1] === 0) checkIfEmpty++;
-            if (checkIfEmpty === teamCounts.length) {
-                for (let team of entries) {
-                    if (team[0] == "-1") {
-                        entries = [team];
-                    }
+    // If there are no entites that are in teams list, spawn on the blue team first.
+    let checkIfEmpty = 0;
+    for (let team of entries) {
+        if (team[1] === 0) checkIfEmpty++;
+        if (checkIfEmpty === teamCounts.length) {
+            for (let team of entries) {
+                if (team[0] == "-1") {
+                    entries = [team];
                 }
-            };
-        }
+            }
+        };
+    }
     return parseInt(!entries.length ? -Math.ceil(Math.random() * Config.teams) : ran.choose(entries)[0]);
 };
 global.getRandomTeam = () => -Math.floor(Math.random() * 3000) + 1;
 
 global.Class = {};
 global.tileClass = {};
+global.classMap = new Map();
 global.definitionsWaiter = false;
 
 global.ensureIsClass = str => {
@@ -121,12 +123,11 @@ global.ensureIsClass = str => {
         return Class[str];
     };
 
-    throw Error(`Definition "${str}" was attempted to be gotten but does not exist!`);
 }
 
 global.ensureIsManager = str => {
     if ("undefined" == typeof str) {
-        console.error(`No game manager detected! Please check your code.`);
+        console.error("No game manager detected! Please check your code.");
         throw new Error("No game manager detected!");
     }
     return str;
@@ -139,6 +140,7 @@ global.setSyncedTimeout = (callback, ticks = 0, ...args) => tickEvents.once(tick
 
 global.bringToLife = (() => {
     return my => {
+        let now = Date.now();
         // Size animation
         if (my.permanentSize) {
             my.coreSize = my.permanentSize;
@@ -165,7 +167,7 @@ global.bringToLife = (() => {
             fire: faucet.fire,
             main: faucet.main,
             alt: faucet.alt,
-            power: undefined,
+            power: undefined
         };
 
         // Attention craver
@@ -197,9 +199,27 @@ global.bringToLife = (() => {
         my.control.power = b.power == null ? 1 : b.power;
 
         // React
-        my.move();
+        my.move(now);
         my.face();
         my.updateBodyInfo();
+
+        // Handle upgrade pending
+        if (my.isPlayer && my.upgradePending) {
+            let lastAction = Math.max(my.lastMovementTime, my.lastFiredTime);
+            let waitSec = Math.ceil(Config.upgrade_delay / 1000);
+            if (my.index !== my.upgradePending.lastIndex) {
+                my.upgradePending = undefined;
+                my.sendMessage("Upgrade cancelled.");
+                return;
+            }
+            if (my.inBase() || now - lastAction >= Config.upgrade_delay) {
+                my.upgrade(my.upgradePending.number, my.upgradePending.branch, true, my.upgradePending.dailyTankRequest);
+                my.upgradePending = undefined;
+            } else if (!my.inBase() && now - (my.upgradePending.lastReminder ?? 0) >= Config.upgrade_delay_reminder) {
+                my.upgradePending.lastReminder = now;
+                my.sendMessage(`You must stay still for ${waitSec} seconds without firing to upgrade.`);
+            }
+        }
 
         // Guns and turrets
         if (my.guns) {
@@ -214,65 +234,67 @@ global.bringToLife = (() => {
     }
 })();
 global.runMove = (() => {
-    return my => {
+    return (my, now = Date.now()) => {
         let g = { x: my.control.goal.x - my.x, y: my.control.goal.y - my.y },
             gactive = (g.x !== 0 || g.y !== 0),
-            engine = { x: 0, y: 0, },
+            engine = { x: 0, y: 0 },
             a = my.acceleration / global.gameManager.roomSpeed;
+        if (gactive && my.lastMovementTime) my.lastMovementTime = now;
+        if (my.control.fire && my.lastFiredTime) my.lastFiredTime = now;
         switch (my.motionType) {
-            case 'grow':
+            case "grow":
                 my.SIZE += my.motionTypeArgs.speed ?? 1;
                 break;
-            case 'glide':
+            case "glide":
                 my.maxSpeed = my.topSpeed;
                 my.damp = my.motionTypeArgs.damp ?? 0.05;
                 break;
-            case 'motor':
+            case "motor":
                 my.maxSpeed = 0;
                 if (my.topSpeed) {
                     my.damp = a / my.topSpeed;
                 }
                 if (gactive) {
                     let len = Math.sqrt(g.x * g.x + g.y * g.y);
-                    engine = { x: a * g.x / len, y: a * g.y / len, };
+                    engine = { x: a * g.x / len, y: a * g.y / len };
                 }
                 break;
-            case 'swarm':
+            case "swarm":
                 my.maxSpeed = my.topSpeed;
-                let l = util.getDistance({ x: 0, y: 0, }, g) + 1;
+                let l = util.getDistance({ x: 0, y: 0 }, g) + 1;
                 if (gactive && l > my.size) {
                     let desiredxspeed = my.topSpeed * g.x / l,
                         desiredyspeed = my.topSpeed * g.y / l,
                         turning = Math.sqrt((my.topSpeed * Math.max(1, my.motionTypeArgs.turnVelocity ?? my.range) + 1) / a);
                     engine = {
                         x: (desiredxspeed - my.velocity.x) / Math.max(5, turning),
-                        y: (desiredyspeed - my.velocity.y) / Math.max(5, turning),
+                        y: (desiredyspeed - my.velocity.y) / Math.max(5, turning)
                     };
                 } else {
                     if (my.velocity.length < my.topSpeed) {
                         engine = {
                             x: my.velocity.x * a / 20,
-                            y: my.velocity.y * a / 20,
+                            y: my.velocity.y * a / 20
                         };
                     }
                 }
                 break;
-            case 'chase':
+            case "chase":
                 if (gactive) {
-                    let l = util.getDistance({ x: 0, y: 0, }, g);
+                    let l = util.getDistance({ x: 0, y: 0 }, g);
                     if (l > my.size * 2) {
                         my.maxSpeed = my.topSpeed;
                         let desiredxspeed = my.topSpeed * g.x / l,
                             desiredyspeed = my.topSpeed * g.y / l;
                         engine = {
                             x: (desiredxspeed - my.velocity.x) * a,
-                            y: (desiredyspeed - my.velocity.y) * a,
+                            y: (desiredyspeed - my.velocity.y) * a
                         };
                     } else if (my.motionTypeArgs.keepSpeed) {
                         if (my.velocity.length < my.topSpeed) {
                             engine = {
                                 x: my.velocity.x * a / 20,
-                                y: my.velocity.y * a / 20,
+                                y: my.velocity.y * a / 20
                             };
                         }
                     } else my.maxSpeed = 0;
@@ -280,14 +302,14 @@ global.runMove = (() => {
                     if (my.velocity.length < my.topSpeed) {
                         engine = {
                             x: my.velocity.x * a / 20,
-                            y: my.velocity.y * a / 20,
+                            y: my.velocity.y * a / 20
                         };
                     }
                 } else my.maxSpeed = 0;
                 break;
-            case 'drift':
+            case "drift":
                 my.maxSpeed = 0;
-                engine = { x: g.x * a, y: g.y * a, };
+                engine = { x: g.x * a, y: g.y * a };
                 break;
             case "withMaster":
                 my.x = my.source.x;
@@ -331,18 +353,18 @@ global.runFace = (() => {
             case "spinWhenIdle":
                 if (t && my.control.fire) my.facing = Math.atan2(t.y, t.x); else my.facing += (my.facingTypeArgs.speed ?? 0.05) / global.gameManager.runSpeed;
                 break;
-            case 'turnWithSpeed':
+            case "turnWithSpeed":
                 my.facing += my.velocity.length / 90 * Math.PI / global.gameManager.roomSpeed * (my.facingTypeArgs.multiplier ?? 1);
                 break;
-            case 'withMotion':
+            case "withMotion":
                 my.facing = my.velocity.direction;
                 break;
-            case 'smoothWithMotion':
-            case 'looseWithMotion':
+            case "smoothWithMotion":
+            case "looseWithMotion":
                 my.facing += util.loopSmooth(my.facing, my.velocity.direction, (my.facingTypeArgs.smoothness ?? 4) / global.gameManager.roomSpeed);
                 break;
-            case 'withTarget':
-            case 'toTarget':
+            case "withTarget":
+            case "toTarget":
                 if (my.eastereggs.braindamage) return;
                 if (my.isPlayer) {
                     let reverse = my.reverseTargetWithTank ? 1 : my.reverseTank;
@@ -351,28 +373,26 @@ global.runFace = (() => {
                     my.facing = Math.atan2(t.y, t.x);
                 }
                 break;
-            case 'locksFacing':
+            case "locksFacing":
                 if (!my.control.alt) my.facing = Math.atan2(t.y, t.x);
                 break;
-            case 'looseWithTarget':
-            case 'looseToTarget':
-            case 'smoothToTarget':
+            case "looseWithTarget":
+            case "looseToTarget":
+            case "smoothToTarget":
                 my.facing += util.loopSmooth(my.facing, Math.atan2(t.y, t.x), (my.facingTypeArgs.smoothness ?? 4) / global.gameManager.roomSpeed);
                 break;
             case "noFacing":
                 if (my.lastSavedFacing !== my.facing) my.facing = my.facingTypeArgs.angle ?? 0;
                 my.lastSavedFacing = my.facing;
                 break;
-            case 'bound':
+            case "bound":
                 defaultBound();
                 break;
             case "spinOnFire":
                 if (t && my.control.fire) my.facing += util.loopSmooth(my.facing, my.facing += 1, (my.facingTypeArgs.smoothness ?? 4) / global.gameManager.runSpeed); else defaultBound();
                 break;
             case "manual":
-                if ((my.facingTypeArgs.angle ?? 0) !== my.facing) {
-                    my.facing = my.facingTypeArgs.angle;
-                }
+                if ((my.facingTypeArgs.angle ?? 0) !== my.facing) my.facing = my.facingTypeArgs.angle;
                 break;
         }
         // Loop
@@ -465,29 +485,30 @@ global.defineSplit = (() => {
             my.addController(toAdd);
         }
         if (set.BATCH_UPGRADES != null) my.batchUpgrades = set.BATCH_UPGRADES;
-        for (let i = 0; i < Config.tier_cap; i++) {
-            let tierProp = 'UPGRADES_TIER_' + i;
-            if (set[tierProp] != null && emitEvent) {
-                for (let j = 0; j < set[tierProp].length; j++) {
-                    let upgrades = set[tierProp][j];
-                    let index = "";
-                    if (!Array.isArray(upgrades)) upgrades = [upgrades];
-                    let redefineAll = upgrades.includes(true);
-                    let trueUpgrades = upgrades.slice(0, upgrades.length - redefineAll); // Ignore last element if it's true
-                    for (let k of trueUpgrades) {
-                        let e = ensureIsClass(k);
-                        index += e.index + "-";
-                    }
-                    my.upgrades.push({
-                        class: trueUpgrades,
-                        level: Config.tier_multiplier * i,
-                        index: index.substring(0, index.length - 1),
-                        tier: i,
-                        branch,
-                        branchLabel: my.branchLabel,
-                        redefineAll,
-                    });
+        for (const prop in set) {
+            if (!prop.startsWith("UPGRADES_TIER_")) {
+                continue;
+            }
+            for (let j = 0; j < set[prop].length; j++) {
+                let upgrades = set[prop][j];
+                let index = "";
+                if (!Array.isArray(upgrades)) upgrades = [upgrades];
+                let redefineAll = upgrades.includes(true);
+                let trueUpgrades = upgrades.slice(0, upgrades.length - redefineAll); // Ignore last element if it's true
+                for (let k of trueUpgrades) {
+                    let e = ensureIsClass(k);
+                    index += e.index + "-";
                 }
+                let i = parseInt(prop.split("_")[2])
+                my.upgrades.push({
+                    class: trueUpgrades,
+                    level: Config.tier_multiplier * i,
+                    index: index.substring(0, index.length - 1),
+                    tier: i,
+                    branch,
+                    branchLabel: my.branchLabel,
+                    redefineAll
+                });
             }
         }
         if (set.REROOT_UPGRADE_TREE) my.rerootUpgradeTree = set.REROOT_UPGRADE_TREE;
@@ -508,14 +529,16 @@ global.handleBatchUpgradeSplit = (() => {
                 chooseUpgradeFromBranch(remaining - 1, my);
             }
             if (branchUgrades.length == 0) // For when the branch has no upgrades
-                chooseUpgradeFromBranch(remaining - 1, my);
+            {
+                chooseUpgradeFromBranch(remaining - 1, my); 
+            }
         } else { // If there's nothing more to select
             let upgradeClass = [],
                 upgradeTier = 0,
                 upgradeIndex = "";
             for (let u of my.selection) {
                 upgradeClass.push(u.class);
-                upgradeIndex += u.index + '-';
+                upgradeIndex += u.index + "-";
                 upgradeTier = Math.max(upgradeTier, u.tier);
             }
             my.upgrades.push({
@@ -525,7 +548,7 @@ global.handleBatchUpgradeSplit = (() => {
                 tier: upgradeTier,
                 branch: 0,
                 branchLabel: "",
-                redefineAll: true,
+                redefineAll: true
             });
         }
     }
@@ -590,8 +613,10 @@ global.flatten = (output, definition) => {
     if (definition.PARENT) {
         if (!Array.isArray(definition.PARENT)) {
             flatten(output, definition.PARENT);
-        } else for (let parent of definition.PARENT) {
-            flatten(output, parent);
+        } else {
+            for (let parent of definition.PARENT) {
+                flatten(output, parent);
+            } 
         }
     }
 
@@ -614,15 +639,15 @@ global.convertExportsToClass = (exp) => {
 };
 
 global.makeHitbox = wall => {
-    const _size = wall.size - 4;
+    const z = wall.size - 4;
     //calculate the relative corners
     let relativeCorners = [
-            Math.atan2(    _size,     _size) + wall.angle,
-            Math.atan2(0 - _size,     _size) + wall.angle,
-            Math.atan2(0 - _size, 0 - _size) + wall.angle,
-            Math.atan2(    _size, 0 - _size) + wall.angle
+            Math.atan2(z, z) + wall.angle,
+            Math.atan2(0 - z, z) + wall.angle,
+            Math.atan2(0 - z, 0 - z) + wall.angle,
+            Math.atan2(z, 0 - z) + wall.angle
         ],
-        distance = Math.sqrt(_size ** 2 + _size ** 2);
+        distance = Math.sqrt(z ** 2 + z ** 2);
 
     //convert 4 corners into 4 lines
     for (let i = 0; i < 4; i++) {
@@ -642,17 +667,17 @@ global.makeHitbox = wall => {
 }
 
 global.wallTypes = [
-    { color: 16, label: 'Wall',    alpha: 1, class: 'wall' },
-    { color: 12, label: 'deadly',  alpha: 1, class: 'wall' },
-    { color: 11, label: 'heal',    alpha: 1, class: 'wall' },
-    { color: 19, label: 'bouncy',  alpha: 1, class: 'wall' },
-    { color: 5,  label: 'breaker', alpha: 1, class: 'wall' },
-    { color: 0,  label: 'chunks',  alpha: 1, class: 'wall' },
-    { color: 13, label: 'optical', alpha: 1, class: 'eyewall' },
-    { color: 17, label: '!up',     alpha: 1, class: 'oneWayUpWall' },
-    { color: 17, label: '!down',   alpha: 1, class: 'oneWayDownWall' },
-    { color: 17, label: '!left',   alpha: 1, class: 'oneWayLeftWall' },
-    { color: 17, label: '!right',  alpha: 1, class: 'oneWayRightWall' },
+    { color: 16, label: "Wall",    alpha: 1, class: "wall" },
+    { color: 12, label: "deadly",  alpha: 1, class: "deadlyWall" },
+    { color: 11, label: "heal",    alpha: 1, class: "healingWall" },
+    { color: 19, label: "bouncy",  alpha: 1, class: "bouncyWall" },
+    { color: 5,  label: "breaker", alpha: 1, class: "breakerWall" },
+    { color: 0,  label: "chunks",  alpha: 1, class: "chunksWall" },
+    { color: 13, label: "optical", alpha: 1, class: "opticalWall" },
+    { color: 17, label: "!up",     alpha: 1, class: "oneWayWallUp" },
+    { color: 17, label: "!down",   alpha: 1, class: "oneWayWallDown" },
+    { color: 17, label: "!left",   alpha: 1, class: "oneWayWallLeft" },
+    { color: 17, label: "!right",  alpha: 1, class: "oneWayWallRight" }
 ];
 
 global.becomeBulletChildren = (socket, player, exit, newgui) => {
@@ -696,6 +721,6 @@ global.loadAllMockups = (logText = true) => {
     if (logText) console.log("Started Loading All Mockups...");
     for (let k in Class) buildMockup(k, false);
     let mockupsLoadEndTime = performance.now();
-    if (logText) console.log("Finished created " + mockupData.length + " MockupEntities.");
-    if (logText) console.log("Mockups generated in " + util.rounder(mockupsLoadEndTime - mockupsLoadStartTime, 3) + " milliseconds.\n");
+    if (logText) console.log(`Loaded ${mockupData.length} MockupEntities.`);
+    if (logText) console.log(`Mockups generated in ${util.rounder(mockupsLoadEndTime - mockupsLoadStartTime, 3)} milliseconds.\n`);
 }
